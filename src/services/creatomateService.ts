@@ -66,26 +66,17 @@ export class CreatomateService {
     
     // Start rendering with the URLs
     const modifications: any = {
-      [template.packshotField]: {
-        provider: "url",
-        url: packshotUrl
-      },
+      [template.packshotField]: packshotUrl,
     };
     
     // Add main video field(s)
     if (template.mainVideoField.includes(',')) {
       // Multiple main video fields (like for square template)
       template.mainVideoField.split(',').forEach(field => {
-        modifications[field.trim()] = {
-          provider: "url", 
-          url: videoUrl
-        };
+        modifications[field.trim()] = videoUrl;
       });
     } else {
-      modifications[template.mainVideoField] = {
-        provider: "url",
-        url: videoUrl
-      };
+      modifications[template.mainVideoField] = videoUrl;
     }
 
     const renderRequest: CreatomateRenderRequest = {
@@ -177,23 +168,23 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     name: '9:16 Вертикальное',
     size: 'vertical',
     dimensions: '1080x1920',
-    mainVideoField: 'Main_Video.provider',
-    packshotField: 'Packshot.provider'
+    mainVideoField: 'Main_Video',
+    packshotField: 'Packshot'
   },
   {
     id: 'c9aa2c57-d883-4a1e-85dd-020f4e911a70',
     name: '16:9 Горизонтальное',
     size: 'horizontal',
     dimensions: '1920x1080',
-    mainVideoField: 'Main_Video-HW8.provider',
-    packshotField: 'Packshot.provider'
+    mainVideoField: 'Main_Video-HW8',
+    packshotField: 'Packshot'
   },
   {
     id: '41e18070-2198-43f2-9503-807fbbd5f749',
     name: '1:1 Квадратное',
     size: 'square',
     dimensions: '1080x1080',
-    mainVideoField: 'Main_Video-HXB.provider, Main_Video.provider',
-    packshotField: 'Packshot.provider'
+    mainVideoField: 'Main_Video-HXB, Main_Video',
+    packshotField: 'Packshot'
   }
 ];
