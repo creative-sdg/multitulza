@@ -66,17 +66,26 @@ export class CreatomateService {
     
     // Start rendering with the URLs
     const modifications: any = {
-      [template.packshotField]: packshotUrl,
+      [template.packshotField]: {
+        provider: "url",
+        url: packshotUrl
+      },
     };
     
     // Add main video field(s)
     if (template.mainVideoField.includes(',')) {
       // Multiple main video fields (like for square template)
       template.mainVideoField.split(',').forEach(field => {
-        modifications[field.trim()] = videoUrl;
+        modifications[field.trim()] = {
+          provider: "url", 
+          url: videoUrl
+        };
       });
     } else {
-      modifications[template.mainVideoField] = videoUrl;
+      modifications[template.mainVideoField] = {
+        provider: "url",
+        url: videoUrl
+      };
     }
 
     const renderRequest: CreatomateRenderRequest = {
