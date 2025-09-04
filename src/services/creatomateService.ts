@@ -193,19 +193,19 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     packshotField: 'Packshot.provider'
   },
   {
-    id: '41e18070-2198-43f2-9503-807fbbd5f749',
-    name: '1:1 Квадратное',
-    size: 'square',
-    dimensions: '1080x1080',
-    mainVideoField: 'Main_Video-HXB.provider, Main_Video.provider',
-    packshotField: 'Packshot.provider'
-  },
-  {
     id: 'c9aa2c57-d883-4a1e-85dd-020f4e911a70',
     name: '16:9 Горизонтальное',
     size: 'horizontal',
     dimensions: '1920x1080',
     mainVideoField: 'Main_Video-HW8.provider',
+    packshotField: 'Packshot.provider'
+  },
+  {
+    id: '41e18070-2198-43f2-9503-807fbbd5f749',
+    name: '1:1 Квадратное',
+    size: 'square',
+    dimensions: '1080x1080',
+    mainVideoField: 'Main_Video-HXB.provider, Main_Video.provider',
     packshotField: 'Packshot.provider'
   }
 ];
