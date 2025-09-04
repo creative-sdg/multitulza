@@ -3,8 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Play, Download, Zap, Video, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Upload, Play, Download, Zap, Video, Settings, Key } from 'lucide-react';
 import { toast } from 'sonner';
+import { CreatomateService, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
 
 interface VideoVariant {
   id: string;
@@ -22,6 +25,8 @@ const VideoGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
 
   const videoSizes = [
     { id: 'square', name: '1:1 Square', dimensions: '1080x1080' },
@@ -48,63 +53,95 @@ const VideoGenerator = () => {
       return;
     }
 
+    if (!apiKey.trim()) {
+      toast.error('Введите API ключ Creatomate');
+      return;
+    }
+
+    const service = new CreatomateService(apiKey);
+    setCreatomateService(service);
     setIsGenerating(true);
     setOverallProgress(0);
 
-    // Create all 6 combinations
-    const newVariants: VideoVariant[] = [];
-    videoSizes.forEach(size => {
-      endings.forEach(ending => {
-        newVariants.push({
-          id: `${size.id}_${ending.id}`,
-          name: `${size.name} - ${ending.name}`,
-          size: size.dimensions,
-          ending: ending.description,
-          status: 'pending',
-          progress: 0
-        });
-      });
-    });
+    // Create all 6 combinations using Creatomate templates
+    const newVariants: VideoVariant[] = CREATOMATE_TEMPLATES.map(template => ({
+      id: template.id,
+      name: template.name,
+      size: template.size,
+      ending: template.ending,
+      status: 'pending' as const,
+      progress: 0
+    }));
 
     setVariants(newVariants);
 
-    // Simulate generation process
-    for (let i = 0; i < newVariants.length; i++) {
-      const variant = newVariants[i];
-      
-      // Update variant status to generating
+    // Process each template
+    const renderPromises = newVariants.map(variant => 
+      processVariant(service, variant, sourceVideo)
+    );
+
+    try {
+      await Promise.all(renderPromises);
+      toast.success('Все варианты видео готовы!');
+    } catch (error) {
+      toast.error('Ошибка при генерации видео');
+      console.error('Generation error:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const processVariant = async (service: CreatomateService, variant: VideoVariant, videoFile: File) => {
+    try {
+      // Update status to generating
       setVariants(prev => prev.map(v => 
         v.id === variant.id ? { ...v, status: 'generating' } : v
       ));
 
-      // Simulate progress
-      for (let progress = 0; progress <= 100; progress += 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // Start rendering
+      const renderId = await service.renderVideo(variant.id, videoFile);
+      
+      // Poll for completion
+      const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
         setVariants(prev => prev.map(v => 
           v.id === variant.id ? { ...v, progress } : v
         ));
-      }
+      });
 
       // Mark as completed
       setVariants(prev => prev.map(v => 
         v.id === variant.id ? { 
           ...v, 
           status: 'completed',
-          url: `https://example.com/video_${variant.id}.mp4`,
-          thumbnail: `https://example.com/thumb_${variant.id}.jpg`
+          url: videoUrl,
+          progress: 100
         } : v
       ));
 
-      setOverallProgress(((i + 1) / newVariants.length) * 100);
-    }
+      // Update overall progress
+      setVariants(current => {
+        const completed = current.filter(v => v.status === 'completed').length;
+        setOverallProgress((completed / current.length) * 100);
+        return current;
+      });
 
-    setIsGenerating(false);
-    toast.success('Все варианты видео готовы!');
+    } catch (error) {
+      console.error(`Error processing variant ${variant.id}:`, error);
+      setVariants(prev => prev.map(v => 
+        v.id === variant.id ? { ...v, status: 'error' } : v
+      ));
+      toast.error(`Ошибка генерации ${variant.name}`);
+    }
   };
 
   const downloadVariant = (variant: VideoVariant) => {
     if (variant.url) {
-      // Simulate download
+      const link = document.createElement('a');
+      link.href = variant.url;
+      link.download = `${variant.name.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       toast.success(`Скачивание ${variant.name} начато`);
     }
   };
@@ -134,6 +171,39 @@ const VideoGenerator = () => {
             Загрузите одно видео и получите 6 оптимизированных вариантов: 2 концовки × 3 размера
           </p>
         </div>
+
+        {/* API Key Section */}
+        <Card className="p-8 bg-video-surface border-video-primary/20">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Key className="h-6 w-6 text-video-primary" />
+              <h2 className="text-2xl font-semibold">Настройка API</h2>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="api-key">Creatomate API Key</Label>
+              <Input
+                id="api-key"
+                type="password"
+                placeholder="Введите ваш API ключ Creatomate"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="bg-video-surface-elevated border-video-primary/30"
+              />
+              <p className="text-sm text-muted-foreground">
+                Получите API ключ на{' '}
+                <a 
+                  href="https://creatomate.com/dashboard" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-video-primary hover:underline"
+                >
+                  панели управления Creatomate
+                </a>
+              </p>
+            </div>
+          </div>
+        </Card>
 
         {/* Upload Section */}
         <Card className="p-8 bg-video-surface border-video-primary/20">
@@ -220,7 +290,7 @@ const VideoGenerator = () => {
 
             <Button 
               onClick={generateVariants}
-              disabled={!sourceVideo || isGenerating}
+              disabled={!sourceVideo || !apiKey.trim() || isGenerating}
               className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
             >
               <Zap className="h-5 w-5 mr-2" />
