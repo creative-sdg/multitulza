@@ -52,6 +52,15 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				video: {
+					primary: 'hsl(var(--video-primary))',
+					secondary: 'hsl(var(--video-secondary))',
+					surface: 'hsl(var(--video-surface))',
+					'surface-elevated': 'hsl(var(--video-surface-elevated))'
+				},
+				success: 'hsl(var(--success))',
+				warning: 'hsl(var(--warning))',
+				info: 'hsl(var(--info))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
