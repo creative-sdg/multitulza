@@ -176,7 +176,7 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     name: '16:9 Горизонтальное',
     size: 'horizontal',
     dimensions: '1920x1080',
-    mainVideoField: 'Main_Video-HW8',
+    mainVideoField: 'Main_Video_front, Main_Video_back',
     packshotField: 'Packshot'
   },
   {
@@ -184,7 +184,7 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     name: '1:1 Квадратное',
     size: 'square',
     dimensions: '1080x1080',
-    mainVideoField: 'Main_Video-HXB, Main_Video',
+    mainVideoField: 'Main_Video_front, Main_Video_back',
     packshotField: 'Packshot'
   }
 ];
