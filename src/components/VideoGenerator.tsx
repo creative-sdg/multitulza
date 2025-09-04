@@ -421,7 +421,7 @@ const VideoGenerator = () => {
 
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground text-center">
-                <p>Примерная стоимость: ${(selectedBrands.length * 3 * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * 3 * 2}-{selectedBrands.length * 3 * 4} минут</p>
+                <p>Примерная стоимость: ${(selectedBrands.length * 3 * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * 3 * 1}-{selectedBrands.length * 3 * 2} минут</p>
               </div>
               
               <Button 
