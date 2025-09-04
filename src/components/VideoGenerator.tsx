@@ -48,21 +48,29 @@ const VideoGenerator = () => {
   };
 
   const generateVariants = async () => {
+    console.log('🚀 Starting video generation process...');
+    
     if (!sourceVideo) {
+      console.error('❌ No source video uploaded');
       toast.error('Сначала загрузите исходное видео');
       return;
     }
 
     if (selectedBrands.length === 0) {
+      console.error('❌ No brands selected');
       toast.error('Выберите хотя бы один бренд');
       return;
     }
 
     if (!apiKey.trim()) {
+      console.error('❌ No API key provided');
       toast.error('Введите API ключ Creatomate');
       return;
     }
 
+    console.log(`✅ Validation passed. Selected brands: ${selectedBrands.join(', ')}`);
+    console.log(`✅ Source video: ${sourceVideo.name} (${sourceVideo.size} bytes)`);
+    console.log(`✅ API key: ${apiKey.substring(0, 10)}...`);
 
     const service = new CreatomateService(apiKey);
     setCreatomateService(service);
@@ -73,9 +81,14 @@ const VideoGenerator = () => {
     const newVariants: VideoVariant[] = [];
     selectedBrands.forEach(brandId => {
       const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name || brandId;
+      console.log(`📋 Processing brand: ${brandName} (${brandId})`);
+      
       CREATOMATE_TEMPLATES.forEach(template => {
+        const variantId = `${brandId}-${template.id}`;
+        console.log(`📝 Creating variant: ${variantId}`);
+        
         newVariants.push({
-          id: `${brandId}-${template.id}`,
+          id: variantId,
           name: `${brandName} ${template.name}`,
           brand: brandName,
           size: template.size,
@@ -86,6 +99,7 @@ const VideoGenerator = () => {
       });
     });
 
+    console.log(`📊 Total variants to generate: ${newVariants.length}`);
     setVariants(newVariants);
 
     // Process each variant
@@ -106,12 +120,15 @@ const VideoGenerator = () => {
     });
 
     try {
+      console.log('🎬 Starting parallel rendering of all variants...');
       await Promise.all(renderPromises);
+      console.log('🎉 All variants completed successfully!');
       toast.success('Все варианты видео готовы!');
     } catch (error) {
+      console.error('💥 Critical error during generation:', error);
       toast.error('Ошибка при генерации видео');
-      console.error('Generation error:', error);
     } finally {
+      console.log('🏁 Generation process finished');
       setIsGenerating(false);
     }
   };
