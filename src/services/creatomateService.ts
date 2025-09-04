@@ -7,6 +7,11 @@ interface CreatomateTemplate {
   packshotField: string;
 }
 
+interface Brand {
+  id: string;
+  name: string;
+}
+
 interface CreatomateRenderRequest {
   template_id: string;
   modifications: {
@@ -140,6 +145,14 @@ export class CreatomateService {
     });
   }
 }
+
+// Available brands
+export const AVAILABLE_BRANDS = [
+  { id: 'datemyage', name: 'DateMyAge' },
+  { id: 'dating', name: 'Dating.Com' },
+  { id: 'youtravelmate', name: 'YouTravelMate' },
+  { id: 'onelove', name: 'OneLove' }
+];
 
 // Template configurations with real Creatomate template IDs
 export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
