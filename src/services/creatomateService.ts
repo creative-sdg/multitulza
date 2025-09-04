@@ -59,10 +59,11 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string, videoDuration?: number): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
+    if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
     
     // Start rendering with the URLs
     const modifications: any = {
@@ -75,6 +76,12 @@ export class CreatomateService {
       template.mainVideoField.split(',').forEach(field => {
         modifications[field.trim()] = videoUrl;
       });
+      
+      // Set dynamic packshot timing for horizontal and square videos
+      if (videoDuration && videoDuration > 0) {
+        modifications['Packshot.trim_start'] = videoDuration;
+        console.log(`⏱️ Setting packshot start time to: ${videoDuration}s for ${template.size} template`);
+      }
     } else {
       modifications[template.mainVideoField] = videoUrl;
     }

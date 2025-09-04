@@ -6,11 +6,33 @@ export interface UploadedVideo {
   file: File;
   url: string;
   path: string;
+  duration?: number; // Duration in seconds with decimal precision
 }
 
 export const useVideoUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const getVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        const duration = Math.round(video.duration * 10) / 10; // Round to 1 decimal place
+        console.log(`📹 Video duration: ${duration} seconds`);
+        resolve(duration);
+      };
+      
+      video.onerror = () => {
+        window.URL.revokeObjectURL(video.src);
+        reject(new Error('Failed to load video metadata'));
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
+  };
 
   const uploadVideo = async (file: File): Promise<UploadedVideo | null> => {
     if (!file) return null;
@@ -47,13 +69,17 @@ export const useVideoUpload = () => {
       const publicUrl = urlData.publicUrl;
       console.log('🔗 Public URL generated:', publicUrl);
 
+      // Get video duration
+      const duration = await getVideoDuration(file);
+
       setUploadProgress(100);
       toast.success('Видео успешно загружено!');
 
       return {
         file,
         url: publicUrl,
-        path: data.path
+        path: data.path,
+        duration
       };
 
     } catch (error) {

@@ -202,7 +202,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl);
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, uploadedVideo.duration);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -240,14 +240,26 @@ const VideoGenerator = () => {
 
   const downloadVariant = (variant: VideoVariant) => {
     if (variant.url) {
-      const link = document.createElement('a');
-      link.href = variant.url;
-      link.download = `${variant.name.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success(`Скачивание ${variant.name} начато`);
+      // Open in new tab instead of downloading to avoid blocking current page
+      window.open(variant.url, '_blank');
+      toast.success(`Открыто в новой вкладке: ${variant.name}`);
     }
+  };
+
+  const downloadAllVariants = () => {
+    const completedVariants = variants.filter(v => v.status === 'completed' && v.url);
+    if (completedVariants.length === 0) {
+      toast.error('Нет готовых видео для скачивания');
+      return;
+    }
+
+    completedVariants.forEach((variant, index) => {
+      setTimeout(() => {
+        window.open(variant.url!, '_blank');
+      }, index * 200); // Delay to avoid popup blocker
+    });
+
+    toast.success(`Открыто ${completedVariants.length} вкладок с видео`);
   };
 
   const getStatusColor = (status: VideoVariant['status']) => {
@@ -407,14 +419,20 @@ const VideoGenerator = () => {
               </div>
             </div>
 
-            <Button 
-              onClick={generateVariants}
-              disabled={!uploadedVideo || selectedBrands.length === 0 || !apiKey.trim() || isGenerating || isUploading}
-              className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
-            >
-              <Zap className="h-5 w-5 mr-2" />
-              {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * 3} вариантов`}
-            </Button>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground text-center">
+                <p>Примерная стоимость: ${(selectedBrands.length * 3 * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * 3 * 2}-{selectedBrands.length * 3 * 4} минут</p>
+              </div>
+              
+              <Button 
+                onClick={generateVariants}
+                disabled={!uploadedVideo || selectedBrands.length === 0 || !apiKey.trim() || isGenerating || isUploading}
+                className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
+              >
+                <Zap className="h-5 w-5 mr-2" />
+                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * 3} вариантов`}
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -441,6 +459,15 @@ const VideoGenerator = () => {
               <div className="flex items-center gap-3 mb-4">
                 <Video className="h-6 w-6 text-video-primary" />
                 <h2 className="text-2xl font-semibold">Результаты</h2>
+                {variants.filter(v => v.status === 'completed').length > 1 && (
+                  <Button 
+                    onClick={downloadAllVariants}
+                    className="bg-success hover:bg-success/90"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Скачать все ({variants.filter(v => v.status === 'completed').length})
+                  </Button>
+                )}
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
