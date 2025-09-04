@@ -52,7 +52,7 @@ export class CreatomateService {
     return response.json();
   }
 
-  async renderVideo(template: CreatomateTemplate, videoFile: File, packshotFile: File): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoFile: File, packshotUrl: string): Promise<string> {
     // Upload the video file first
     const formData = new FormData();
     formData.append('source', videoFile);
@@ -71,25 +71,6 @@ export class CreatomateService {
 
     const uploadData = await uploadResponse.json();
     const videoUrl = uploadData.url;
-
-    // Upload the packshot file
-    const packshotFormData = new FormData();
-    packshotFormData.append('source', packshotFile);
-
-    const packshotUploadResponse = await fetch(`${this.baseUrl}/sources`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: packshotFormData,
-    });
-
-    if (!packshotUploadResponse.ok) {
-      throw new Error('Failed to upload packshot file');
-    }
-
-    const packshotUploadData = await packshotUploadResponse.json();
-    const packshotUrl = packshotUploadData.url;
 
     // Start rendering with the uploaded files
     const modifications: any = {
@@ -146,12 +127,44 @@ export class CreatomateService {
   }
 }
 
-// Available brands
+// Available brands with their packshot URLs
 export const AVAILABLE_BRANDS = [
-  { id: 'datemyage', name: 'DateMyAge' },
-  { id: 'dating', name: 'Dating.Com' },
-  { id: 'youtravelmate', name: 'YouTravelMate' },
-  { id: 'onelove', name: 'OneLove' }
+  { 
+    id: 'datemyage', 
+    name: 'DateMyAge',
+    packshots: {
+      vertical: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      square: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
+      horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
+    }
+  },
+  { 
+    id: 'dating', 
+    name: 'Dating.Com',
+    packshots: {
+      vertical: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      square: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1080.mp4',
+      horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1920x1080.mp4'
+    }
+  },
+  { 
+    id: 'youtravelmate', 
+    name: 'YouTravelMate',
+    packshots: {
+      vertical: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      square: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
+      horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
+    }
+  },
+  { 
+    id: 'onelove', 
+    name: 'OneLove',
+    packshots: {
+      vertical: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      square: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
+      horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
+    }
+  }
 ];
 
 // Template configurations with real Creatomate template IDs

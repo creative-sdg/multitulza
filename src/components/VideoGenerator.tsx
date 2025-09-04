@@ -20,37 +20,16 @@ interface VideoVariant {
   url?: string;
 }
 
-interface BrandPackshots {
-  [brandId: string]: {
-    vertical?: File;
-    square?: File;
-    horizontal?: File;
-  };
-}
 
 const VideoGenerator = () => {
   const [sourceVideo, setSourceVideo] = useState<File | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [brandPackshots, setBrandPackshots] = useState<BrandPackshots>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [apiKey, setApiKey] = useState<string>('');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
 
-  const handlePackshotUpload = (brandId: string, size: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setBrandPackshots(prev => ({
-        ...prev,
-        [brandId]: {
-          ...prev[brandId],
-          [size]: file
-        }
-      }));
-      toast.success(`Пакшот ${size} для ${AVAILABLE_BRANDS.find(b => b.id === brandId)?.name} загружен!`);
-    }
-  };
 
   const handleBrandToggle = (brandId: string) => {
     setSelectedBrands(prev => 
@@ -84,15 +63,6 @@ const VideoGenerator = () => {
       return;
     }
 
-    // Проверяем что у каждого выбранного бренда есть все пакшоты
-    for (const brandId of selectedBrands) {
-      const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name;
-      const packshots = brandPackshots[brandId];
-      if (!packshots?.vertical || !packshots?.square || !packshots?.horizontal) {
-        toast.error(`Загрузите все пакшоты для ${brandName}`);
-        return;
-      }
-    }
 
     const service = new CreatomateService(apiKey);
     setCreatomateService(service);
@@ -125,14 +95,14 @@ const VideoGenerator = () => {
         return variant.brand === brandName;
       });
       const template = CREATOMATE_TEMPLATES.find(t => variant.size === t.size);
-      const packshots = brandPackshots[brandId!];
+      const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
       
-      let packshotFile: File;
-      if (template?.size === 'vertical') packshotFile = packshots.vertical!;
-      else if (template?.size === 'square') packshotFile = packshots.square!;
-      else packshotFile = packshots.horizontal!;
+      let packshotUrl: string;
+      if (template?.size === 'vertical') packshotUrl = brand?.packshots.vertical!;
+      else if (template?.size === 'square') packshotUrl = brand?.packshots.square!;
+      else packshotUrl = brand?.packshots.horizontal!;
 
-      return processVariant(service, template!, variant, sourceVideo, packshotFile);
+      return processVariant(service, template!, variant, sourceVideo, packshotUrl);
     });
 
     try {
@@ -146,7 +116,7 @@ const VideoGenerator = () => {
     }
   };
 
-  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, videoFile: File, packshotFile: File) => {
+  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, videoFile: File, packshotUrl: string) => {
     try {
       // Update status to generating
       setVariants(prev => prev.map(v => 
@@ -154,7 +124,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, videoFile, packshotFile);
+      const renderId = await service.renderVideo(template, videoFile, packshotUrl);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -223,8 +193,8 @@ const VideoGenerator = () => {
             </h1>
           </div>
            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-             Выберите бренды и загрузите пакшоты для каждого размера
-           </p>
+              Выберите бренды для автоматической генерации видео во всех форматах
+            </p>
         </div>
 
         {/* API Key Section */}
@@ -334,80 +304,15 @@ const VideoGenerator = () => {
                 <h3 className="font-medium text-lg">Выбор брендов</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {AVAILABLE_BRANDS.map(brand => (
-                    <div key={brand.id} className="space-y-4">
-                      <label className="flex items-center space-x-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedBrands.includes(brand.id)}
-                          onChange={() => handleBrandToggle(brand.id)}
-                          className="rounded border-video-primary/30"
-                        />
-                        <span className="font-medium">{brand.name}</span>
-                      </label>
-                      
-                      {selectedBrands.includes(brand.id) && (
-                        <div className="space-y-3 ml-6 p-4 bg-video-surface-elevated rounded-lg">
-                          <p className="text-sm font-medium text-muted-foreground">Пакшоты для {brand.name}:</p>
-                          
-                          {/* Vertical packshot */}
-                          <div className="space-y-2">
-                            <Label htmlFor={`${brand.id}-vertical`}>Вертикальный (9:16)</Label>
-                            <input
-                              type="file"
-                              accept="video/*,image/*"
-                              onChange={handlePackshotUpload(brand.id, 'vertical')}
-                              className="hidden"
-                              id={`${brand.id}-vertical`}
-                            />
-                            <label htmlFor={`${brand.id}-vertical`} className="cursor-pointer block">
-                              <div className="border-2 border-dashed border-video-secondary/30 rounded-lg p-3 text-center hover:border-video-secondary/50 transition-colors">
-                                <p className="text-sm">
-                                  {brandPackshots[brand.id]?.vertical?.name || 'Загрузить вертикальный пакшот'}
-                                </p>
-                              </div>
-                            </label>
-                          </div>
-                          
-                          {/* Square packshot */}
-                          <div className="space-y-2">
-                            <Label htmlFor={`${brand.id}-square`}>Квадратный (1:1)</Label>
-                            <input
-                              type="file"
-                              accept="video/*,image/*"
-                              onChange={handlePackshotUpload(brand.id, 'square')}
-                              className="hidden"
-                              id={`${brand.id}-square`}
-                            />
-                            <label htmlFor={`${brand.id}-square`} className="cursor-pointer block">
-                              <div className="border-2 border-dashed border-video-secondary/30 rounded-lg p-3 text-center hover:border-video-secondary/50 transition-colors">
-                                <p className="text-sm">
-                                  {brandPackshots[brand.id]?.square?.name || 'Загрузить квадратный пакшот'}
-                                </p>
-                              </div>
-                            </label>
-                          </div>
-                          
-                          {/* Horizontal packshot */}
-                          <div className="space-y-2">
-                            <Label htmlFor={`${brand.id}-horizontal`}>Горизонтальный (16:9)</Label>
-                            <input
-                              type="file"
-                              accept="video/*,image/*"
-                              onChange={handlePackshotUpload(brand.id, 'horizontal')}
-                              className="hidden"
-                              id={`${brand.id}-horizontal`}
-                            />
-                            <label htmlFor={`${brand.id}-horizontal`} className="cursor-pointer block">
-                              <div className="border-2 border-dashed border-video-secondary/30 rounded-lg p-3 text-center hover:border-video-secondary/50 transition-colors">
-                                <p className="text-sm">
-                                  {brandPackshots[brand.id]?.horizontal?.name || 'Загрузить горизонтальный пакшот'}
-                                </p>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedBrands.includes(brand.id)}
+                        onChange={() => handleBrandToggle(brand.id)}
+                        className="rounded border-video-primary/30"
+                      />
+                      <span className="font-medium">{brand.name}</span>
+                    </label>
                   ))}
                 </div>
               </div>
