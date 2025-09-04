@@ -36,6 +36,9 @@ export class CreatomateService {
   }
 
   private async makeRequest(endpoint: string, method: 'GET' | 'POST' = 'GET', data?: any) {
+    console.log(`🌐 API Request: ${method} ${this.baseUrl}${endpoint}`);
+    if (data) console.log('📤 Request data:', data);
+    
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method,
       headers: {
@@ -46,13 +49,21 @@ export class CreatomateService {
     });
 
     if (!response.ok) {
-      throw new Error(`Creatomate API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ API Error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Creatomate API error: ${response.statusText} - ${errorText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('📥 API Response:', result);
+    return result;
   }
 
   async renderVideo(template: CreatomateTemplate, videoFile: File, packshotUrl: string): Promise<string> {
+    console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
+    console.log(`📹 Video file: ${videoFile.name} (${videoFile.size} bytes)`);
+    console.log(`🎯 Packshot URL: ${packshotUrl}`);
+    
     // Upload the video file first
     const formData = new FormData();
     formData.append('source', videoFile);
@@ -66,11 +77,13 @@ export class CreatomateService {
     });
 
     if (!uploadResponse.ok) {
+      console.error('❌ Video upload failed:', uploadResponse.status, uploadResponse.statusText);
       throw new Error('Failed to upload video file');
     }
 
     const uploadData = await uploadResponse.json();
     const videoUrl = uploadData.url;
+    console.log(`✅ Video uploaded successfully: ${videoUrl}`);
 
     // Start rendering with the uploaded files
     const modifications: any = {
@@ -92,7 +105,9 @@ export class CreatomateService {
       modifications,
     };
 
+    console.log(`🚀 Starting render with modifications:`, modifications);
     const renderResponse = await this.makeRequest('/renders', 'POST', renderRequest);
+    console.log(`✅ Render started with ID: ${renderResponse.id}`);
     return renderResponse.id;
   }
 

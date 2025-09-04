@@ -117,6 +117,10 @@ const VideoGenerator = () => {
   };
 
   const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, videoFile: File, packshotUrl: string) => {
+    console.log(`🎯 Processing variant: ${variant.name} (${variant.id})`);
+    console.log(`📋 Template:`, template);
+    console.log(`🎯 Packshot URL:`, packshotUrl);
+    
     try {
       // Update status to generating
       setVariants(prev => prev.map(v => 
@@ -151,11 +155,12 @@ const VideoGenerator = () => {
       });
 
     } catch (error) {
-      console.error(`Error processing variant ${variant.id}:`, error);
+      console.error(`❌ Error processing variant ${variant.id}:`, error);
+      console.error(`❌ Variant details:`, { name: variant.name, brand: variant.brand, size: variant.size });
       setVariants(prev => prev.map(v => 
         v.id === variant.id ? { ...v, status: 'error' } : v
       ));
-      toast.error(`Ошибка генерации ${variant.name}`);
+      toast.error(`Ошибка генерации ${variant.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
