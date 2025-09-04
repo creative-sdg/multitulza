@@ -13,31 +13,28 @@ interface VideoVariant {
   id: string;
   name: string;
   size: string;
-  ending: string;
+  dimensions: string;
   status: 'pending' | 'generating' | 'completed' | 'error';
   progress: number;
   url?: string;
-  thumbnail?: string;
 }
 
 const VideoGenerator = () => {
   const [sourceVideo, setSourceVideo] = useState<File | null>(null);
+  const [packshotVideo, setPackshotVideo] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [apiKey, setApiKey] = useState<string>('');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
 
-  const videoSizes = [
-    { id: 'square', name: '1:1 Square', dimensions: '1080x1080' },
-    { id: 'vertical', name: '9:16 Vertical', dimensions: '1080x1920' },
-    { id: 'horizontal', name: '16:9 Horizontal', dimensions: '1920x1080' }
-  ];
-
-  const endings = [
-    { id: 'cta1', name: 'Концовка A', description: 'Call-to-action вариант 1' },
-    { id: 'cta2', name: 'Концовка B', description: 'Call-to-action вариант 2' }
-  ];
+  const handlePackshotUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPackshotVideo(file);
+      toast.success('Концовка загружена успешно!');
+    }
+  };
 
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -53,6 +50,11 @@ const VideoGenerator = () => {
       return;
     }
 
+    if (!packshotVideo) {
+      toast.error('Сначала загрузите концовку');
+      return;
+    }
+
     if (!apiKey.trim()) {
       toast.error('Введите API ключ Creatomate');
       return;
@@ -63,12 +65,12 @@ const VideoGenerator = () => {
     setIsGenerating(true);
     setOverallProgress(0);
 
-    // Create all 6 combinations using Creatomate templates
+    // Create 3 variants using Creatomate templates
     const newVariants: VideoVariant[] = CREATOMATE_TEMPLATES.map(template => ({
       id: template.id,
       name: template.name,
       size: template.size,
-      ending: template.ending,
+      dimensions: template.dimensions,
       status: 'pending' as const,
       progress: 0
     }));
@@ -76,8 +78,8 @@ const VideoGenerator = () => {
     setVariants(newVariants);
 
     // Process each template
-    const renderPromises = newVariants.map(variant => 
-      processVariant(service, variant, sourceVideo)
+    const renderPromises = newVariants.map((variant, index) => 
+      processVariant(service, CREATOMATE_TEMPLATES[index], variant, sourceVideo, packshotVideo)
     );
 
     try {
@@ -91,7 +93,7 @@ const VideoGenerator = () => {
     }
   };
 
-  const processVariant = async (service: CreatomateService, variant: VideoVariant, videoFile: File) => {
+  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, videoFile: File, packshotFile: File) => {
     try {
       // Update status to generating
       setVariants(prev => prev.map(v => 
@@ -99,7 +101,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(variant.id, videoFile);
+      const renderId = await service.renderVideo(template, videoFile, packshotFile);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -168,7 +170,7 @@ const VideoGenerator = () => {
             </h1>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Загрузите одно видео и получите 6 оптимизированных вариантов: 2 концовки × 3 размера
+            Загрузите видео и концовку, получите 3 оптимизированных размера
           </p>
         </div>
 
@@ -260,41 +262,69 @@ const VideoGenerator = () => {
               <h2 className="text-2xl font-semibold">Параметры генерации</h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Размеры видео</h3>
-                {videoSizes.map(size => (
-                  <div key={size.id} className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
+                {CREATOMATE_TEMPLATES.map(template => (
+                  <div key={template.id} className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
                     <div className="w-2 h-2 bg-video-primary rounded-full"></div>
                     <div>
-                      <p className="font-medium">{size.name}</p>
-                      <p className="text-sm text-muted-foreground">{size.dimensions}</p>
+                      <p className="font-medium">{template.name}</p>
+                      <p className="text-sm text-muted-foreground">{template.dimensions}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
+              {/* Packshot Upload Section */}
               <div className="space-y-4">
-                <h3 className="font-medium text-lg">Варианты концовки</h3>
-                {endings.map(ending => (
-                  <div key={ending.id} className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
-                    <div className="w-2 h-2 bg-video-secondary rounded-full"></div>
+                <h3 className="font-medium text-lg">Концовка (Packshot)</h3>
+                <div className="border-2 border-dashed border-video-secondary/30 rounded-lg p-6 text-center hover:border-video-secondary/50 transition-colors">
+                  <input
+                    type="file"
+                    accept="video/*,image/*"
+                    onChange={handlePackshotUpload}
+                    className="hidden"
+                    id="packshot-upload"
+                  />
+                  <label htmlFor="packshot-upload" className="cursor-pointer space-y-3 block">
+                    <div className="flex justify-center">
+                      <div className="p-3 bg-video-secondary/10 rounded-full">
+                        <Upload className="h-6 w-6 text-video-secondary" />
+                      </div>
+                    </div>
                     <div>
-                      <p className="font-medium">{ending.name}</p>
-                      <p className="text-sm text-muted-foreground">{ending.description}</p>
+                      <p className="font-medium">
+                        {packshotVideo ? packshotVideo.name : 'Загрузите концовку'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Поддерживаемые форматы: MP4, MOV, PNG, JPG
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {packshotVideo && (
+                  <div className="flex items-center gap-4 p-4 bg-video-surface-elevated rounded-lg">
+                    <Play className="h-5 w-5 text-video-secondary" />
+                    <div>
+                      <p className="font-medium">{packshotVideo.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Размер: {(packshotVideo.size / (1024 * 1024)).toFixed(1)} MB
+                      </p>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             <Button 
               onClick={generateVariants}
-              disabled={!sourceVideo || !apiKey.trim() || isGenerating}
+              disabled={!sourceVideo || !packshotVideo || !apiKey.trim() || isGenerating}
               className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
             >
               <Zap className="h-5 w-5 mr-2" />
-              {isGenerating ? 'Генерирую варианты...' : 'Создать 6 вариантов'}
+              {isGenerating ? 'Генерирую варианты...' : 'Создать 3 варианта'}
             </Button>
           </div>
         </Card>
@@ -339,8 +369,7 @@ const VideoGenerator = () => {
                       </div>
                       
                       <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>Размер: {variant.size}</p>
-                        <p>{variant.ending}</p>
+                        <p>Размер: {variant.dimensions}</p>
                       </div>
 
                       {variant.status === 'generating' && (
