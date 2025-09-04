@@ -59,33 +59,12 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoFile: File, packshotUrl: string): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
-    console.log(`📹 Video file: ${videoFile.name} (${videoFile.size} bytes)`);
+    console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
     
-    // Upload the video file first
-    const formData = new FormData();
-    formData.append('source', videoFile);
-
-    const uploadResponse = await fetch(`${this.baseUrl}/sources`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: formData,
-    });
-
-    if (!uploadResponse.ok) {
-      console.error('❌ Video upload failed:', uploadResponse.status, uploadResponse.statusText);
-      throw new Error('Failed to upload video file');
-    }
-
-    const uploadData = await uploadResponse.json();
-    const videoUrl = uploadData.url;
-    console.log(`✅ Video uploaded successfully: ${videoUrl}`);
-
-    // Start rendering with the uploaded files
+    // Start rendering with the URLs
     const modifications: any = {
       [template.packshotField]: packshotUrl,
     };

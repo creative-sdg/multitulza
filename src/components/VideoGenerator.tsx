@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, Play, Download, Zap, Video, Settings, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
+import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 
 interface VideoVariant {
   id: string;
@@ -22,13 +23,14 @@ interface VideoVariant {
 
 
 const VideoGenerator = () => {
-  const [sourceVideo, setSourceVideo] = useState<File | null>(null);
+  const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [apiKey, setApiKey] = useState<string>('');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
+  const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
 
 
   const handleBrandToggle = (brandId: string) => {
@@ -39,18 +41,20 @@ const VideoGenerator = () => {
     );
   };
 
-  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setSourceVideo(file);
-      toast.success('Видео загружено успешно!');
+      const uploaded = await uploadVideo(file);
+      if (uploaded) {
+        setUploadedVideo(uploaded);
+      }
     }
   };
 
   const generateVariants = async () => {
     console.log('🚀 Starting video generation process...');
     
-    if (!sourceVideo) {
+    if (!uploadedVideo) {
       console.error('❌ No source video uploaded');
       toast.error('Сначала загрузите исходное видео');
       return;
@@ -69,7 +73,8 @@ const VideoGenerator = () => {
     }
 
     console.log(`✅ Validation passed. Selected brands: ${selectedBrands.join(', ')}`);
-    console.log(`✅ Source video: ${sourceVideo.name} (${sourceVideo.size} bytes)`);
+    console.log(`✅ Source video: ${uploadedVideo.file.name} (${uploadedVideo.file.size} bytes)`);
+    console.log(`✅ Video URL: ${uploadedVideo.url}`);
     console.log(`✅ API key: ${apiKey.substring(0, 10)}...`);
 
     const service = new CreatomateService(apiKey);
@@ -116,7 +121,7 @@ const VideoGenerator = () => {
       else if (template?.size === 'square') packshotUrl = brand?.packshots.square!;
       else packshotUrl = brand?.packshots.horizontal!;
 
-      return processVariant(service, template!, variant, sourceVideo, packshotUrl);
+      return processVariant(service, template!, variant, uploadedVideo.url, packshotUrl);
     });
 
     try {
@@ -133,9 +138,10 @@ const VideoGenerator = () => {
     }
   };
 
-  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, videoFile: File, packshotUrl: string) => {
+  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshotUrl: string) => {
     console.log(`🎯 Processing variant: ${variant.name} (${variant.id})`);
     console.log(`📋 Template:`, template);
+    console.log(`📹 Video URL:`, inputVideoUrl);
     console.log(`🎯 Packshot URL:`, packshotUrl);
     
     try {
@@ -145,7 +151,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, videoFile, packshotUrl);
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -276,7 +282,7 @@ const VideoGenerator = () => {
                 </div>
                 <div>
                   <p className="text-lg font-medium">
-                    {sourceVideo ? sourceVideo.name : 'Загрузите видео файл'}
+                    {uploadedVideo ? uploadedVideo.file.name : isUploading ? 'Загружаю видео...' : 'Загрузите видео файл'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Поддерживаемые форматы: MP4, MOV, AVI
@@ -285,13 +291,23 @@ const VideoGenerator = () => {
               </label>
             </div>
 
-            {sourceVideo && (
+            {isUploading && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-video-primary" />
+                  <span className="text-sm">Загрузка видео...</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
+            {uploadedVideo && (
               <div className="flex items-center gap-4 p-4 bg-video-surface-elevated rounded-lg">
                 <Play className="h-5 w-5 text-success" />
                 <div>
-                  <p className="font-medium">{sourceVideo.name}</p>
+                  <p className="font-medium">{uploadedVideo.file.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Размер: {(sourceVideo.size / (1024 * 1024)).toFixed(1)} MB
+                    Размер: {(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)} MB
                   </p>
                 </div>
               </div>
@@ -342,11 +358,11 @@ const VideoGenerator = () => {
 
             <Button 
               onClick={generateVariants}
-              disabled={!sourceVideo || selectedBrands.length === 0 || !apiKey.trim() || isGenerating}
+              disabled={!uploadedVideo || selectedBrands.length === 0 || !apiKey.trim() || isGenerating || isUploading}
               className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
             >
               <Zap className="h-5 w-5 mr-2" />
-              {isGenerating ? 'Генерирую варианты...' : `Создать ${selectedBrands.length * 3} вариантов`}
+              {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * 3} вариантов`}
             </Button>
           </div>
         </Card>
