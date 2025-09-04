@@ -76,12 +76,6 @@ export class CreatomateService {
       template.mainVideoField.split(',').forEach(field => {
         modifications[field.trim()] = videoUrl;
       });
-      
-      // Set dynamic packshot timing for horizontal and square videos
-      if (videoDuration && videoDuration > 0) {
-        modifications['Packshot.trim_start'] = videoDuration;
-        console.log(`⏱️ Setting packshot start time to: ${videoDuration}s for ${template.size} template`);
-      }
     } else {
       modifications[template.mainVideoField] = videoUrl;
     }

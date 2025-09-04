@@ -25,6 +25,7 @@ interface VideoVariant {
 const VideoGenerator = () => {
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -38,6 +39,14 @@ const VideoGenerator = () => {
       prev.includes(brandId) 
         ? prev.filter(id => id !== brandId)
         : [...prev, brandId]
+    );
+  };
+
+  const handleSizeToggle = (size: string) => {
+    setSelectedSizes(prev => 
+      prev.includes(size) 
+        ? prev.filter(s => s !== size)
+        : [...prev, size]
     );
   };
 
@@ -66,6 +75,12 @@ const VideoGenerator = () => {
       return;
     }
 
+    if (selectedSizes.length === 0) {
+      console.error('❌ No sizes selected');
+      toast.error('Выберите хотя бы один размер');
+      return;
+    }
+
     if (!apiKey.trim()) {
       console.error('❌ No API key provided');
       toast.error('Введите API ключ Creatomate');
@@ -88,20 +103,22 @@ const VideoGenerator = () => {
       const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name || brandId;
       console.log(`📋 Processing brand: ${brandName} (${brandId})`);
       
-      CREATOMATE_TEMPLATES.forEach(template => {
-        const variantId = `${brandId}-${template.id}`;
-        console.log(`📝 Creating variant: ${variantId}`);
-        
-        newVariants.push({
-          id: variantId,
-          name: `${brandName} ${template.name}`,
-          brand: brandName,
-          size: template.size,
-          dimensions: template.dimensions,
-          status: 'pending' as const,
-          progress: 0
+      CREATOMATE_TEMPLATES
+        .filter(template => selectedSizes.includes(template.size))
+        .forEach(template => {
+          const variantId = `${brandId}-${template.id}`;
+          console.log(`📝 Creating variant: ${variantId}`);
+          
+          newVariants.push({
+            id: variantId,
+            name: `${brandName} ${template.name}`,
+            brand: brandName,
+            size: template.size,
+            dimensions: template.dimensions,
+            status: 'pending' as const,
+            progress: 0
+          });
         });
-      });
     });
 
     console.log(`📊 Total variants to generate: ${newVariants.length}`);
@@ -387,17 +404,25 @@ const VideoGenerator = () => {
             </div>
 
             <div className="space-y-6">
+              {/* Size Selection */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Размеры видео</h3>
-                {CREATOMATE_TEMPLATES.map(template => (
-                  <div key={template.id} className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
-                    <div className="w-2 h-2 bg-video-primary rounded-full"></div>
-                    <div>
-                      <p className="font-medium">{template.name}</p>
-                      <p className="text-sm text-muted-foreground">{template.dimensions}</p>
-                    </div>
-                  </div>
-                ))}
+                <div className="grid grid-cols-1 gap-3">
+                  {CREATOMATE_TEMPLATES.map(template => (
+                    <label key={template.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedSizes.includes(template.size)}
+                        onChange={() => handleSizeToggle(template.size)}
+                        className="rounded border-video-primary/30"
+                      />
+                      <div>
+                        <p className="font-medium">{template.name}</p>
+                        <p className="text-sm text-muted-foreground">{template.dimensions}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {/* Brand Selection */}
@@ -421,16 +446,16 @@ const VideoGenerator = () => {
 
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground text-center">
-                <p>Примерная стоимость: ${(selectedBrands.length * 3 * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * 3 * 1}-{selectedBrands.length * 3 * 2} минут</p>
+                <p>Примерная стоимость: ${(selectedBrands.length * selectedSizes.length * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * selectedSizes.length * 1}-{selectedBrands.length * selectedSizes.length * 2} минут</p>
               </div>
               
               <Button 
                 onClick={generateVariants}
-                disabled={!uploadedVideo || selectedBrands.length === 0 || !apiKey.trim() || isGenerating || isUploading}
+                disabled={!uploadedVideo || selectedBrands.length === 0 || selectedSizes.length === 0 || !apiKey.trim() || isGenerating || isUploading}
                 className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
               >
                 <Zap className="h-5 w-5 mr-2" />
-                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * 3} вариантов`}
+                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * selectedSizes.length} вариантов`}
               </Button>
             </div>
           </div>
