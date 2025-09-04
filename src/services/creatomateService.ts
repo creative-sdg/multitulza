@@ -96,7 +96,11 @@ export class CreatomateService {
 
   async pollRenderStatus(renderId: string, onProgress?: (progress: number) => void): Promise<string> {
     return new Promise((resolve, reject) => {
-      const pollInterval = setInterval(async () => {
+      let pollInterval = 6000; // Start with 6 seconds
+      let retryCount = 0;
+      const maxRetries = 5;
+
+      const poll = async () => {
         try {
           const status = await this.getRenderStatus(renderId);
           
@@ -105,18 +109,39 @@ export class CreatomateService {
           }
 
           if (status.status === 'succeeded' && status.url) {
-            clearInterval(pollInterval);
             resolve(status.url);
+            return;
           } else if (status.status === 'failed') {
-            clearInterval(pollInterval);
             reject(new Error(status.error || 'Rendering failed'));
+            return;
           }
-          // Continue polling if status is 'pending' or 'processing'
-        } catch (error) {
-          clearInterval(pollInterval);
+          
+          // Reset retry count on successful request
+          retryCount = 0;
+          pollInterval = Math.max(6000, pollInterval * 0.9); // Gradually reduce interval but keep minimum
+
+          // Continue polling if status is 'pending', 'processing', or 'transcribing'
+          setTimeout(poll, pollInterval + Math.random() * 2000); // Add jitter
+        } catch (error: any) {
+          console.error(`❌ Poll error for render ${renderId}:`, error);
+          
+          // Handle rate limiting and network errors with exponential backoff
+          if (error.message?.includes('429') || error.message?.includes('Too Many Requests') || error.message?.includes('Failed to fetch')) {
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              const backoffDelay = Math.min(30000, pollInterval * Math.pow(2, retryCount)) + Math.random() * 5000;
+              console.log(`⏳ Rate limited, retrying in ${Math.round(backoffDelay/1000)}s (attempt ${retryCount}/${maxRetries})`);
+              setTimeout(poll, backoffDelay);
+              return;
+            }
+          }
+          
           reject(error);
         }
-      }, 2000); // Poll every 2 seconds
+      };
+
+      // Start polling with initial jitter
+      setTimeout(poll, Math.random() * 3000);
     });
   }
 }

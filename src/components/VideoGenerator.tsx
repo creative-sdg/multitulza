@@ -107,8 +107,19 @@ const VideoGenerator = () => {
     console.log(`📊 Total variants to generate: ${newVariants.length}`);
     setVariants(newVariants);
 
-    // Process each variant
-    const renderPromises = newVariants.map(variant => {
+    // Process variants with queue (max 2 concurrent)
+    const queue = [...newVariants];
+    let activeJobs = 0;
+    const maxConcurrent = 2;
+    let completedCount = 0;
+    let errorCount = 0;
+
+    const processNext = async (): Promise<void> => {
+      if (queue.length === 0 || activeJobs >= maxConcurrent) return;
+      
+      const variant = queue.shift()!;
+      activeJobs++;
+      
       const brandId = selectedBrands.find(id => {
         const brandName = AVAILABLE_BRANDS.find(b => b.id === id)?.name;
         return variant.brand === brandName;
@@ -121,14 +132,54 @@ const VideoGenerator = () => {
       else if (template?.size === 'square') packshotUrl = brand?.packshots.square!;
       else packshotUrl = brand?.packshots.horizontal!;
 
-      return processVariant(service, template!, variant, uploadedVideo.url, packshotUrl);
-    });
+      try {
+        await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl);
+        completedCount++;
+      } catch (error) {
+        console.error(`❌ Failed to process variant ${variant.id}:`, error);
+        errorCount++;
+      }
+      
+      activeJobs--;
+      
+      // Update overall progress
+      const totalProcessed = completedCount + errorCount;
+      setOverallProgress((totalProcessed / newVariants.length) * 100);
+      
+      // Continue processing queue
+      if (queue.length > 0) {
+        await processNext();
+      }
+    };
 
     try {
-      console.log('🎬 Starting parallel rendering of all variants...');
-      await Promise.all(renderPromises);
-      console.log('🎉 All variants completed successfully!');
-      toast.success('Все варианты видео готовы!');
+      console.log('🎬 Starting queued rendering (max 2 concurrent)...');
+      // Start initial jobs
+      const initialJobs = [];
+      for (let i = 0; i < Math.min(maxConcurrent, newVariants.length); i++) {
+        initialJobs.push(processNext());
+      }
+      
+      await Promise.all(initialJobs);
+      
+      // Wait for all remaining jobs
+      while (activeJobs > 0 || queue.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (queue.length > 0 && activeJobs < maxConcurrent) {
+          await processNext();
+        }
+      }
+      
+      console.log(`🏁 Generation finished: ${completedCount} completed, ${errorCount} errors`);
+      
+      if (errorCount === 0) {
+        console.log('🎉 All variants completed successfully!');
+        toast.success('Все варианты видео готовы!');
+      } else if (completedCount > 0) {
+        toast.success(`${completedCount} вариантов готовы, ${errorCount} с ошибками`);
+      } else {
+        toast.error('Все варианты завершились с ошибками');
+      }
     } catch (error) {
       console.error('💥 Critical error during generation:', error);
       toast.error('Ошибка при генерации видео');
