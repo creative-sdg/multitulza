@@ -59,57 +59,25 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(
-    template: CreatomateTemplate, 
-    videoUrl: string, 
-    packshotUrl: string, 
-    options?: {
-      enableSubtitles?: boolean;
-      enablePackshot?: boolean;
-    }
-  ): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string, videoDuration?: number): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
-    console.log(`📝 Options received:`, options);
-    console.log(`📝 Subtitles enabled: ${options?.enableSubtitles ?? true}`);
-    console.log(`🎯 Packshot enabled: ${options?.enablePackshot ?? true}`);
+    if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
     
     // Start rendering with the URLs
-    const modifications: any = {};
+    const modifications: any = {
+      [template.packshotField]: packshotUrl,
+    };
     
-    // Only add packshot if enabled
-    if (options?.enablePackshot !== false && packshotUrl) {
-      modifications[template.packshotField] = packshotUrl;
-    }
-    
-    // Add main video field(s) with trim settings in source
-    const videoSettings: any = { source: videoUrl };
-    
-    // Trimming disabled as per request — use template defaults for timing
-
-    
+    // Add main video field(s)
     if (template.mainVideoField.includes(',')) {
-      // Multiple main video fields (like for horizontal template)
+      // Multiple main video fields (like for square template)
       template.mainVideoField.split(',').forEach(field => {
-        const fieldName = field.trim();
-        modifications[fieldName] = videoSettings;
+        modifications[field.trim()] = videoUrl;
       });
     } else {
-      modifications[template.mainVideoField] = videoSettings;
-    }
-
-    // Handle subtitles - set transcript source when enabled
-    console.log(`🔍 Checking subtitles: enableSubtitles = ${options?.enableSubtitles}`);
-    if (options?.enableSubtitles !== false) {
-      // Set subtitle source to first main video field
-      const firstVideoField = template.mainVideoField.includes(',') 
-        ? template.mainVideoField.split(',')[0].trim()
-        : template.mainVideoField;
-      console.log(`📝 Adding subtitles source: ${firstVideoField}`);
-      modifications['Subtitles-auto.transcript_source'] = firstVideoField;
-    } else {
-      console.log(`❌ Subtitles disabled, not adding transcript source`);
+      modifications[template.mainVideoField] = videoUrl;
     }
 
     const renderRequest: CreatomateRenderRequest = {
