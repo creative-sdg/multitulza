@@ -9,7 +9,7 @@ import { Upload, Play, Download, Zap, Video, Settings, Key, Subtitles } from 'lu
 import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
-import { VideoTimeline } from '@/components/VideoTimeline';
+
 
 interface VideoVariant {
   id: string;
@@ -34,8 +34,6 @@ const VideoGenerator = () => {
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
   const [enableSubtitles, setEnableSubtitles] = useState<boolean>(true);
   const [enablePackshots, setEnablePackshots] = useState<boolean>(true);
-  const [startTime, setStartTime] = useState<number>(0);
-  const [endTime, setEndTime] = useState<number>(0);
   const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
 
 
@@ -61,15 +59,11 @@ const VideoGenerator = () => {
       const uploaded = await uploadVideo(file);
       if (uploaded) {
         setUploadedVideo(uploaded);
-        setEndTime(uploaded.duration || 0);
+        
       }
     }
   };
 
-  const handleTimeRangeChange = (newStartTime: number, newEndTime: number) => {
-    setStartTime(newStartTime);
-    setEndTime(newEndTime);
-  };
 
   const generateVariants = async () => {
     console.log('🚀 Starting video generation process...');
@@ -255,9 +249,6 @@ const VideoGenerator = () => {
 
       // Start rendering
       const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, {
-        videoDuration: uploadedVideo.duration,
-        startTime: startTime > 0 ? startTime : undefined,
-        endTime: endTime < (uploadedVideo.duration || 0) ? endTime : undefined,
         enableSubtitles,
         enablePackshot: enablePackshots
       });
@@ -436,14 +427,6 @@ const VideoGenerator = () => {
           </div>
         </Card>
 
-        {/* Video Timeline */}
-        {uploadedVideo && (
-          <VideoTimeline
-            videoUrl={uploadedVideo.url}
-            duration={uploadedVideo.duration || 0}
-            onTimeRangeChange={handleTimeRangeChange}
-          />
-        )}
 
         {/* Generation Section */}
         <Card className="p-8 bg-video-surface border-video-primary/20">

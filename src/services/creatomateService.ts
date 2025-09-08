@@ -64,9 +64,6 @@ export class CreatomateService {
     videoUrl: string, 
     packshotUrl: string, 
     options?: {
-      videoDuration?: number;
-      startTime?: number;
-      endTime?: number;
       enableSubtitles?: boolean;
       enablePackshot?: boolean;
     }
@@ -74,9 +71,6 @@ export class CreatomateService {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
-    if (options?.videoDuration) console.log(`⏱️ Video duration: ${options.videoDuration}s`);
-    if (options?.startTime !== undefined) console.log(`⏯️ Start time: ${options.startTime}s`);
-    if (options?.endTime !== undefined) console.log(`⏹️ End time: ${options.endTime}s`);
     console.log(`📝 Subtitles enabled: ${options?.enableSubtitles ?? true}`);
     console.log(`🎯 Packshot enabled: ${options?.enablePackshot ?? true}`);
     
