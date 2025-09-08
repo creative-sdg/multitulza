@@ -41,10 +41,10 @@ export const useVideoUpload = () => {
     setUploadProgress(0);
 
     try {
-      // Generate unique filename
+      // Generate unique filename - upload directly to root of bucket
       const timestamp = Date.now();
       const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const filePath = `videos/${fileName}`;
+      const filePath = fileName; // Upload directly to bucket root, no subfolder
 
       console.log('📤 Uploading video to Supabase Storage:', filePath);
 
