@@ -104,18 +104,9 @@ export class CreatomateService {
       template.mainVideoField.split(',').forEach(field => {
         const fieldName = field.trim();
         modifications[fieldName] = videoSettings;
-        // Ensure timeline placement to avoid zero-duration black frames
-        modifications[`${fieldName}.time`] = 0;
-        modifications[`${fieldName}.duration`] = (options?.startTime !== undefined && options?.endTime !== undefined && options.endTime > options.startTime)
-          ? (options.endTime - options.startTime)
-          : 'media';
       });
     } else {
       modifications[template.mainVideoField] = videoSettings;
-      modifications[`${template.mainVideoField}.time`] = 0;
-      modifications[`${template.mainVideoField}.duration`] = (options?.startTime !== undefined && options?.endTime !== undefined && options.endTime > options.startTime)
-        ? (options.endTime - options.startTime)
-        : 'media';
     }
 
     // Handle subtitles - set transcript source when enabled
