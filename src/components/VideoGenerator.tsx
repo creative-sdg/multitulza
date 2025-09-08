@@ -27,7 +27,6 @@ const VideoGenerator = () => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [enablePackshot, setEnablePackshot] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -152,6 +151,7 @@ const VideoGenerator = () => {
       else packshotUrl = brand?.packshots.horizontal!;
 
       try {
+        const enablePackshot = selectedBrands.length > 0;
         await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl, { enableSubtitles, enablePackshot });
         completedCount++;
       } catch (error) {
@@ -445,23 +445,10 @@ const VideoGenerator = () => {
                 </div>
               </div>
 
-              {/* Options */}
+              {/* Subtitles Option */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Дополнительные опции</h3>
                 <div className="space-y-3">
-                  <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={enablePackshot}
-                      onChange={(e) => setEnablePackshot(e.target.checked)}
-                      className="rounded border-video-primary/30"
-                    />
-                    <div>
-                      <p className="font-medium">Добавить пекшот</p>
-                      <p className="text-sm text-muted-foreground">Включить логотип/пекшот бренда в видео</p>
-                    </div>
-                  </label>
-                  
                   <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
                     <input
                       type="checkbox"
