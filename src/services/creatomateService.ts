@@ -88,30 +88,38 @@ export class CreatomateService {
       modifications[template.packshotField] = packshotUrl;
     }
     
-    // Add main video field(s) with trim settings if provided
+    // Add main video field(s) with new template structure
     const videoSettings: any = { source: videoUrl };
     
-    // Add trim settings if start/end times are provided
-    if (options?.startTime !== undefined && options?.startTime > 0) {
-      videoSettings.trim_start = options.startTime;
-    }
-    if (options?.endTime !== undefined && options?.videoDuration && options.endTime < options.videoDuration) {
-      videoSettings.trim_end = options.videoDuration - options.endTime;
-    }
-    
     if (template.mainVideoField.includes(',')) {
-      // Multiple main video fields (like for square template)
+      // Multiple main video fields (like for horizontal template)
       template.mainVideoField.split(',').forEach(field => {
-        modifications[field.trim()] = videoSettings;
+        const fieldName = field.trim();
+        modifications[fieldName] = videoSettings;
+        
+        // Add time and duration settings for each video field
+        modifications[`${fieldName}.time`] = options?.startTime || 0;
+        modifications[`${fieldName}.duration`] = 
+          (options?.startTime !== undefined || options?.endTime !== undefined) 
+            ? ((options?.endTime || options?.videoDuration || 0) - (options?.startTime || 0))
+            : "media";
       });
     } else {
       modifications[template.mainVideoField] = videoSettings;
+      modifications[`${template.mainVideoField}.time`] = options?.startTime || 0;
+      modifications[`${template.mainVideoField}.duration`] = 
+        (options?.startTime !== undefined || options?.endTime !== undefined) 
+          ? ((options?.endTime || options?.videoDuration || 0) - (options?.startTime || 0))
+          : "media";
     }
 
-    // Handle subtitles - use the actual subtitle layer name from template
-    if (options?.enableSubtitles === false) {
-      // Hide subtitles layer - using the common naming convention
-      modifications['Subtitles-auto'] = { visible: false };
+    // Handle subtitles - set transcript source when enabled
+    if (options?.enableSubtitles !== false) {
+      // Set subtitle source to first main video field
+      const firstVideoField = template.mainVideoField.includes(',') 
+        ? template.mainVideoField.split(',')[0].trim()
+        : template.mainVideoField;
+      modifications['Subtitles-auto.transcript_source'] = firstVideoField;
     }
 
     const renderRequest: CreatomateRenderRequest = {
