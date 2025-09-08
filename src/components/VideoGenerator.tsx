@@ -5,10 +5,11 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Play, Download, Zap, Video, Settings, Key } from 'lucide-react';
+import { Upload, Play, Download, Zap, Video, Settings, Key, Subtitles } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
+import { VideoTimeline } from '@/components/VideoTimeline';
 
 interface VideoVariant {
   id: string;
@@ -31,6 +32,10 @@ const VideoGenerator = () => {
   const [overallProgress, setOverallProgress] = useState(0);
   const [apiKey, setApiKey] = useState<string>('');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
+  const [enableSubtitles, setEnableSubtitles] = useState<boolean>(true);
+  const [enablePackshots, setEnablePackshots] = useState<boolean>(true);
+  const [startTime, setStartTime] = useState<number>(0);
+  const [endTime, setEndTime] = useState<number>(0);
   const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
 
 
@@ -56,8 +61,14 @@ const VideoGenerator = () => {
       const uploaded = await uploadVideo(file);
       if (uploaded) {
         setUploadedVideo(uploaded);
+        setEndTime(uploaded.duration || 0);
       }
     }
+  };
+
+  const handleTimeRangeChange = (newStartTime: number, newEndTime: number) => {
+    setStartTime(newStartTime);
+    setEndTime(newEndTime);
   };
 
   const generateVariants = async () => {
@@ -69,7 +80,7 @@ const VideoGenerator = () => {
       return;
     }
 
-    if (selectedBrands.length === 0) {
+    if (enablePackshots && selectedBrands.length === 0) {
       console.error('❌ No brands selected');
       toast.error('Выберите хотя бы один бренд');
       return;
@@ -97,29 +108,50 @@ const VideoGenerator = () => {
     setIsGenerating(true);
     setOverallProgress(0);
 
-    // Создаем варианты для каждого бренда и размера
+    // Создаем варианты для каждого размера и бренда (если включены пекшоты)
     const newVariants: VideoVariant[] = [];
-    selectedBrands.forEach(brandId => {
-      const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name || brandId;
-      console.log(`📋 Processing brand: ${brandName} (${brandId})`);
-      
+    
+    if (enablePackshots) {
+      selectedBrands.forEach(brandId => {
+        const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name || brandId;
+        console.log(`📋 Processing brand: ${brandName} (${brandId})`);
+        
+        CREATOMATE_TEMPLATES
+          .filter(template => selectedSizes.includes(template.size))
+          .forEach(template => {
+            const variantId = `${brandId}-${template.id}`;
+            console.log(`📝 Creating variant: ${variantId}`);
+            
+            newVariants.push({
+              id: variantId,
+              name: `${brandName} ${template.name}`,
+              brand: brandName,
+              size: template.size,
+              dimensions: template.dimensions,
+              status: 'pending' as const,
+              progress: 0
+            });
+          });
+      });
+    } else {
+      // Создаем варианты только для размеров без брендов (ресайз режим)
       CREATOMATE_TEMPLATES
         .filter(template => selectedSizes.includes(template.size))
         .forEach(template => {
-          const variantId = `${brandId}-${template.id}`;
-          console.log(`📝 Creating variant: ${variantId}`);
+          const variantId = `resize-${template.id}`;
+          console.log(`📝 Creating resize variant: ${variantId}`);
           
           newVariants.push({
             id: variantId,
-            name: `${brandName} ${template.name}`,
-            brand: brandName,
+            name: `Ресайз ${template.name}`,
+            brand: 'Без бренда',
             size: template.size,
             dimensions: template.dimensions,
             status: 'pending' as const,
             progress: 0
           });
         });
-    });
+    }
 
     console.log(`📊 Total variants to generate: ${newVariants.length}`);
     setVariants(newVariants);
@@ -137,17 +169,20 @@ const VideoGenerator = () => {
       const variant = queue.shift()!;
       activeJobs++;
       
-      const brandId = selectedBrands.find(id => {
-        const brandName = AVAILABLE_BRANDS.find(b => b.id === id)?.name;
-        return variant.brand === brandName;
-      });
       const template = CREATOMATE_TEMPLATES.find(t => variant.size === t.size);
-      const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
+      let packshotUrl = '';
       
-      let packshotUrl: string;
-      if (template?.size === 'vertical') packshotUrl = brand?.packshots.vertical!;
-      else if (template?.size === 'square') packshotUrl = brand?.packshots.square!;
-      else packshotUrl = brand?.packshots.horizontal!;
+      if (enablePackshots) {
+        const brandId = selectedBrands.find(id => {
+          const brandName = AVAILABLE_BRANDS.find(b => b.id === id)?.name;
+          return variant.brand === brandName;
+        });
+        const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
+        
+        if (template?.size === 'vertical') packshotUrl = brand?.packshots.vertical!;
+        else if (template?.size === 'square') packshotUrl = brand?.packshots.square!;
+        else packshotUrl = brand?.packshots.horizontal!;
+      }
 
       try {
         await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl);
@@ -219,7 +254,12 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, uploadedVideo.duration);
+      const renderId = await service.renderVideo(template, inputVideoUrl, enablePackshots ? packshotUrl : '', {
+        videoDuration: uploadedVideo.duration,
+        startTime: startTime > 0 ? startTime : undefined,
+        endTime: endTime < (uploadedVideo.duration || 0) ? endTime : undefined,
+        enableSubtitles
+      });
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -395,6 +435,15 @@ const VideoGenerator = () => {
           </div>
         </Card>
 
+        {/* Video Timeline */}
+        {uploadedVideo && (
+          <VideoTimeline
+            videoUrl={uploadedVideo.url}
+            duration={uploadedVideo.duration || 0}
+            onTimeRangeChange={handleTimeRangeChange}
+          />
+        )}
+
         {/* Generation Section */}
         <Card className="p-8 bg-video-surface border-video-primary/20">
           <div className="space-y-6">
@@ -404,6 +453,38 @@ const VideoGenerator = () => {
             </div>
 
             <div className="space-y-6">
+              {/* Content Options */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Параметры контента</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={enableSubtitles}
+                      onChange={(e) => setEnableSubtitles(e.target.checked)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Subtitles className="h-5 w-5 text-video-primary" />
+                      <span className="font-medium">Субтитры</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={enablePackshots}
+                      onChange={(e) => setEnablePackshots(e.target.checked)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Video className="h-5 w-5 text-video-primary" />
+                      <span className="font-medium">Пекшоты</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Size Selection */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Размеры видео</h3>
@@ -426,36 +507,42 @@ const VideoGenerator = () => {
               </div>
 
               {/* Brand Selection */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-lg">Выбор брендов</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {AVAILABLE_BRANDS.map(brand => (
-                    <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedBrands.includes(brand.id)}
-                        onChange={() => handleBrandToggle(brand.id)}
-                        className="rounded border-video-primary/30"
-                      />
-                      <span className="font-medium">{brand.name}</span>
-                    </label>
-                  ))}
+              {enablePackshots && (
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Выбор брендов</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {AVAILABLE_BRANDS.map(brand => (
+                      <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.includes(brand.id)}
+                          onChange={() => handleBrandToggle(brand.id)}
+                          className="rounded border-video-primary/30"
+                        />
+                        <span className="font-medium">{brand.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground text-center">
-                <p>Примерная стоимость: ${(selectedBrands.length * selectedSizes.length * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * selectedSizes.length * 1}-{selectedBrands.length * selectedSizes.length * 2} минут</p>
+                {enablePackshots ? (
+                  <p>Примерная стоимость: ${(selectedBrands.length * selectedSizes.length * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * selectedSizes.length * 1}-{selectedBrands.length * selectedSizes.length * 2} минут</p>
+                ) : (
+                  <p>Примерная стоимость: ${(selectedSizes.length * 0.3).toFixed(1)} | Время генерации: ~{selectedSizes.length * 1}-{selectedSizes.length * 2} минут</p>
+                )}
               </div>
               
               <Button 
                 onClick={generateVariants}
-                disabled={!uploadedVideo || selectedBrands.length === 0 || selectedSizes.length === 0 || !apiKey.trim() || isGenerating || isUploading}
+                disabled={!uploadedVideo || (!enablePackshots && selectedSizes.length === 0) || (enablePackshots && (selectedBrands.length === 0 || selectedSizes.length === 0)) || !apiKey.trim() || isGenerating || isUploading}
                 className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
               >
                 <Zap className="h-5 w-5 mr-2" />
-                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * selectedSizes.length} вариантов`}
+                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${enablePackshots ? selectedBrands.length * selectedSizes.length : selectedSizes.length} вариантов`}
               </Button>
             </div>
           </div>

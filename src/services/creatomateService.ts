@@ -59,25 +59,55 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string, videoDuration?: number): Promise<string> {
+  async renderVideo(
+    template: CreatomateTemplate, 
+    videoUrl: string, 
+    packshotUrl: string, 
+    options?: {
+      videoDuration?: number;
+      startTime?: number;
+      endTime?: number;
+      enableSubtitles?: boolean;
+    }
+  ): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
-    if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
+    if (options?.videoDuration) console.log(`⏱️ Video duration: ${options.videoDuration}s`);
+    if (options?.startTime !== undefined) console.log(`⏯️ Start time: ${options.startTime}s`);
+    if (options?.endTime !== undefined) console.log(`⏹️ End time: ${options.endTime}s`);
+    console.log(`📝 Subtitles enabled: ${options?.enableSubtitles ?? true}`);
     
     // Start rendering with the URLs
     const modifications: any = {
       [template.packshotField]: packshotUrl,
     };
     
-    // Add main video field(s)
+    // Add main video field(s) with trim settings if provided
+    const videoSettings: any = { source: videoUrl };
+    
+    // Add trim settings if start/end times are provided
+    if (options?.startTime !== undefined && options?.startTime > 0) {
+      videoSettings.trim_start = options.startTime;
+    }
+    if (options?.endTime !== undefined && options?.videoDuration && options.endTime < options.videoDuration) {
+      videoSettings.trim_end = options.videoDuration - options.endTime;
+    }
+    
     if (template.mainVideoField.includes(',')) {
       // Multiple main video fields (like for square template)
       template.mainVideoField.split(',').forEach(field => {
-        modifications[field.trim()] = videoUrl;
+        modifications[field.trim()] = videoSettings;
       });
     } else {
-      modifications[template.mainVideoField] = videoUrl;
+      modifications[template.mainVideoField] = videoSettings;
+    }
+
+    // Handle subtitles - add subtitle control if disabled
+    if (options?.enableSubtitles === false) {
+      // Add modification to hide subtitles if the template supports it
+      // This might need to be adjusted based on your template structure
+      modifications['Subtitles_Visible'] = false;
     }
 
     const renderRequest: CreatomateRenderRequest = {
