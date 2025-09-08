@@ -163,6 +163,16 @@ const VideoGenerator = () => {
       if (isResizeMode) {
         // Режим ресайза
         template = RESIZE_TEMPLATES.find(t => variant.size === t.size);
+        
+        // Получаем информацию о шаблоне для отладки
+        if (template) {
+          try {
+            const templateInfo = await service.getTemplate(template.id);
+            console.log(`🔍 Template ${template.id} structure:`, templateInfo);
+          } catch (error) {
+            console.log(`⚠️ Could not get template info: ${error}`);
+          }
+        }
       } else {
         // Режим с брендами
         const brandId = selectedBrands.find(id => {

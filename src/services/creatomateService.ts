@@ -98,6 +98,11 @@ export class CreatomateService {
     return this.makeRequest(`/renders/${renderId}`);
   }
 
+  async getTemplate(templateId: string): Promise<any> {
+    console.log(`📋 Getting template info: ${templateId}`);
+    return this.makeRequest(`/templates/${templateId}`);
+  }
+
   async pollRenderStatus(renderId: string, onProgress?: (progress: number) => void): Promise<string> {
     return new Promise((resolve, reject) => {
       let pollInterval = 6000; // Start with 6 seconds
@@ -230,7 +235,7 @@ export const RESIZE_TEMPLATES: CreatomateTemplate[] = [
   },
   {
     id: '8b5c43d4-1137-462c-9cc1-cb2f5cf82c65',
-    name: '16:9 Горизонтальное',
+    name: '16:9 Горизонтальное', 
     size: 'horizontal',
     dimensions: '1920x1080',
     mainVideoField: 'Main_Video',
