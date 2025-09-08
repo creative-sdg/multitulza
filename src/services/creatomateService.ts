@@ -71,6 +71,7 @@ export class CreatomateService {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
+    console.log(`📝 Options received:`, options);
     console.log(`📝 Subtitles enabled: ${options?.enableSubtitles ?? true}`);
     console.log(`🎯 Packshot enabled: ${options?.enablePackshot ?? true}`);
     
@@ -99,12 +100,16 @@ export class CreatomateService {
     }
 
     // Handle subtitles - set transcript source when enabled
+    console.log(`🔍 Checking subtitles: enableSubtitles = ${options?.enableSubtitles}`);
     if (options?.enableSubtitles !== false) {
       // Set subtitle source to first main video field
       const firstVideoField = template.mainVideoField.includes(',') 
         ? template.mainVideoField.split(',')[0].trim()
         : template.mainVideoField;
+      console.log(`📝 Adding subtitles source: ${firstVideoField}`);
       modifications['Subtitles-auto.transcript_source'] = firstVideoField;
+    } else {
+      console.log(`❌ Subtitles disabled, not adding transcript source`);
     }
 
     const renderRequest: CreatomateRenderRequest = {
