@@ -59,16 +59,24 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string, videoDuration?: number): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl: string, videoDuration?: number, options?: { enableSubtitles?: boolean; enablePackshot?: boolean }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     console.log(`🎯 Packshot URL: ${packshotUrl}`);
     if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
     
     // Start rendering with the URLs
-    const modifications: any = {
-      [template.packshotField]: packshotUrl,
-    };
+    const modifications: any = {};
+    
+    // Add packshot only if enabled
+    if (options?.enablePackshot !== false) {
+      modifications[template.packshotField] = packshotUrl;
+    }
+    
+    // Add subtitles if enabled
+    if (options?.enableSubtitles) {
+      modifications['Subtitles-auto.transcript_source'] = videoUrl;
+    }
     
     // Add main video field(s)
     if (template.mainVideoField.includes(',')) {

@@ -26,6 +26,8 @@ const VideoGenerator = () => {
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [enableSubtitles, setEnableSubtitles] = useState(false);
+  const [enablePackshot, setEnablePackshot] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -150,7 +152,7 @@ const VideoGenerator = () => {
       else packshotUrl = brand?.packshots.horizontal!;
 
       try {
-        await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl);
+        await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl, { enableSubtitles, enablePackshot });
         completedCount++;
       } catch (error) {
         console.error(`❌ Failed to process variant ${variant.id}:`, error);
@@ -206,7 +208,7 @@ const VideoGenerator = () => {
     }
   };
 
-  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshotUrl: string) => {
+  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshotUrl: string, options: { enableSubtitles: boolean; enablePackshot: boolean }) => {
     console.log(`🎯 Processing variant: ${variant.name} (${variant.id})`);
     console.log(`📋 Template:`, template);
     console.log(`📹 Video URL:`, inputVideoUrl);
@@ -219,7 +221,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, uploadedVideo.duration);
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, uploadedVideo.duration, options);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -440,6 +442,38 @@ const VideoGenerator = () => {
                       <span className="font-medium">{brand.name}</span>
                     </label>
                   ))}
+                </div>
+              </div>
+
+              {/* Options */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Дополнительные опции</h3>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={enablePackshot}
+                      onChange={(e) => setEnablePackshot(e.target.checked)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <div>
+                      <p className="font-medium">Добавить пекшот</p>
+                      <p className="text-sm text-muted-foreground">Включить логотип/пекшот бренда в видео</p>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={enableSubtitles}
+                      onChange={(e) => setEnableSubtitles(e.target.checked)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <div>
+                      <p className="font-medium">Добавить субтитры</p>
+                      <p className="text-sm text-muted-foreground">Автоматически генерировать субтитры для видео</p>
+                    </div>
+                  </label>
                 </div>
               </div>
             </div>
