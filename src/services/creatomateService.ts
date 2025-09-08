@@ -88,29 +88,25 @@ export class CreatomateService {
       modifications[template.packshotField] = packshotUrl;
     }
     
-    // Add main video field(s) with new template structure
+    // Add main video field(s) with trim settings in source
     const videoSettings: any = { source: videoUrl };
+    
+    // Add trim settings to video source if provided
+    if (options?.startTime !== undefined && options?.startTime > 0) {
+      videoSettings.trim_start = options.startTime;
+    }
+    if (options?.startTime !== undefined && options?.endTime !== undefined) {
+      videoSettings.trim_duration = options.endTime - options.startTime;
+    }
     
     if (template.mainVideoField.includes(',')) {
       // Multiple main video fields (like for horizontal template)
       template.mainVideoField.split(',').forEach(field => {
         const fieldName = field.trim();
         modifications[fieldName] = videoSettings;
-        
-        // Add time and duration settings for each video field
-        modifications[`${fieldName}.time`] = options?.startTime || 0;
-        modifications[`${fieldName}.duration`] = 
-          (options?.startTime !== undefined || options?.endTime !== undefined) 
-            ? ((options?.endTime || options?.videoDuration || 0) - (options?.startTime || 0))
-            : "media";
       });
     } else {
       modifications[template.mainVideoField] = videoSettings;
-      modifications[`${template.mainVideoField}.time`] = options?.startTime || 0;
-      modifications[`${template.mainVideoField}.duration`] = 
-        (options?.startTime !== undefined || options?.endTime !== undefined) 
-          ? ((options?.endTime || options?.videoDuration || 0) - (options?.startTime || 0))
-          : "media";
     }
 
     // Handle subtitles - set transcript source when enabled
