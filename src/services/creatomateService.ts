@@ -68,13 +68,13 @@ export class CreatomateService {
     // Start rendering with the URLs
     const modifications: any = {};
     
-    // Add packshot only if enabled
-    if (options?.enablePackshot !== false) {
+    // Add packshot only if explicitly enabled
+    if (options?.enablePackshot === true) {
       modifications[template.packshotField] = packshotUrl;
     }
     
-    // Add subtitles if enabled
-    if (options?.enableSubtitles) {
+    // Add subtitles only if explicitly enabled
+    if (options?.enableSubtitles === true) {
       modifications['Subtitles-auto.transcript_source'] = videoUrl;
     }
     
