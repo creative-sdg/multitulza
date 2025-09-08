@@ -26,7 +26,6 @@ const VideoGenerator = () => {
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [enableSubtitles, setEnableSubtitles] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -70,6 +69,12 @@ const VideoGenerator = () => {
       return;
     }
 
+    if (selectedBrands.length === 0) {
+      console.error('❌ No brands selected');
+      toast.error('Выберите хотя бы один бренд');
+      return;
+    }
+
     if (selectedSizes.length === 0) {
       console.error('❌ No sizes selected');
       toast.error('Выберите хотя бы один размер');
@@ -82,7 +87,7 @@ const VideoGenerator = () => {
       return;
     }
 
-    console.log(`✅ Validation passed. Selected brands: ${selectedBrands.join(', ') || 'None (resize mode)'}`);
+    console.log(`✅ Validation passed. Selected brands: ${selectedBrands.join(', ')}`);
     console.log(`✅ Source video: ${uploadedVideo.file.name} (${uploadedVideo.file.size} bytes)`);
     console.log(`✅ Video URL: ${uploadedVideo.url}`);
     console.log(`✅ API key: ${apiKey.substring(0, 10)}...`);
@@ -92,51 +97,29 @@ const VideoGenerator = () => {
     setIsGenerating(true);
     setOverallProgress(0);
 
-    // Создаем варианты для каждого размера
+    // Создаем варианты для каждого бренда и размера
     const newVariants: VideoVariant[] = [];
-    
-    if (selectedBrands.length > 0) {
-      // Режим с брендами - создаем варианты для каждого бренда и размера
-      selectedBrands.forEach(brandId => {
-        const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name || brandId;
-        console.log(`📋 Processing brand: ${brandName} (${brandId})`);
-        
-        CREATOMATE_TEMPLATES
-          .filter(template => selectedSizes.includes(template.size))
-          .forEach(template => {
-            const variantId = `${brandId}-${template.id}`;
-            console.log(`📝 Creating variant: ${variantId}`);
-            
-            newVariants.push({
-              id: variantId,
-              name: `${brandName} ${template.name}`,
-              brand: brandName,
-              size: template.size,
-              dimensions: template.dimensions,
-              status: 'pending' as const,
-              progress: 0
-            });
-          });
-      });
-    } else {
-      // Режим ресайзера - создаем варианты только по размерам
+    selectedBrands.forEach(brandId => {
+      const brandName = AVAILABLE_BRANDS.find(b => b.id === brandId)?.name || brandId;
+      console.log(`📋 Processing brand: ${brandName} (${brandId})`);
+      
       CREATOMATE_TEMPLATES
         .filter(template => selectedSizes.includes(template.size))
         .forEach(template => {
-          const variantId = `resize-${template.id}`;
-          console.log(`📝 Creating resize variant: ${variantId}`);
+          const variantId = `${brandId}-${template.id}`;
+          console.log(`📝 Creating variant: ${variantId}`);
           
           newVariants.push({
             id: variantId,
-            name: template.name,
-            brand: 'Resize',
+            name: `${brandName} ${template.name}`,
+            brand: brandName,
             size: template.size,
             dimensions: template.dimensions,
             status: 'pending' as const,
             progress: 0
           });
         });
-    }
+    });
 
     console.log(`📊 Total variants to generate: ${newVariants.length}`);
     setVariants(newVariants);
@@ -161,16 +144,13 @@ const VideoGenerator = () => {
       const template = CREATOMATE_TEMPLATES.find(t => variant.size === t.size);
       const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
       
-      let packshotUrl: string = '';
-      if (brand) {
-        if (template?.size === 'vertical') packshotUrl = brand.packshots.vertical;
-        else if (template?.size === 'square') packshotUrl = brand.packshots.square;
-        else packshotUrl = brand.packshots.horizontal;
-      }
+      let packshotUrl: string;
+      if (template?.size === 'vertical') packshotUrl = brand?.packshots.vertical!;
+      else if (template?.size === 'square') packshotUrl = brand?.packshots.square!;
+      else packshotUrl = brand?.packshots.horizontal!;
 
       try {
-        const enablePackshot = selectedBrands.length > 0;
-        await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl, { enableSubtitles, enablePackshot });
+        await processVariant(service, template!, variant, uploadedVideo.url, packshotUrl);
         completedCount++;
       } catch (error) {
         console.error(`❌ Failed to process variant ${variant.id}:`, error);
@@ -226,7 +206,7 @@ const VideoGenerator = () => {
     }
   };
 
-  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshotUrl: string, options: { enableSubtitles: boolean; enablePackshot: boolean }) => {
+  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshotUrl: string) => {
     console.log(`🎯 Processing variant: ${variant.name} (${variant.id})`);
     console.log(`📋 Template:`, template);
     console.log(`📹 Video URL:`, inputVideoUrl);
@@ -239,7 +219,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, uploadedVideo.duration, options);
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, uploadedVideo.duration);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -448,7 +428,6 @@ const VideoGenerator = () => {
               {/* Brand Selection */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Выбор брендов</h3>
-                <p className="text-sm text-muted-foreground">Оставьте пустым для использования как ресайзер без брендинга</p>
                 <div className="grid grid-cols-2 gap-4">
                   {AVAILABLE_BRANDS.map(brand => (
                     <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
@@ -463,39 +442,20 @@ const VideoGenerator = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Subtitles Option */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-lg">Дополнительные опции</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={enableSubtitles}
-                      onChange={(e) => setEnableSubtitles(e.target.checked)}
-                      className="rounded border-video-primary/30"
-                    />
-                    <div>
-                      <p className="font-medium">Добавить субтитры</p>
-                      <p className="text-sm text-muted-foreground">Автоматически генерировать субтитры для видео</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
             </div>
 
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground text-center">
-                <p>Примерная стоимость: ${((selectedBrands.length || 1) * selectedSizes.length * 0.5).toFixed(1)} | Время генерации: ~{(selectedBrands.length || 1) * selectedSizes.length * 1}-{(selectedBrands.length || 1) * selectedSizes.length * 2} минут</p>
+                <p>Примерная стоимость: ${(selectedBrands.length * selectedSizes.length * 0.5).toFixed(1)} | Время генерации: ~{selectedBrands.length * selectedSizes.length * 1}-{selectedBrands.length * selectedSizes.length * 2} минут</p>
               </div>
               
               <Button 
                 onClick={generateVariants}
-                disabled={!uploadedVideo || selectedSizes.length === 0 || !apiKey.trim() || isGenerating || isUploading}
+                disabled={!uploadedVideo || selectedBrands.length === 0 || selectedSizes.length === 0 || !apiKey.trim() || isGenerating || isUploading}
                 className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
               >
                 <Zap className="h-5 w-5 mr-2" />
-                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${(selectedBrands.length || 1) * selectedSizes.length} вариантов`}
+                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : `Создать ${selectedBrands.length * selectedSizes.length} вариантов`}
               </Button>
             </div>
           </div>
