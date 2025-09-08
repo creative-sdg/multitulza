@@ -91,13 +91,8 @@ export class CreatomateService {
     // Add main video field(s) with trim settings in source
     const videoSettings: any = { source: videoUrl };
     
-    // Add trim settings to video source if provided
-    if (options?.startTime !== undefined && options?.startTime > 0) {
-      videoSettings.trim_start = options.startTime;
-    }
-    if (options?.startTime !== undefined && options?.endTime !== undefined) {
-      videoSettings.trim_duration = options.endTime - options.startTime;
-    }
+    // Trimming disabled as per request — use template defaults for timing
+
     
     if (template.mainVideoField.includes(',')) {
       // Multiple main video fields (like for horizontal template)
