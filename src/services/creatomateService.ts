@@ -68,6 +68,7 @@ export class CreatomateService {
       startTime?: number;
       endTime?: number;
       enableSubtitles?: boolean;
+      enablePackshot?: boolean;
     }
   ): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
@@ -77,11 +78,15 @@ export class CreatomateService {
     if (options?.startTime !== undefined) console.log(`⏯️ Start time: ${options.startTime}s`);
     if (options?.endTime !== undefined) console.log(`⏹️ End time: ${options.endTime}s`);
     console.log(`📝 Subtitles enabled: ${options?.enableSubtitles ?? true}`);
+    console.log(`🎯 Packshot enabled: ${options?.enablePackshot ?? true}`);
     
     // Start rendering with the URLs
-    const modifications: any = {
-      [template.packshotField]: packshotUrl,
-    };
+    const modifications: any = {};
+    
+    // Only add packshot if enabled
+    if (options?.enablePackshot !== false && packshotUrl) {
+      modifications[template.packshotField] = packshotUrl;
+    }
     
     // Add main video field(s) with trim settings if provided
     const videoSettings: any = { source: videoUrl };
@@ -103,11 +108,10 @@ export class CreatomateService {
       modifications[template.mainVideoField] = videoSettings;
     }
 
-    // Handle subtitles - add subtitle control if disabled
+    // Handle subtitles - use the actual subtitle layer name from template
     if (options?.enableSubtitles === false) {
-      // Add modification to hide subtitles if the template supports it
-      // This might need to be adjusted based on your template structure
-      modifications['Subtitles_Visible'] = false;
+      // Hide subtitles layer - using the common naming convention
+      modifications['Subtitles-auto'] = { visible: false };
     }
 
     const renderRequest: CreatomateRenderRequest = {

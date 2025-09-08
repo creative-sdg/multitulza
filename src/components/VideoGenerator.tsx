@@ -254,11 +254,12 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, enablePackshots ? packshotUrl : '', {
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshotUrl, {
         videoDuration: uploadedVideo.duration,
         startTime: startTime > 0 ? startTime : undefined,
         endTime: endTime < (uploadedVideo.duration || 0) ? endTime : undefined,
-        enableSubtitles
+        enableSubtitles,
+        enablePackshot: enablePackshots
       });
       
       // Poll for completion
