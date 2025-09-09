@@ -25,7 +25,7 @@ const VideoGenerator = () => {
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [enableSubtitles, setEnableSubtitles] = useState(false);
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -82,7 +82,7 @@ const VideoGenerator = () => {
       return;
     }
 
-    console.log(`✅ Validation passed. Subtitles enabled: ${enableSubtitles}`);
+    console.log(`✅ Validation passed.`);
     console.log(`✅ Source video: ${uploadedVideo.file.name} (${uploadedVideo.file.size} bytes)`);
     console.log(`✅ Video URL: ${uploadedVideo.url}`);
     console.log(`✅ API key: ${apiKey.substring(0, 10)}...`);
@@ -99,7 +99,6 @@ const VideoGenerator = () => {
       // Режим с брендами (пакшоты включены)
       console.log('📋 Processing branded mode');
       console.log(`📋 Selected brands: ${selectedBrands.join(', ')}`);
-      console.log(`📝 Subtitles enabled: ${enableSubtitles}`);
       
       selectedBrands.forEach(brandId => {
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
@@ -116,7 +115,7 @@ const VideoGenerator = () => {
             
             newVariants.push({
               id: variantId,
-              name: `${brand.name} - ${template.name}${enableSubtitles ? ' (с субтитрами)' : ''}`,
+              name: `${brand.name} - ${template.name}`,
               size: template.size,
               dimensions: template.dimensions,
               status: 'pending' as const,
@@ -127,7 +126,6 @@ const VideoGenerator = () => {
     } else {
       // Режим без брендов (только ресайз)
       console.log('📋 Processing resize-only mode');
-      console.log(`📝 Subtitles enabled: ${enableSubtitles}`);
       
       CREATOMATE_TEMPLATES
         .filter(template => selectedSizes.includes(template.size))
@@ -137,7 +135,7 @@ const VideoGenerator = () => {
           
           newVariants.push({
             id: variantId,
-            name: `${template.name}${enableSubtitles ? ' (с субтитрами)' : ''}`,
+            name: template.name,
             size: template.size,
             dimensions: template.dimensions,
             status: 'pending' as const,
@@ -250,7 +248,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, enableSubtitles);
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -458,7 +456,7 @@ const VideoGenerator = () => {
 
               {/* Brand Selection */}
               <div className="space-y-4">
-                <h3 className="font-medium text-lg">Выбор бренда (добавляются субтитры)</h3>
+                <h3 className="font-medium text-lg">Выбор бренда</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {AVAILABLE_BRANDS.map(brand => (
                     <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
@@ -474,28 +472,11 @@ const VideoGenerator = () => {
                 </div>
               </div>
 
-              {/* Subtitles Selection */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-lg">Текст</h3>
-                <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={enableSubtitles}
-                    onChange={(e) => setEnableSubtitles(e.target.checked)}
-                    className="rounded border-video-primary/30"
-                  />
-                  <span className="font-medium">Субтитры</span>
-                </label>
-              </div>
             </div>
 
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground text-center">
-                {enableSubtitles ? (
-                  <p>Примерная стоимость: ${(selectedSizes.length * 0.5).toFixed(1)} | Время генерации: ~{selectedSizes.length * 1}-{selectedSizes.length * 2} минут</p>
-                ) : (
-                  <p>Режим ресайза: ${(selectedSizes.length * 0.3).toFixed(1)} | Время генерации: ~{selectedSizes.length * 1}-{selectedSizes.length * 1.5} минут</p>
-                )}
+                <p>Режим ресайза: ${(selectedSizes.length * 0.3).toFixed(1)} | Время генерации: ~{selectedSizes.length * 1}-{selectedSizes.length * 1.5} минут</p>
               </div>
               
               <Button 
@@ -506,10 +487,10 @@ const VideoGenerator = () => {
                 <Zap className="h-5 w-5 mr-2" />
                 {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : 
                   (() => {
-                    const totalVariants = selectedBrands.length > 0 && enableSubtitles 
+                    const totalVariants = selectedBrands.length > 0 
                       ? selectedSizes.length * selectedBrands.length 
                       : selectedSizes.length;
-                    return `Создать ${totalVariants} ${selectedBrands.length > 0 && enableSubtitles ? 'вариантов с субтитрами' : 'ресайзов'}`;
+                    return `Создать ${totalVariants} ${selectedBrands.length > 0 ? 'вариантов с пекшотами' : 'ресайзов'}`;
                   })()
                 }
               </Button>

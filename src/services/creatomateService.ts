@@ -59,10 +59,9 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, enableSubtitles: boolean = false): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
-    console.log(`📝 Subtitles enabled: ${enableSubtitles}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
     if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
     
@@ -82,22 +81,6 @@ export class CreatomateService {
       });
     } else {
       modifications[template.mainVideoField] = videoUrl;
-    }
-
-    // Handle subtitles with dynamic properties
-    if (enableSubtitles) {
-      // Enable subtitles with opacity 1 (100%) and set source video
-      modifications['subtitles_opacity'] = 1;
-      // For subtitles, use the first main video field as source
-      const sourceField = template.mainVideoField.includes(',') 
-        ? template.mainVideoField.split(',')[0].trim() 
-        : template.mainVideoField;
-      modifications['subtitles_source_video'] = sourceField;
-      console.log(`📝 Subtitles enabled: opacity=1, source=${sourceField}`);
-    } else {
-      // Disable subtitles with opacity 0 (don't set source to avoid transcription)
-      modifications['subtitles_opacity'] = 0;
-      console.log('📝 Subtitles disabled: opacity=0');
     }
 
     const renderRequest: CreatomateRenderRequest = {
