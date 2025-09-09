@@ -215,7 +215,7 @@ export const AVAILABLE_BRANDS = [
 // Template configurations with real Creatomate template IDs
 export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
   {
-    id: 'ae386c9d-1bd5-4234-88df-b6c636d98c9d',
+    id: '41a34610-feae-4e0d-9725-b8157f7de781',
     name: '9:16 Вертикальное',
     size: 'vertical',
     dimensions: '1080x1920',
