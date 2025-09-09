@@ -95,20 +95,9 @@ export class CreatomateService {
       modifications['subtitles_source_video'] = sourceField;
       console.log(`📝 Subtitles enabled: opacity=1, source=${sourceField}`);
     } else {
-      // Disable subtitles with opacity 0 and set source based on template type
+      // Disable subtitles with opacity 0 (don't set source to avoid transcription)
       modifications['subtitles_opacity'] = 0;
-      
-      // For square template use empty string, for horizontal use null
-      if (template.size === 'square') {
-        modifications['subtitles_source'] = "";
-        console.log('📝 Subtitles disabled: opacity=0, source=""');
-      } else if (template.size === 'horizontal') {
-        modifications['subtitles_source'] = null;
-        console.log('📝 Subtitles disabled: opacity=0, source=null');
-      } else {
-        // For vertical, don't set source at all
-        console.log('📝 Subtitles disabled: opacity=0');
-      }
+      console.log('📝 Subtitles disabled: opacity=0');
     }
 
     const renderRequest: CreatomateRenderRequest = {
