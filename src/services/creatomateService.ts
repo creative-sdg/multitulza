@@ -86,14 +86,14 @@ export class CreatomateService {
 
     // Handle subtitles with dynamic properties
     if (enableSubtitles) {
-      // Enable subtitles with opacity 100 and set source video
-      modifications['subtitles_opacity'] = 100;
+      // Enable subtitles with opacity 1 (100%) and set source video
+      modifications['subtitles_opacity'] = 1;
       // For subtitles, use the first main video field as source
       const sourceField = template.mainVideoField.includes(',') 
         ? template.mainVideoField.split(',')[0].trim() 
         : template.mainVideoField;
       modifications['subtitles_source_video'] = sourceField;
-      console.log(`📝 Subtitles enabled: opacity=100, source=${sourceField}`);
+      console.log(`📝 Subtitles enabled: opacity=1, source=${sourceField}`);
     } else {
       // Disable subtitles with opacity 0 (don't set source to avoid transcription)
       modifications['subtitles_opacity'] = 0;
