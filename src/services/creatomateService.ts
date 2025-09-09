@@ -59,9 +59,10 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, enableSubtitles: boolean = false): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
+    console.log(`📝 Subtitles enabled: ${enableSubtitles}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
     if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
     
@@ -81,6 +82,22 @@ export class CreatomateService {
       });
     } else {
       modifications[template.mainVideoField] = videoUrl;
+    }
+
+    // Handle subtitles with dynamic properties
+    if (enableSubtitles) {
+      // Enable subtitles with opacity 100 and set source video
+      modifications['subtitles_opacity'] = 100;
+      // For subtitles, use the first main video field as source
+      const sourceField = template.mainVideoField.includes(',') 
+        ? template.mainVideoField.split(',')[0].trim() 
+        : template.mainVideoField;
+      modifications['subtitles_source_video'] = sourceField;
+      console.log(`📝 Subtitles enabled: opacity=100, source=${sourceField}`);
+    } else {
+      // Disable subtitles with opacity 0 (don't set source to avoid transcription)
+      modifications['subtitles_opacity'] = 0;
+      console.log(`📝 Subtitles disabled: opacity=0`);
     }
 
     const renderRequest: CreatomateRenderRequest = {
@@ -223,30 +240,4 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
   }
 ];
 
-// Resize-only templates (no packshots or subtitles)
-export const RESIZE_TEMPLATES: CreatomateTemplate[] = [
-  {
-    id: 'ae386c9d-1bd5-4234-88df-b6c636d98c9d',
-    name: '9:16 Вертикальное',
-    size: 'vertical',
-    dimensions: '1080x1920',
-    mainVideoField: 'Main_Video',
-    packshotField: ''
-  },
-  {
-    id: '8b5c43d4-1137-462c-9cc1-cb2f5cf82c65',
-    name: '16:9 Горизонтальное', 
-    size: 'horizontal',
-    dimensions: '1920x1080',
-    mainVideoField: 'Main_Video',
-    packshotField: ''
-  },
-  {
-    id: 'feaf0e6c-d0f7-4f7e-82e4-609da6f94f0e',
-    name: '1:1 Квадратное',
-    size: 'square',
-    dimensions: '1080x1080',
-    mainVideoField: 'Main_Video',
-    packshotField: ''
-  }
-];
+// All templates now support dynamic subtitles via opacity control

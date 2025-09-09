@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, Play, Download, Zap, Video, Settings, Key } from 'lucide-react';
 import { toast } from 'sonner';
-import { CreatomateService, CREATOMATE_TEMPLATES, RESIZE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
+import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 
 interface VideoVariant {
@@ -92,13 +92,14 @@ const VideoGenerator = () => {
     setIsGenerating(true);
     setOverallProgress(0);
 
-    // Создаем варианты в зависимости от выбранных брендов и субтитров
+    // Создаем варианты в зависимости от выбранных брендов
     const newVariants: VideoVariant[] = [];
     
-    if (selectedBrands.length > 0 && enableSubtitles) {
-      // Режим с брендами и субтитрами
-      console.log('📋 Processing branded subtitles mode');
+    if (selectedBrands.length > 0) {
+      // Режим с брендами (пакшоты включены)
+      console.log('📋 Processing branded mode');
       console.log(`📋 Selected brands: ${selectedBrands.join(', ')}`);
+      console.log(`📝 Subtitles enabled: ${enableSubtitles}`);
       
       selectedBrands.forEach(brandId => {
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
@@ -115,7 +116,7 @@ const VideoGenerator = () => {
             
             newVariants.push({
               id: variantId,
-              name: `${brand.name} - ${template.name}`,
+              name: `${brand.name} - ${template.name}${enableSubtitles ? ' (с субтитрами)' : ''}`,
               size: template.size,
               dimensions: template.dimensions,
               status: 'pending' as const,
@@ -124,10 +125,11 @@ const VideoGenerator = () => {
           });
       });
     } else {
-      // Режим только ресайза (без брендов или без субтитров)
+      // Режим без брендов (только ресайз)
       console.log('📋 Processing resize-only mode');
+      console.log(`📝 Subtitles enabled: ${enableSubtitles}`);
       
-      RESIZE_TEMPLATES
+      CREATOMATE_TEMPLATES
         .filter(template => selectedSizes.includes(template.size))
         .forEach(template => {
           const variantId = `resize-${template.id}`;
@@ -135,7 +137,7 @@ const VideoGenerator = () => {
           
           newVariants.push({
             id: variantId,
-            name: `${template.name}`,
+            name: `${template.name}${enableSubtitles ? ' (с субтитрами)' : ''}`,
             size: template.size,
             dimensions: template.dimensions,
             status: 'pending' as const,
@@ -165,7 +167,7 @@ const VideoGenerator = () => {
       let packshot: string | undefined;
       
       if (variant.id.startsWith('branded-')) {
-        // Режим с брендами и субтитрами
+        // Режим с брендами
         const parts = variant.id.split('-');
         const brandId = parts[1];
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
@@ -174,18 +176,9 @@ const VideoGenerator = () => {
         
         console.log(`🏷️ Branded variant - Brand: ${brand?.name}, Packshot: ${packshot}`);
       } else {
-        // Режим ресайза
-        template = RESIZE_TEMPLATES.find(t => variant.size === t.size);
-        
-        // Получаем информацию о шаблоне для отладки
-        if (template) {
-          try {
-            const templateInfo = await service.getTemplate(template.id);
-            console.log(`🔍 Template ${template.id} structure:`, templateInfo);
-          } catch (error) {
-            console.log(`⚠️ Could not get template info: ${error}`);
-          }
-        }
+        // Режим без брендов
+        template = CREATOMATE_TEMPLATES.find(t => variant.size === t.size);
+        console.log(`📋 Resize-only variant using template: ${template?.name}`);
       }
 
       try {
@@ -257,7 +250,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration);
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, enableSubtitles);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -445,12 +438,12 @@ const VideoGenerator = () => {
               {/* Size Selection */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Размеры видео</h3>
-                <div className="grid grid-cols-1 gap-3">
-                  {RESIZE_TEMPLATES.map(template => (
-                    <label key={template.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={selectedSizes.includes(template.size)}
+                 <div className="grid grid-cols-1 gap-3">
+                   {CREATOMATE_TEMPLATES.map(template => (
+                     <label key={template.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                       <input
+                         type="checkbox"
+                         checked={selectedSizes.includes(template.size)}
                         onChange={() => handleSizeToggle(template.size)}
                         className="rounded border-video-primary/30"
                       />
