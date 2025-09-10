@@ -5,6 +5,8 @@ interface CreatomateTemplate {
   dimensions: string;
   mainVideoField: string;
   packshotField: string;
+  supportsCustomText?: boolean;
+  supportsSubtitles?: boolean;
 }
 
 interface Brand {
@@ -59,11 +61,13 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
     if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
+    if (options?.enableSubtitles) console.log(`🔤 Subtitles enabled`);
+    if (options?.customText) console.log(`✏️ Custom text: ${options.customText.substring(0, 50)}...`);
     
     // Start rendering with the URLs
     const modifications: any = {};
@@ -81,6 +85,30 @@ export class CreatomateService {
       });
     } else {
       modifications[template.mainVideoField] = videoUrl;
+    }
+
+    // Handle subtitles and custom text for test template
+    if (template.supportsCustomText || template.supportsSubtitles) {
+      if (options?.enableSubtitles && template.supportsSubtitles) {
+        // Enable subtitles, hide custom text
+        modifications['element_subtitles.visible'] = true;
+        modifications['element_subtitles.transcript_source'] = 'Main_Video_front';
+        modifications['element_custom_text.visible'] = false;
+        console.log(`🔤 Configured subtitles for template`);
+      } else if (options?.customText && template.supportsCustomText) {
+        // Enable custom text, hide subtitles
+        modifications['element_custom_text.visible'] = true;
+        modifications['element_subtitles.visible'] = false;
+        
+        // Split text into 60-character blocks
+        const textBlocks = this.splitTextIntoBlocks(options.customText, 60);
+        modifications['element_custom_text.text'] = textBlocks;
+        console.log(`✏️ Configured custom text with ${textBlocks.length} blocks`);
+      } else {
+        // Hide both if neither option is selected
+        modifications['element_subtitles.visible'] = false;
+        modifications['element_custom_text.visible'] = false;
+      }
     }
 
     const renderRequest: CreatomateRenderRequest = {
@@ -153,6 +181,31 @@ export class CreatomateService {
       setTimeout(poll, Math.random() * 3000);
     });
   }
+
+  private splitTextIntoBlocks(text: string, maxLength: number): string[] {
+    const words = text.split(' ');
+    const blocks: string[] = [];
+    let currentBlock = '';
+
+    for (const word of words) {
+      const testBlock = currentBlock === '' ? word : `${currentBlock} ${word}`;
+      
+      if (testBlock.length <= maxLength) {
+        currentBlock = testBlock;
+      } else {
+        if (currentBlock !== '') {
+          blocks.push(currentBlock);
+        }
+        currentBlock = word;
+      }
+    }
+
+    if (currentBlock !== '') {
+      blocks.push(currentBlock);
+    }
+
+    return blocks.length > 0 ? blocks : [text];
+  }
 }
 
 // Available brands with their packshot URLs
@@ -220,6 +273,16 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     dimensions: '1080x1080',
     mainVideoField: 'Main_Video_front, Main_Video_back',
     packshotField: 'Packshot'
+  },
+  {
+    id: '196ce1c1-324b-4af0-85a6-b1808e79ac3d',
+    name: 'Тест (Субтитры/Текст)',
+    size: 'test',
+    dimensions: '1080x1920',
+    mainVideoField: 'Main_Video_front',
+    packshotField: 'Packshot',
+    supportsCustomText: true,
+    supportsSubtitles: true
   }
 ];
 

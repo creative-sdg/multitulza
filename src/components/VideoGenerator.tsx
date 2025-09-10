@@ -5,6 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Upload, Play, Download, Zap, Video, Settings, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
@@ -25,6 +27,11 @@ const VideoGenerator = () => {
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  
+  // Text/Subtitle options for test template
+  const [enableSubtitles, setEnableSubtitles] = useState(false);
+  const [customText, setCustomText] = useState('');
+  const [textInputMode, setTextInputMode] = useState<'none' | 'subtitles' | 'custom'>('none');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
@@ -49,6 +56,19 @@ const VideoGenerator = () => {
         ? prev.filter(b => b !== brandId)
         : [...prev, brandId]
     );
+  };
+
+  const handleTextModeChange = (mode: 'none' | 'subtitles' | 'custom') => {
+    setTextInputMode(mode);
+    if (mode === 'subtitles') {
+      setEnableSubtitles(true);
+      setCustomText('');
+    } else if (mode === 'custom') {
+      setEnableSubtitles(false);
+    } else {
+      setEnableSubtitles(false);
+      setCustomText('');
+    }
   };
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +268,12 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration);
+      const options = template.supportsCustomText || template.supportsSubtitles ? {
+        enableSubtitles: enableSubtitles && textInputMode === 'subtitles',
+        customText: textInputMode === 'custom' ? customText : undefined
+      } : undefined;
+
+      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -471,6 +496,44 @@ const VideoGenerator = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Text Options for Test Template */}
+              {selectedSizes.includes('test') && (
+                <div className="space-y-4 p-4 bg-video-surface-elevated rounded-lg border border-video-primary/20">
+                  <h3 className="font-medium text-lg">Опции текста (только для тестового шаблона)</h3>
+                  
+                  <RadioGroup value={textInputMode} onValueChange={handleTextModeChange}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="none" id="none" />
+                      <Label htmlFor="none">Без текста</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="subtitles" id="subtitles" />
+                      <Label htmlFor="subtitles">Включить субтитры</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="custom" />
+                      <Label htmlFor="custom">Кастомный текст</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {textInputMode === 'custom' && (
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor="custom-text">Введите ваш текст</Label>
+                      <Textarea
+                        id="custom-text"
+                        placeholder="Введите текст, который будет разбит на блоки по 60 символов..."
+                        value={customText}
+                        onChange={(e) => setCustomText(e.target.value)}
+                        className="bg-video-surface border-video-primary/30 min-h-[100px]"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Текст будет автоматически разбит на блоки по 60 символов
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
             </div>
 
