@@ -103,7 +103,7 @@ export class CreatomateService {
         // Split text into 60-character blocks
         const textBlocks = this.splitTextIntoBlocks(options.customText, 60);
         modifications['element_custom_text.text'] = textBlocks;
-        console.log(`✏️ Configured custom text with ${textBlocks.length} blocks`);
+        console.log(`✏️ Configured custom text with line breaks`);
       } else {
         // Hide both if neither option is selected
         modifications['element_subtitles.visible'] = false;
@@ -182,7 +182,7 @@ export class CreatomateService {
     });
   }
 
-  private splitTextIntoBlocks(text: string, maxLength: number): string[] {
+  private splitTextIntoBlocks(text: string, maxLength: number): string {
     const words = text.split(' ');
     const blocks: string[] = [];
     let currentBlock = '';
@@ -204,7 +204,8 @@ export class CreatomateService {
       blocks.push(currentBlock);
     }
 
-    return blocks.length > 0 ? blocks : [text];
+    // Return as a single string with line breaks
+    return blocks.length > 0 ? blocks.join('\n') : text;
   }
 }
 
