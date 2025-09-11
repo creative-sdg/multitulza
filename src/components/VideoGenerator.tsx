@@ -38,8 +38,9 @@ const VideoGenerator = () => {
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>('');
   const [textScenarioVideo, setTextScenarioVideo] = useState<UploadedVideo | null>(null);
   
-  // Global subtitle option
+  // Global subtitle and voiceover options
   const [enableSubtitles, setEnableSubtitles] = useState(false);
+  const [enableVoiceover, setEnableVoiceover] = useState(false);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
@@ -66,9 +67,13 @@ const VideoGenerator = () => {
     );
   };
 
-  const handleTextReady = (text: string, audioUrl?: string) => {
+  const handleTextReady = (text: string, audioUrl?: string, options?: { enableSubtitles?: boolean; enableVoiceover?: boolean }) => {
     setFinalText(text);
     setGeneratedAudioUrl(audioUrl || '');
+    if (options) {
+      setEnableSubtitles(options.enableSubtitles ?? false);
+      setEnableVoiceover(options.enableVoiceover ?? false);
+    }
   };
 
   const handleBrandChange = (brands: string[]) => {
@@ -306,17 +311,23 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const options = enableSubtitles ? { enableSubtitles: true } : {};
+      const options: any = {};
+      if (enableSubtitles) options.enableSubtitles = true;
       
       let renderId: string;
       if (scenario === 'with-audio') {
         renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
       } else if (scenario === 'without-audio' && textData && textScenarioVideo) {
         // For text scenario, use the uploaded video with generated audio
-        renderId = await service.renderVideo(template, textScenarioVideo.url, packshot, textScenarioVideo.duration, {
+        const renderOptions = {
           ...options,
           customText: textData.text
-        });
+        };
+        
+        // Add audio URL only if voiceover is enabled
+        const audioUrl = enableVoiceover ? textData.audioUrl : undefined;
+        
+        renderId = await service.renderVideo(template, textScenarioVideo.url, packshot, textScenarioVideo.duration, renderOptions);
       } else {
         throw new Error('Invalid scenario configuration');
       }

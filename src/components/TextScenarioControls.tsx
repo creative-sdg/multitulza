@@ -25,7 +25,7 @@ import { AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload } from '@/hooks/useVideoUpload';
 
 interface TextScenarioControlsProps {
-  onTextReady: (finalText: string, audioUrl?: string) => void;
+  onTextReady: (finalText: string, audioUrl?: string, options?: { enableSubtitles?: boolean; enableVoiceover?: boolean }) => void;
   onBrandChange: (brands: string[]) => void;
   onVideoReady?: (video: { file: File; url: string; path: string; duration?: number }) => void;
 }
@@ -48,6 +48,7 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
   // Audio generation
   const [selectedVoice, setSelectedVoice] = useState<string>('');
   const [generateAudio, setGenerateAudio] = useState(true);
+  const [enableSubtitles, setEnableSubtitles] = useState(true);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [uploadedAudioFile, setUploadedAudioFile] = useState<File | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>('');
@@ -187,8 +188,11 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
       return;
     }
 
-    onTextReady(finalText, generateAudio ? audioUrl : undefined);
-    toast.success('Текст и аудио готовы для генерации видео');
+    onTextReady(finalText, generateAudio ? audioUrl : undefined, { 
+      enableSubtitles, 
+      enableVoiceover: generateAudio 
+    });
+    toast.success('Текст и настройки готовы для генерации видео');
   };
 
   const playAudio = () => {
@@ -410,18 +414,29 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
           )}
         </div>
 
-        {/* Audio Generation */}
+        {/* Audio & Subtitles Options */}
         <div className="space-y-4">
-          <h3 className="font-medium text-lg">Настройки аудио</h3>
+          <h3 className="font-medium text-lg">Настройки аудио и субтитров</h3>
           
-          <div className="flex items-center gap-4">
-            <label className="flex items-center space-x-2">
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex items-center space-x-3 p-3 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableSubtitles}
+                onChange={(e) => setEnableSubtitles(e.target.checked)}
+                className="rounded border-video-primary/30"
+              />
+              <span className="font-medium">Включить субтитры</span>
+            </label>
+            
+            <label className="flex items-center space-x-3 p-3 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors cursor-pointer">
               <input
                 type="checkbox"
                 checked={generateAudio}
                 onChange={(e) => setGenerateAudio(e.target.checked)}
+                className="rounded border-video-primary/30"
               />
-              <span>Генерировать озвучку</span>
+              <span className="font-medium">Включить озвучку</span>
             </label>
           </div>
 
