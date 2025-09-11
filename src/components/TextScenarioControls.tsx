@@ -55,6 +55,7 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
   // Loading states
   const [isLoadingBlock, setIsLoadingBlock] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
 
   const loadTextBlock = async (row: number) => {
     setIsLoadingBlock(true);
@@ -191,12 +192,26 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
   };
 
   const playAudio = () => {
-    const audioUrl = uploadedAudioFile ? URL.createObjectURL(uploadedAudioFile) : generatedAudioUrl;
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      setIsPlaying(true);
-      audio.play();
-      audio.addEventListener('ended', () => setIsPlaying(false));
+    if (currentAudio) {
+      if (isPlaying) {
+        currentAudio.pause();
+        setIsPlaying(false);
+      } else {
+        currentAudio.play();
+        setIsPlaying(true);
+      }
+    } else {
+      const audioUrl = uploadedAudioFile ? URL.createObjectURL(uploadedAudioFile) : generatedAudioUrl;
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        setCurrentAudio(audio);
+        setIsPlaying(true);
+        audio.play();
+        audio.addEventListener('ended', () => {
+          setIsPlaying(false);
+          setCurrentAudio(null);
+        });
+      }
     }
   };
 
@@ -206,6 +221,51 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
         <div className="flex items-center gap-3 mb-4">
           <FileText className="h-6 w-6 text-video-primary" />
           <h2 className="text-2xl font-semibold">Работа с текстами</h2>
+        </div>
+
+        {/* Video Upload */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Upload className="h-6 w-6 text-video-primary" />
+            <h3 className="font-medium text-lg">Загрузка видео</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="video-upload">Выберите видео файл</Label>
+              <Input
+                id="video-upload"
+                type="file"
+                accept="video/*"
+                onChange={handleVideoUpload}
+                disabled={isUploading}
+                className="mt-2"
+              />
+            </div>
+            
+            {isUploading && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Загрузка видео...</span>
+                  <span>{Math.round(uploadProgress)}%</span>
+                </div>
+                <Progress value={uploadProgress} className="w-full" />
+              </div>
+            )}
+            
+            {uploadedVideo && (
+              <div className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
+                <Video className="h-5 w-5 text-success" />
+                <div className="flex-1">
+                  <div className="font-medium">{uploadedVideo.file.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)} MB
+                    {uploadedVideo.duration && ` • ${uploadedVideo.duration.toFixed(1)}s`}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Row Number Selection */}
@@ -254,51 +314,6 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
           />
         </div>
 
-        {/* Video Upload */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Upload className="h-6 w-6 text-video-primary" />
-            <h3 className="font-medium text-lg">Загрузка видео</h3>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="video-upload">Выберите видео файл</Label>
-              <Input
-                id="video-upload"
-                type="file"
-                accept="video/*"
-                onChange={handleVideoUpload}
-                disabled={isUploading}
-                className="mt-2"
-              />
-            </div>
-            
-            {isUploading && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Загрузка видео...</span>
-                  <span>{Math.round(uploadProgress)}%</span>
-                </div>
-                <Progress value={uploadProgress} className="w-full" />
-              </div>
-            )}
-            
-            {uploadedVideo && (
-              <div className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
-                <Video className="h-5 w-5 text-success" />
-                <div className="flex-1">
-                  <div className="font-medium">{uploadedVideo.file.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)} MB
-                    {uploadedVideo.duration && ` • ${uploadedVideo.duration.toFixed(1)}s`}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Brand Replacement */}
         <div className="space-y-4">
           <h3 className="font-medium text-lg">Замена брендов</h3>
@@ -306,39 +321,59 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
             <h4 className="font-medium">Ручная замена текста</h4>
             {Object.keys(brandReplacements).length > 0 ? (
               Object.entries(brandReplacements).map(([original, replacement], index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <Input
-                    placeholder="Исходный текст"
-                    value={original}
-                    onChange={(e) => {
-                      const newReplacements = { ...brandReplacements };
-                      delete newReplacements[original];
-                      newReplacements[e.target.value] = replacement;
-                      setBrandReplacements(newReplacements);
-                    }}
-                    className="flex-1"
-                  />
-                  <span className="text-muted-foreground">→</span>
-                  <Input
-                    placeholder="Заменить на"
-                    value={replacement}
-                    onChange={(e) => setBrandReplacements(prev => ({
-                      ...prev,
-                      [original]: e.target.value
-                    }))}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={() => {
-                      const newReplacements = { ...brandReplacements };
-                      delete newReplacements[original];
-                      setBrandReplacements(newReplacements);
-                    }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    ✕
-                  </Button>
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <Input
+                      placeholder="Текст для замены"
+                      value={original}
+                      onChange={(e) => {
+                        const newReplacements = { ...brandReplacements };
+                        delete newReplacements[original];
+                        newReplacements[e.target.value] = replacement;
+                        setBrandReplacements(newReplacements);
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={() => {
+                        const newReplacements = { ...brandReplacements };
+                        delete newReplacements[original];
+                        setBrandReplacements(newReplacements);
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  <div className="ml-6">
+                    <Label className="text-sm text-muted-foreground mb-2 block">Выберите замену:</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {AVAILABLE_BRANDS.map(brand => (
+                        <label key={brand.id} className="flex items-center space-x-2 cursor-pointer p-2 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                          <input
+                            type="radio"
+                            name={`replacement-${index}`}
+                            checked={replacement === brand.name}
+                            onChange={() => {
+                              setBrandReplacements(prev => ({
+                                ...prev,
+                                [original]: brand.name
+                              }));
+                              // Also update selected brands for packshot
+                              const newBrands = selectedBrands.includes(brand.id)
+                                ? selectedBrands
+                                : [...selectedBrands.filter(b => !AVAILABLE_BRANDS.find(br => br.name === replacement)?.id || b !== AVAILABLE_BRANDS.find(br => br.name === replacement)?.id), brand.id];
+                              setSelectedBrands(newBrands);
+                              onBrandChange(newBrands);
+                            }}
+                            className="rounded border-video-primary/30"
+                          />
+                          <span className="text-sm font-medium">{brand.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ))
             ) : (
@@ -354,23 +389,6 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
             </Button>
           </div>
           
-          <div className="space-y-3">
-            <h4 className="font-medium">Выбор брендов (автоматические пекшоты)</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {AVAILABLE_BRANDS.map(brand => (
-                <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-3 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.includes(brand.id)}
-                    onChange={() => handleBrandToggle(brand.id)}
-                    className="rounded border-video-primary/30"
-                  />
-                  <span className="font-medium">{brand.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          
           {/* Text Preview */}
           {editedText && (
             <div className="space-y-2">
@@ -378,6 +396,16 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
               <div className="p-3 bg-video-surface-elevated rounded-lg border border-video-primary/20">
                 <div className="text-sm whitespace-pre-wrap">{getPreviewText()}</div>
               </div>
+              <Label>Финальный текст (можно редактировать)</Label>
+              <Textarea
+                value={getPreviewText()}
+                onChange={(e) => {
+                  // Allow manual editing of the final text
+                  setEditedText(e.target.value);
+                  setBrandReplacements({}); // Clear replacements if manually edited
+                }}
+                className="min-h-[100px]"
+              />
             </div>
           )}
         </div>
