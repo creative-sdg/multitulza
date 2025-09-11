@@ -78,8 +78,17 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Error in Google Sheets function:', error);
+    
+    // Add more detailed error logging
+    if (error.message.includes('API has not been used')) {
+      console.error('❌ Google Sheets API is not enabled. Please enable it in Google Console.');
+    }
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Check if Google Sheets API is enabled and API key is valid'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
