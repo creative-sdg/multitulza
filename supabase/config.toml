@@ -1,1 +1,7 @@
 project_id = "kyasmnsbddufkyhcdroj"
+
+[functions.google-sheets]
+verify_jwt = false
+
+[functions.elevenlabs]
+verify_jwt = false

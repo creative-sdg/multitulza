@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Upload, Play, Download, Zap, Video, Settings, Key } from 'lucide-react';
+import { Upload, Play, Download, Zap, Video, Settings, Key, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
+import TextScenarioControls from '@/components/TextScenarioControls';
 
 interface VideoVariant {
   id: string;
@@ -24,9 +25,17 @@ interface VideoVariant {
 
 
 const VideoGenerator = () => {
+  // Scenario selection
+  const [scenario, setScenario] = useState<'with-audio' | 'without-audio' | null>(null);
+  
+  // Original video workflow
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  
+  // Text scenario workflow  
+  const [finalText, setFinalText] = useState<string>('');
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>('');
   
   // Global subtitle option
   const [enableSubtitles, setEnableSubtitles] = useState(false);
@@ -56,6 +65,15 @@ const VideoGenerator = () => {
     );
   };
 
+  const handleTextReady = (text: string, audioUrl?: string) => {
+    setFinalText(text);
+    setGeneratedAudioUrl(audioUrl || '');
+  };
+
+  const handleBrandChange = (brands: string[]) => {
+    setSelectedBrands(brands);
+  };
+
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -70,10 +88,19 @@ const VideoGenerator = () => {
   const generateVariants = async () => {
     console.log('🚀 Starting video generation process...');
     
-    if (!uploadedVideo) {
-      console.error('❌ No source video uploaded');
-      toast.error('Сначала загрузите исходное видео');
-      return;
+    // Validation based on scenario
+    if (scenario === 'with-audio') {
+      if (!uploadedVideo) {
+        console.error('❌ No source video uploaded');
+        toast.error('Сначала загрузите исходное видео');
+        return;
+      }
+    } else if (scenario === 'without-audio') {
+      if (!finalText.trim()) {
+        console.error('❌ No text prepared');
+        toast.error('Сначала подготовьте текст');
+        return;
+      }
     }
 
     if (selectedSizes.length === 0) {
@@ -88,9 +115,16 @@ const VideoGenerator = () => {
       return;
     }
 
-    console.log(`✅ Validation passed.`);
-    console.log(`✅ Source video: ${uploadedVideo.file.name} (${uploadedVideo.file.size} bytes)`);
-    console.log(`✅ Video URL: ${uploadedVideo.url}`);
+    console.log(`✅ Validation passed for scenario: ${scenario}`);
+    if (scenario === 'with-audio' && uploadedVideo) {
+      console.log(`✅ Source video: ${uploadedVideo.file.name} (${uploadedVideo.file.size} bytes)`);
+      console.log(`✅ Video URL: ${uploadedVideo.url}`);
+    } else if (scenario === 'without-audio') {
+      console.log(`✅ Final text: ${finalText.length} characters`);
+      if (generatedAudioUrl) {
+        console.log(`✅ Generated audio URL: ${generatedAudioUrl}`);
+      }
+    }
     console.log(`✅ API key: ${apiKey.substring(0, 10)}...`);
 
     const service = new CreatomateService(apiKey);
@@ -186,7 +220,7 @@ const VideoGenerator = () => {
       }
 
       try {
-        await processVariant(service, template!, variant, uploadedVideo.url, packshot);
+        await processVariant(service, template!, variant, scenario === 'with-audio' ? uploadedVideo!.url : '', packshot, scenario === 'without-audio' ? { text: finalText, audioUrl: generatedAudioUrl } : undefined);
         completedCount++;
       } catch (error) {
         console.error(`❌ Failed to process variant ${variant.id}:`, error);
@@ -242,10 +276,18 @@ const VideoGenerator = () => {
     }
   };
 
-  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshot?: string) => {
+  const processVariant = async (service: CreatomateService, template: any, variant: VideoVariant, inputVideoUrl: string, packshot?: string, textData?: { text: string; audioUrl?: string }) => {
     console.log(`🎯 Processing variant: ${variant.name} (${variant.id})`);
     console.log(`📋 Template:`, template);
-    console.log(`📹 Video URL:`, inputVideoUrl);
+    
+    if (scenario === 'with-audio') {
+      console.log(`📹 Video URL:`, inputVideoUrl);
+    } else if (scenario === 'without-audio' && textData) {
+      console.log(`📝 Text length: ${textData.text.length} characters`);
+      if (textData.audioUrl) {
+        console.log(`🔊 Audio URL: ${textData.audioUrl}`);
+      }
+    }
     
     try {
       // Update status to generating
@@ -255,8 +297,20 @@ const VideoGenerator = () => {
 
       // Start rendering
       const options = enableSubtitles ? { enableSubtitles: true } : {};
-
-      const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
+      
+      let renderId: string;
+      if (scenario === 'with-audio') {
+        renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
+      } else if (scenario === 'without-audio' && textData) {
+        // For text scenario, we need to handle text and audio differently
+        // This might require extending CreatomateService to handle text-based rendering
+        renderId = await service.renderVideo(template, textData.audioUrl || '', packshot, undefined, {
+          ...options,
+          customText: textData.text
+        });
+      } else {
+        throw new Error('Invalid scenario configuration');
+      }
       
       // Poll for completion
       const videoUrl = await service.pollRenderStatus(renderId, (progress) => {
@@ -338,11 +392,60 @@ const VideoGenerator = () => {
             </h1>
           </div>
            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Выберите бренды для автоматической генерации видео во всех форматах
+              Выберите сценарий для создания видео
             </p>
         </div>
 
+        {/* Scenario Selection */}
+        {!scenario && (
+          <Card className="p-8 bg-video-surface border-video-primary/20">
+            <div className="space-y-6">
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl font-semibold">Выберите сценарий работы</h2>
+                <p className="text-muted-foreground">
+                  Определите, какой тип видео вы хотите создать
+                </p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <Button
+                  onClick={() => setScenario('with-audio')}
+                  className="h-32 flex-col gap-4 bg-video-surface-elevated hover:bg-video-primary/10 text-foreground border border-video-primary/30"
+                  variant="outline"
+                >
+                  <Video className="h-8 w-8 text-video-primary" />
+                  <div className="text-center">
+                    <div className="font-semibold">Видео с исходным звуком</div>
+                    <div className="text-sm text-muted-foreground">Загрузите видео с готовой озвучкой</div>
+                  </div>
+                </Button>
+                
+                <Button
+                  onClick={() => setScenario('without-audio')}
+                  className="h-32 flex-col gap-4 bg-video-surface-elevated hover:bg-video-primary/10 text-foreground border border-video-primary/30"
+                  variant="outline"
+                >
+                  <FileText className="h-8 w-8 text-video-primary" />
+                  <div className="text-center">
+                    <div className="font-semibold">Создание с текстом</div>
+                    <div className="text-sm text-muted-foreground">Работа с текстами и генерация озвучки</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Text Scenario */}
+        {scenario === 'without-audio' && (
+          <TextScenarioControls 
+            onTextReady={handleTextReady}
+            onBrandChange={handleBrandChange}
+          />
+        )}
+
         {/* API Key Section */}
+        {scenario && (
         <Card className="p-8 bg-video-surface border-video-primary/20">
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
@@ -374,8 +477,10 @@ const VideoGenerator = () => {
             </div>
           </div>
         </Card>
+        )}
 
         {/* Upload Section */}
+        {scenario === 'with-audio' && (
         <Card className="p-8 bg-video-surface border-video-primary/20">
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
@@ -431,8 +536,10 @@ const VideoGenerator = () => {
             )}
           </div>
         </Card>
+        )}
 
         {/* Generation Section */}
+        {scenario && (
         <Card className="p-8 bg-video-surface border-video-primary/20">
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
@@ -503,7 +610,14 @@ const VideoGenerator = () => {
               
               <Button 
                 onClick={generateVariants}
-                disabled={!uploadedVideo || selectedSizes.length === 0 || !apiKey.trim() || isGenerating || isUploading}
+                disabled={
+                  !apiKey.trim() || 
+                  isGenerating || 
+                  isUploading ||
+                  selectedSizes.length === 0 ||
+                  (scenario === 'with-audio' && !uploadedVideo) ||
+                  (scenario === 'without-audio' && !finalText.trim())
+                }
                 className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
               >
                 <Zap className="h-5 w-5 mr-2" />
@@ -519,6 +633,7 @@ const VideoGenerator = () => {
             </div>
           </div>
         </Card>
+        )}
 
         {/* Progress Section */}
         {isGenerating && (
