@@ -92,8 +92,10 @@ export class CreatomateService {
       if (options?.enableSubtitles) {
         // Enable subtitles
         modifications['element_subtitles.visible'] = true;
-        modifications['element_subtitles.transcript_source'] = 'Main_Video_front';
-        console.log(`🔤 Configured subtitles for template`);
+        // Use correct video source for subtitles based on template
+        const subtitleSource = template.size === 'vertical' ? 'Main_Video' : 'Main_Video_front';
+        modifications['element_subtitles.transcript_source'] = subtitleSource;
+        console.log(`🔤 Configured subtitles for template using source: ${subtitleSource}`);
       } else {
         // Hide subtitles
         modifications['element_subtitles.visible'] = false;
