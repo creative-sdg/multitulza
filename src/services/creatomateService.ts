@@ -87,27 +87,16 @@ export class CreatomateService {
       modifications[template.mainVideoField] = videoUrl;
     }
 
-    // Handle subtitles and custom text for test template
-    if (template.supportsCustomText || template.supportsSubtitles) {
-      if (options?.enableSubtitles && template.supportsSubtitles) {
-        // Enable subtitles, hide custom text
+    // Handle subtitles for all templates
+    if (template.supportsSubtitles) {
+      if (options?.enableSubtitles) {
+        // Enable subtitles
         modifications['element_subtitles.visible'] = true;
         modifications['element_subtitles.transcript_source'] = 'Main_Video_front';
-        modifications['element_custom_text.visible'] = false;
         console.log(`🔤 Configured subtitles for template`);
-      } else if (options?.customText && template.supportsCustomText) {
-        // Enable custom text, hide subtitles
-        modifications['element_custom_text.visible'] = true;
-        modifications['element_subtitles.visible'] = false;
-        
-        // Split text into 60-character blocks
-        const textBlocks = this.splitTextIntoBlocks(options.customText, 60);
-        modifications['element_custom_text.text'] = textBlocks;
-        console.log(`✏️ Configured custom text with line breaks`);
       } else {
-        // Hide both if neither option is selected
+        // Hide subtitles
         modifications['element_subtitles.visible'] = false;
-        modifications['element_custom_text.visible'] = false;
       }
     }
 
@@ -261,7 +250,8 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     size: 'vertical',
     dimensions: '1080x1920',
     mainVideoField: 'Main_Video',
-    packshotField: 'Packshot'
+    packshotField: 'Packshot',
+    supportsSubtitles: true
   },
   {
     id: 'c9aa2c57-d883-4a1e-85dd-020f4e911a70',
@@ -269,7 +259,8 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     size: 'horizontal',
     dimensions: '1920x1080',
     mainVideoField: 'Main_Video_front, Main_Video_back',
-    packshotField: 'Packshot'
+    packshotField: 'Packshot',
+    supportsSubtitles: true
   },
   {
     id: '41e18070-2198-43f2-9503-807fbbd5f749',
@@ -277,7 +268,8 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     size: 'square',
     dimensions: '1080x1080',
     mainVideoField: 'Main_Video_front, Main_Video_back',
-    packshotField: 'Packshot'
+    packshotField: 'Packshot',
+    supportsSubtitles: true
   },
   {
     id: '196ce1c1-324b-4af0-85a6-b1808e79ac3d',
@@ -286,7 +278,6 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     dimensions: '1080x1920',
     mainVideoField: 'Main_Video_front',
     packshotField: 'Packshot',
-    supportsCustomText: true,
     supportsSubtitles: true
   }
 ];

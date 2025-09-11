@@ -28,10 +28,8 @@ const VideoGenerator = () => {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   
-  // Text/Subtitle options for test template
+  // Global subtitle option
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [customText, setCustomText] = useState('');
-  const [textInputMode, setTextInputMode] = useState<'none' | 'subtitles' | 'custom'>('none');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
@@ -58,18 +56,6 @@ const VideoGenerator = () => {
     );
   };
 
-  const handleTextModeChange = (mode: 'none' | 'subtitles' | 'custom') => {
-    setTextInputMode(mode);
-    if (mode === 'subtitles') {
-      setEnableSubtitles(true);
-      setCustomText('');
-    } else if (mode === 'custom') {
-      setEnableSubtitles(false);
-    } else {
-      setEnableSubtitles(false);
-      setCustomText('');
-    }
-  };
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -268,10 +254,7 @@ const VideoGenerator = () => {
       ));
 
       // Start rendering
-      const options = template.supportsCustomText || template.supportsSubtitles ? {
-        enableSubtitles: enableSubtitles && textInputMode === 'subtitles',
-        customText: textInputMode === 'custom' ? customText : undefined
-      } : undefined;
+      const options = enableSubtitles ? { enableSubtitles: true } : {};
 
       const renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
       
@@ -497,43 +480,19 @@ const VideoGenerator = () => {
                 </div>
               </div>
 
-              {/* Text Options for Test Template */}
-              {selectedSizes.includes('test') && (
-                <div className="space-y-4 p-4 bg-video-surface-elevated rounded-lg border border-video-primary/20">
-                  <h3 className="font-medium text-lg">Опции текста (только для тестового шаблона)</h3>
-                  
-                  <RadioGroup value={textInputMode} onValueChange={handleTextModeChange}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="none" id="none" />
-                      <Label htmlFor="none">Без текста</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="subtitles" id="subtitles" />
-                      <Label htmlFor="subtitles">Включить субтитры</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="custom" id="custom" />
-                      <Label htmlFor="custom">Кастомный текст</Label>
-                    </div>
-                  </RadioGroup>
-
-                  {textInputMode === 'custom' && (
-                    <div className="space-y-2 mt-4">
-                      <Label htmlFor="custom-text">Введите ваш текст</Label>
-                      <Textarea
-                        id="custom-text"
-                        placeholder="Введите текст, который будет разбит на блоки по 60 символов..."
-                        value={customText}
-                        onChange={(e) => setCustomText(e.target.value)}
-                        className="bg-video-surface border-video-primary/30 min-h-[100px]"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Текст будет автоматически разбит на блоки по 60 символов
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Subtitle Option */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Опции субтитров</h3>
+                <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={enableSubtitles}
+                    onChange={(e) => setEnableSubtitles(e.target.checked)}
+                    className="rounded border-video-primary/30"
+                  />
+                  <span className="font-medium">Включить субтитры во всех видео</span>
+                </label>
+              </div>
 
             </div>
 
