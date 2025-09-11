@@ -19,14 +19,14 @@ export interface TextBlock {
 }
 
 export interface GoogleSheetsService {
-  getTextBlocks(): Promise<TextBlock[]>;
+  getTextBlock(rowNumber: number): Promise<TextBlock | null>;
 }
 
 export class GoogleSheetsServiceImpl implements GoogleSheetsService {
   private readonly spreadsheetId = '13fHWy8hTrtLK29xzHS-zr6sAJDmVRQzmQL8BMMpczj4';
   private readonly supabaseUrl = 'https://kyasmnsbddufkyhcdroj.supabase.co';
   
-  async getTextBlocks(): Promise<TextBlock[]> {
+  async getTextBlock(rowNumber: number): Promise<TextBlock | null> {
     try {
       const response = await fetch(`${this.supabaseUrl}/functions/v1/google-sheets`, {
         method: 'POST',
@@ -35,17 +35,18 @@ export class GoogleSheetsServiceImpl implements GoogleSheetsService {
         },
         body: JSON.stringify({
           spreadsheetId: this.spreadsheetId,
+          rowNumber,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch text blocks: ${response.statusText}`);
+        throw new Error(`Failed to fetch text block: ${response.statusText}`);
       }
 
       const data = await response.json();
-      return data.textBlocks || [];
+      return data.textBlock || null;
     } catch (error) {
-      console.error('Error fetching text blocks:', error);
+      console.error('Error fetching text block:', error);
       throw error;
     }
   }

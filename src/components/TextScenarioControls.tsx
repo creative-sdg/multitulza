@@ -30,8 +30,8 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
   onTextReady, 
   onBrandChange 
 }) => {
-  const [textBlocks, setTextBlocks] = useState<TextBlock[]>([]);
-  const [selectedBlock, setSelectedBlock] = useState<TextBlock | null>(null);
+  const [currentTextBlock, setCurrentTextBlock] = useState<TextBlock | null>(null);
+  const [rowNumber, setRowNumber] = useState<number>(2);
   const [editedText, setEditedText] = useState('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [brandReplacements, setBrandReplacements] = useState<{[key: string]: string}>({});
@@ -44,28 +44,34 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>('');
   
   // Loading states
-  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+  const [isLoadingBlock, setIsLoadingBlock] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  useEffect(() => {
-    loadTextBlocks();
-  }, []);
-
-  const loadTextBlocks = async () => {
-    setIsLoadingBlocks(true);
+  const loadTextBlock = async (row: number) => {
+    setIsLoadingBlock(true);
     try {
-      const blocks = await googleSheetsService.getTextBlocks();
-      setTextBlocks(blocks);
-      if (blocks.length > 0) {
-        setSelectedBlock(blocks[0]);
-        generateTextFromBlock(blocks[0]);
+      const block = await googleSheetsService.getTextBlock(row);
+      if (block) {
+        setCurrentTextBlock(block);
+        generateTextFromBlock(block);
+        toast.success(`Загружен текст из строки ${row}`);
+      } else {
+        toast.error(`Нет данных в строке ${row}`);
+        setEditedText('');
+        setCurrentTextBlock(null);
       }
-      toast.success(`Загружено ${blocks.length} текстовых блоков`);
     } catch (error) {
-      toast.error('Ошибка загрузки текстов из Google Sheets');
+      toast.error('Ошибка загрузки текста из Google Sheets');
       console.error(error);
     } finally {
-      setIsLoadingBlocks(false);
+      setIsLoadingBlock(false);
+    }
+  };
+
+  const handleRowNumberChange = (newRowNumber: number) => {
+    setRowNumber(newRowNumber);
+    if (newRowNumber >= 2) {
+      loadTextBlock(newRowNumber);
     }
   };
 
@@ -93,13 +99,6 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
     setEditedText(combinedText);
   };
 
-  const handleBlockSelect = (blockId: string) => {
-    const block = textBlocks.find(b => b.id === blockId);
-    if (block) {
-      setSelectedBlock(block);
-      generateTextFromBlock(block);
-    }
-  };
 
   const handleBrandToggle = (brandId: string) => {
     const newBrands = selectedBrands.includes(brandId)
@@ -184,34 +183,38 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
           <h2 className="text-2xl font-semibold">Работа с текстами</h2>
         </div>
 
-        {/* Text Blocks Selection */}
+        {/* Row Number Selection */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-lg">Текстовые блоки</h3>
-            <Button 
-              onClick={loadTextBlocks}
-              disabled={isLoadingBlocks}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingBlocks ? 'animate-spin' : ''}`} />
-              Обновить
-            </Button>
+            <h3 className="font-medium text-lg">Выбор текста</h3>
           </div>
           
-          {textBlocks.length > 0 && (
-            <Select onValueChange={handleBlockSelect}>
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите текстовый блок" />
-              </SelectTrigger>
-              <SelectContent>
-                {textBlocks.map((block, index) => (
-                  <SelectItem key={block.id} value={block.id}>
-                    Блок {index + 1}: {block.hook?.substring(0, 50)}...
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Label>Номер строки (от 2 до 1000)</Label>
+              <Input
+                type="number"
+                min="2"
+                max="1000"
+                value={rowNumber}
+                onChange={(e) => setRowNumber(parseInt(e.target.value) || 2)}
+                placeholder="Введите номер строки"
+              />
+            </div>
+            <Button 
+              onClick={() => handleRowNumberChange(rowNumber)}
+              disabled={isLoadingBlock || rowNumber < 2}
+              variant="outline"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingBlock ? 'animate-spin' : ''}`} />
+              Загрузить
+            </Button>
+          </div>
+
+          {currentTextBlock && (
+            <div className="text-sm text-muted-foreground">
+              Загружен текст из строки {rowNumber}
+            </div>
           )}
         </div>
 

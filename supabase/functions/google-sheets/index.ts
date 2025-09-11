@@ -12,10 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId } = await req.json();
+    const { spreadsheetId, rowNumber } = await req.json();
     
     if (!spreadsheetId) {
       throw new Error('Spreadsheet ID is required');
+    }
+
+    if (!rowNumber || rowNumber < 2) {
+      throw new Error('Row number is required and must be >= 2');
     }
 
     const apiKey = Deno.env.get('GOOGLE_SHEETS_API_KEY');
@@ -23,8 +27,8 @@ serve(async (req) => {
       throw new Error('Google Sheets API key not configured');
     }
 
-    // Define the range for columns H to Q (Hook to Body Line 9)
-    const range = 'Sheet1!H:Q'; 
+    // Define the range for specific row, columns H to Q (Hook to Body Line 9)
+    const range = `Sheet1!H${rowNumber}:Q${rowNumber}`; 
     
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
     
@@ -38,48 +42,37 @@ serve(async (req) => {
     const data = await response.json();
     const rows = data.values || [];
     
-    if (rows.length < 2) {
-      throw new Error('No data found in the spreadsheet');
+    if (rows.length === 0) {
+      console.log(`❌ No data found for row ${rowNumber}`);
+      return new Response(JSON.stringify({ textBlock: null }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Assume first row contains headers
-    const headers = rows[0];
-    const textBlocks = [];
-    
-    // Process each row (skip header row)
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row && row.length > 0) {
-        const block = {
-          id: `block-${i}`,
-          hook: row[0] || '',           // Column H
-          problem: row[1] || '',        // Column I
-          solution: row[2] || '',       // Column J
-          proof: row[3] || '',          // Column K
-          offer: row[4] || '',          // Column L
-          urgency: row[5] || '',        // Column M
-          cta: row[6] || '',            // Column N
-          bodyLine1: row[7] || '',      // Column O
-          bodyLine2: row[8] || '',      // Column P
-          bodyLine3: row[9] || '',      // Column Q
-          bodyLine4: row[10] || '',     // Additional columns if present
-          bodyLine5: row[11] || '',
-          bodyLine6: row[12] || '',
-          bodyLine7: row[13] || '',
-          bodyLine8: row[14] || '',
-          bodyLine9: row[15] || '',
-        };
-        
-        // Only add blocks that have at least some content
-        if (Object.values(block).some(value => value && typeof value === 'string' && value.trim().length > 0)) {
-          textBlocks.push(block);
-        }
-      }
-    }
+    const row = rows[0];
+    const textBlock = {
+      id: `block-${rowNumber}`,
+      hook: row[0] || '',           // Column H
+      problem: row[1] || '',        // Column I  
+      solution: row[2] || '',       // Column J
+      proof: row[3] || '',          // Column K
+      offer: row[4] || '',          // Column L
+      urgency: row[5] || '',        // Column M
+      cta: row[6] || '',            // Column N
+      bodyLine1: row[7] || '',      // Column O
+      bodyLine2: row[8] || '',      // Column P
+      bodyLine3: row[9] || '',      // Column Q
+      bodyLine4: row[10] || '',     // Additional columns if present
+      bodyLine5: row[11] || '',
+      bodyLine6: row[12] || '',
+      bodyLine7: row[13] || '',
+      bodyLine8: row[14] || '',
+      bodyLine9: row[15] || '',
+    };
 
-    console.log(`✅ Successfully fetched ${textBlocks.length} text blocks from Google Sheets`);
+    console.log(`✅ Successfully fetched text block for row ${rowNumber} from Google Sheets`);
 
-    return new Response(JSON.stringify({ textBlocks }), {
+    return new Response(JSON.stringify({ textBlock }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
