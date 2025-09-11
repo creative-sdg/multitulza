@@ -36,6 +36,7 @@ const VideoGenerator = () => {
   // Text scenario workflow  
   const [finalText, setFinalText] = useState<string>('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>('');
+  const [textScenarioVideo, setTextScenarioVideo] = useState<UploadedVideo | null>(null);
   
   // Global subtitle option
   const [enableSubtitles, setEnableSubtitles] = useState(false);
@@ -74,6 +75,10 @@ const VideoGenerator = () => {
     setSelectedBrands(brands);
   };
 
+  const handleTextScenarioVideoReady = (video: UploadedVideo) => {
+    setTextScenarioVideo(video);
+  };
+
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -99,6 +104,11 @@ const VideoGenerator = () => {
       if (!finalText.trim()) {
         console.error('❌ No text prepared');
         toast.error('Сначала подготовьте текст');
+        return;
+      }
+      if (!textScenarioVideo) {
+        console.error('❌ No video uploaded for text scenario');
+        toast.error('Загрузите видео для наложения звука');
         return;
       }
     }
@@ -301,10 +311,9 @@ const VideoGenerator = () => {
       let renderId: string;
       if (scenario === 'with-audio') {
         renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
-      } else if (scenario === 'without-audio' && textData) {
-        // For text scenario, we need to handle text and audio differently
-        // This might require extending CreatomateService to handle text-based rendering
-        renderId = await service.renderVideo(template, textData.audioUrl || '', packshot, undefined, {
+      } else if (scenario === 'without-audio' && textData && textScenarioVideo) {
+        // For text scenario, use the uploaded video with generated audio
+        renderId = await service.renderVideo(template, textScenarioVideo.url, packshot, textScenarioVideo.duration, {
           ...options,
           customText: textData.text
         });
@@ -441,6 +450,7 @@ const VideoGenerator = () => {
           <TextScenarioControls 
             onTextReady={handleTextReady}
             onBrandChange={handleBrandChange}
+            onVideoReady={handleTextScenarioVideoReady}
           />
         )}
 

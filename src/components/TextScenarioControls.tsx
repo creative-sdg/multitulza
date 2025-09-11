@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { 
   FileText, 
   Volume2, 
@@ -14,27 +15,35 @@ import {
   RefreshCw,
   Mic,
   Play,
-  Pause
+  Pause,
+  Video
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { googleSheetsService, TextBlock } from '@/services/googleSheetsService';
 import { elevenLabsService, AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
 import { AVAILABLE_BRANDS } from '@/services/creatomateService';
+import { useVideoUpload } from '@/hooks/useVideoUpload';
 
 interface TextScenarioControlsProps {
   onTextReady: (finalText: string, audioUrl?: string) => void;
   onBrandChange: (brands: string[]) => void;
+  onVideoReady?: (video: { file: File; url: string; path: string; duration?: number }) => void;
 }
 
 const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({ 
   onTextReady, 
-  onBrandChange 
+  onBrandChange,
+  onVideoReady 
 }) => {
   const [currentTextBlock, setCurrentTextBlock] = useState<TextBlock | null>(null);
   const [rowNumber, setRowNumber] = useState<number>(2);
   const [editedText, setEditedText] = useState('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [brandReplacements, setBrandReplacements] = useState<{[key: string]: string}>({});
+  
+  // Video upload for text scenario
+  const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
+  const [uploadedVideo, setUploadedVideo] = useState<{ file: File; url: string; path: string; duration?: number } | null>(null);
   
   // Audio generation
   const [selectedVoice, setSelectedVoice] = useState<string>('');
@@ -121,6 +130,22 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
     });
     
     return processedText;
+  };
+
+  // Get preview text with replacements applied
+  const getPreviewText = () => {
+    return applyBrandReplacements(editedText);
+  };
+
+  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const uploaded = await uploadVideo(file);
+      if (uploaded) {
+        setUploadedVideo(uploaded);
+        onVideoReady?.(uploaded);
+      }
+    }
   };
 
   const handleGenerateAudio = async () => {
@@ -229,42 +254,130 @@ const TextScenarioControls: React.FC<TextScenarioControlsProps> = ({
           />
         </div>
 
+        {/* Video Upload */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Upload className="h-6 w-6 text-video-primary" />
+            <h3 className="font-medium text-lg">Загрузка видео</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="video-upload">Выберите видео файл</Label>
+              <Input
+                id="video-upload"
+                type="file"
+                accept="video/*"
+                onChange={handleVideoUpload}
+                disabled={isUploading}
+                className="mt-2"
+              />
+            </div>
+            
+            {isUploading && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Загрузка видео...</span>
+                  <span>{Math.round(uploadProgress)}%</span>
+                </div>
+                <Progress value={uploadProgress} className="w-full" />
+              </div>
+            )}
+            
+            {uploadedVideo && (
+              <div className="flex items-center gap-3 p-3 bg-video-surface-elevated rounded-lg">
+                <Video className="h-5 w-5 text-success" />
+                <div className="flex-1">
+                  <div className="font-medium">{uploadedVideo.file.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)} MB
+                    {uploadedVideo.duration && ` • ${uploadedVideo.duration.toFixed(1)}s`}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Brand Replacement */}
         <div className="space-y-4">
           <h3 className="font-medium text-lg">Замена брендов</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {AVAILABLE_BRANDS.map(brand => (
-              <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-3 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={selectedBrands.includes(brand.id)}
-                  onChange={() => handleBrandToggle(brand.id)}
-                  className="rounded border-video-primary/30"
-                />
-                <span className="font-medium">{brand.name}</span>
-              </label>
-            ))}
+          <div className="space-y-3">
+            <h4 className="font-medium">Ручная замена текста</h4>
+            {Object.keys(brandReplacements).length > 0 ? (
+              Object.entries(brandReplacements).map(([original, replacement], index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <Input
+                    placeholder="Исходный текст"
+                    value={original}
+                    onChange={(e) => {
+                      const newReplacements = { ...brandReplacements };
+                      delete newReplacements[original];
+                      newReplacements[e.target.value] = replacement;
+                      setBrandReplacements(newReplacements);
+                    }}
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground">→</span>
+                  <Input
+                    placeholder="Заменить на"
+                    value={replacement}
+                    onChange={(e) => setBrandReplacements(prev => ({
+                      ...prev,
+                      [original]: e.target.value
+                    }))}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => {
+                      const newReplacements = { ...brandReplacements };
+                      delete newReplacements[original];
+                      setBrandReplacements(newReplacements);
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-muted-foreground text-sm">Нет настроенных замен</div>
+            )}
+            
+            <Button
+              onClick={() => setBrandReplacements(prev => ({ ...prev, '': '' }))}
+              variant="outline"
+              size="sm"
+            >
+              + Добавить замену
+            </Button>
           </div>
           
-          {selectedBrands.length > 0 && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Настройки замены</h4>
-              {selectedBrands.map(brandId => {
-                const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
-                return (
-                  <div key={brandId} className="flex items-center gap-3">
-                    <Label className="min-w-[100px]">{brand?.name}:</Label>
-                    <Input
-                      placeholder="Новое название бренда"
-                      value={brandReplacements[brand?.name || ''] || ''}
-                      onChange={(e) => setBrandReplacements(prev => ({
-                        ...prev,
-                        [brand?.name || '']: e.target.value
-                      }))}
-                    />
-                  </div>
-                );
-              })}
+          <div className="space-y-3">
+            <h4 className="font-medium">Выбор брендов (автоматические пекшоты)</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {AVAILABLE_BRANDS.map(brand => (
+                <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-3 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedBrands.includes(brand.id)}
+                    onChange={() => handleBrandToggle(brand.id)}
+                    className="rounded border-video-primary/30"
+                  />
+                  <span className="font-medium">{brand.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          
+          {/* Text Preview */}
+          {editedText && (
+            <div className="space-y-2">
+              <Label>Превью текста с заменами</Label>
+              <div className="p-3 bg-video-surface-elevated rounded-lg border border-video-primary/20">
+                <div className="text-sm whitespace-pre-wrap">{getPreviewText()}</div>
+              </div>
             </div>
           )}
         </div>
