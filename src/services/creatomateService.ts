@@ -90,6 +90,12 @@ export class CreatomateService {
         if (chunk.videoFile?.url) {
           modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
           console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
+          
+          // Set video duration based on audio duration
+          if (chunk.audioDuration) {
+            modifications[`Main_Video_${chunkIndex}.trim_duration`] = chunk.audioDuration;
+            console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.audioDuration}s`);
+          }
         }
         
         // Set audio for each chunk

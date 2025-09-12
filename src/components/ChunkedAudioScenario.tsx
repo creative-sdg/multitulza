@@ -14,6 +14,7 @@ interface AudioChunk {
   id: number;
   text: string;
   audioUrl?: string;
+  audioDuration?: number;
   isGenerating: boolean;
   videoFile?: UploadedVideo;
 }
@@ -108,11 +109,16 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
 
       if (error) throw error;
 
-      setChunks(prev => prev.map(c => 
-        c.id === chunkId 
-          ? { ...c, audioUrl: data.audioUrl, isGenerating: false }
-          : c
-      ));
+      // Get audio duration
+      const audio = new Audio(data.audioUrl);
+      audio.addEventListener('loadedmetadata', () => {
+        setChunks(prev => prev.map(c => 
+          c.id === chunkId 
+            ? { ...c, audioUrl: data.audioUrl, audioDuration: audio.duration, isGenerating: false }
+            : c
+        ));
+      });
+      audio.load();
 
       toast.success(`Звук ${chunkId} готов`);
     } catch (error: any) {
