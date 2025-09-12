@@ -98,10 +98,16 @@ export class CreatomateService {
           }
         }
         
-        // Set audio for each chunk
+        // Set audio for each chunk with start time
         if (chunk.audioUrl) {
           modifications[`Audio_${chunkIndex}`] = chunk.audioUrl;
           console.log(`🔊 Set Audio_${chunkIndex}: ${chunk.audioUrl}`);
+          
+          // Set audio start time if available
+          if (chunk.startTime !== undefined) {
+            modifications[`Audio_${chunkIndex}.start_time`] = chunk.startTime;
+            console.log(`⏰ Set Audio_${chunkIndex} start time: ${chunk.startTime}s`);
+          }
         }
         
         // Set subtitles source for each chunk if subtitles are enabled

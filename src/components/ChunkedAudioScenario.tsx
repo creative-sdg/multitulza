@@ -15,6 +15,8 @@ interface AudioChunk {
   text: string;
   audioUrl?: string;
   audioDuration?: number;
+  effectiveDuration?: number; // Минимум 2 секунды или реальная длительность
+  startTime?: number; // Время начала на таймлайне
   isGenerating: boolean;
   videoFile?: UploadedVideo;
 }
@@ -109,13 +111,27 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
 
       if (error) throw error;
 
-      setChunks(prev => prev.map(c => 
-        c.id === chunkId 
-          ? { ...c, audioUrl: data.audioUrl, audioDuration: data.duration, isGenerating: false }
-          : c
-      ));
+      // Рассчитываем эффективную длительность (минимум 2 секунды)
+      const effectiveDuration = Math.max(2, data.duration || 0);
+      
+      setChunks(prev => {
+        const updatedChunks = prev.map(c => 
+          c.id === chunkId 
+            ? { 
+                ...c, 
+                audioUrl: data.audioUrl, 
+                audioDuration: data.duration, 
+                effectiveDuration,
+                isGenerating: false 
+              }
+            : c
+        );
+        
+        // Пересчитываем время начала для всех чанков
+        return calculateStartTimes(updatedChunks);
+      });
 
-      toast.success(`Звук ${chunkId} готов (${data.duration?.toFixed(1)}с)`);
+      toast.success(`Звук ${chunkId} готов (${data.duration?.toFixed(1)}с, эффективная: ${effectiveDuration.toFixed(1)}с)`);
     } catch (error: any) {
       console.error('Error generating audio:', error);
       toast.error(`Ошибка генерации звука: ${error.message}`);
@@ -220,6 +236,22 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
       text: '',
       isGenerating: false
     }]);
+  };
+
+  // Calculate start times for all chunks based on their effective durations
+  const calculateStartTimes = (chunks: AudioChunk[]): AudioChunk[] => {
+    let currentTime = 0;
+    
+    return chunks.map((chunk) => {
+      const updatedChunk = { ...chunk, startTime: currentTime };
+      
+      // Добавляем эффективную длительность к текущему времени для следующего чанка
+      if (chunk.effectiveDuration) {
+        currentTime += chunk.effectiveDuration;
+      }
+      
+      return updatedChunk;
+    });
   };
 
   // Notify parent when data is ready
@@ -355,6 +387,15 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
                         </Button>
                       )}
                     </div>
+
+                    {/* Duration Info */}
+                    {chunk.audioDuration && (
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>Длительность: {chunk.audioDuration.toFixed(1)}с</div>
+                        <div>Эффективная: {chunk.effectiveDuration?.toFixed(1)}с</div>
+                        <div>Старт: {chunk.startTime?.toFixed(1)}с</div>
+                      </div>
+                    )}
 
                     {/* Video Upload */}
                     <div>
