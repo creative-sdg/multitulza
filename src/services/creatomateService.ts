@@ -82,6 +82,8 @@ export class CreatomateService {
     if (options?.chunkedAudio && template.size === 'chunked') {
       console.log('🎵 Processing chunked audio scenario...');
       
+      let totalAudioDuration = 0;
+      
       // Set up each chunk with its video and audio
       options.chunkedAudio.forEach((chunk, index) => {
         const chunkIndex = index + 1;
@@ -91,10 +93,10 @@ export class CreatomateService {
           modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
           console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
           
-          // Set video duration based on audio duration
-          if (chunk.audioDuration) {
-            modifications[`Main_Video_${chunkIndex}.duration`] = chunk.audioDuration;
-            console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.audioDuration}s`);
+          // Set video duration based on effective audio duration
+          if (chunk.effectiveDuration) {
+            modifications[`Main_Video_${chunkIndex}.duration`] = chunk.effectiveDuration;
+            console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.effectiveDuration}s`);
           }
         }
         
@@ -110,6 +112,11 @@ export class CreatomateService {
           }
         }
         
+        // Add to total audio duration
+        if (chunk.effectiveDuration) {
+          totalAudioDuration += chunk.effectiveDuration;
+        }
+        
         // Set subtitles source for each chunk if subtitles are enabled
         if (options.enableSubtitles) {
           modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
@@ -117,6 +124,19 @@ export class CreatomateService {
           console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
         }
       });
+      
+      // Calculate packshot timing and total duration
+      const packshotDuration = 3; // Assume 3 seconds for packshot
+      const packshotStartTime = totalAudioDuration;
+      const totalVideoDuration = totalAudioDuration + packshotDuration;
+      
+      // Set packshot start time
+      modifications['Packshot.time'] = packshotStartTime;
+      console.log(`🎯 Set Packshot start time: ${packshotStartTime}s`);
+      
+      // Set total video duration
+      modifications['duration'] = totalVideoDuration;
+      console.log(`🎬 Set total video duration: ${totalVideoDuration}s`);
       
     } else {
       // Add main video field(s) for regular scenarios
