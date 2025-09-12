@@ -61,13 +61,14 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string }): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string; chunkedAudio?: any[] }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
     if (videoDuration) console.log(`⏱️ Video duration: ${videoDuration}s`);
     if (options?.enableSubtitles) console.log(`🔤 Subtitles enabled`);
     if (options?.customText) console.log(`✏️ Custom text: ${options.customText.substring(0, 50)}...`);
+    if (options?.chunkedAudio) console.log(`🎵 Chunked audio with ${options.chunkedAudio.length} chunks`);
     
     // Start rendering with the URLs
     const modifications: any = {};
@@ -77,18 +78,48 @@ export class CreatomateService {
       modifications[template.packshotField] = packshotUrl;
     }
     
-    // Add main video field(s)
-    if (template.mainVideoField.includes(',')) {
-      // Multiple main video fields (like for square template)
-      template.mainVideoField.split(',').forEach(field => {
-        modifications[field.trim()] = videoUrl;
+    // Handle chunked audio scenario
+    if (options?.chunkedAudio && template.size === 'chunked') {
+      console.log('🎵 Processing chunked audio scenario...');
+      
+      // Set up each chunk with its video and audio
+      options.chunkedAudio.forEach((chunk, index) => {
+        const chunkIndex = index + 1;
+        
+        // Set video for each chunk
+        if (chunk.videoFile?.url) {
+          modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
+          console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
+        }
+        
+        // Set audio for each chunk
+        if (chunk.audioUrl) {
+          modifications[`Audio_${chunkIndex}`] = chunk.audioUrl;
+          console.log(`🔊 Set Audio_${chunkIndex}: ${chunk.audioUrl}`);
+        }
+        
+        // Set subtitles source for each chunk if subtitles are enabled
+        if (options.enableSubtitles) {
+          modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
+          modifications[`element_subtitles_${chunkIndex}.visible`] = true;
+          console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
+        }
       });
+      
     } else {
-      modifications[template.mainVideoField] = videoUrl;
+      // Add main video field(s) for regular scenarios
+      if (template.mainVideoField.includes(',')) {
+        // Multiple main video fields (like for square template)
+        template.mainVideoField.split(',').forEach(field => {
+          modifications[field.trim()] = videoUrl;
+        });
+      } else {
+        modifications[template.mainVideoField] = videoUrl;
+      }
     }
 
-    // Handle subtitles for all templates
-    if (template.supportsSubtitles) {
+    // Handle subtitles for non-chunked templates
+    if (template.supportsSubtitles && !options?.chunkedAudio) {
       if (options?.enableSubtitles) {
         // Enable subtitles
         modifications['element_subtitles.visible'] = true;
