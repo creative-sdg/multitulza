@@ -342,6 +342,19 @@ const VideoGenerator = () => {
         const audioUrl = enableVoiceover ? textData.audioUrl : undefined;
         
         renderId = await service.renderVideo(template, textScenarioVideo.url, packshot, textScenarioVideo.duration, renderOptions);
+      } else if (scenario === 'chunked-audio') {
+        // For chunked audio scenario, use the chunked audio data
+        const renderOptions = {
+          ...options,
+          chunkedAudio: chunkedAudioData
+        };
+        
+        // Use the first chunk's video file or a default video
+        const firstChunk = chunkedAudioData[0];
+        const videoUrl = firstChunk?.videoFile?.url || inputVideoUrl;
+        const videoDuration = firstChunk?.videoFile?.duration || 30; // default duration
+        
+        renderId = await service.renderVideo(template, videoUrl, packshot, videoDuration, renderOptions);
       } else {
         throw new Error('Invalid scenario configuration');
       }
