@@ -59,6 +59,10 @@ serve(async (req) => {
 
     console.log(`✅ Generated audio: ${audioBytes.length} bytes`);
 
+    // Calculate approximate duration (MP3 bitrate estimation)
+    // Average MP3 bitrate is around 128 kbps = 16000 bytes per second
+    const estimatedDuration = audioBytes.length / 16000;
+
     // Upload audio to Supabase Storage
     const fileName = `generated-audio-${Date.now()}.mp3`;
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -82,8 +86,12 @@ serve(async (req) => {
     }
 
     console.log(`✅ Audio uploaded successfully: ${urlData.publicUrl}`);
+    console.log(`⏱️ Estimated duration: ${estimatedDuration.toFixed(2)} seconds`);
 
-    return new Response(JSON.stringify({ audioUrl: urlData.publicUrl }), {
+    return new Response(JSON.stringify({ 
+      audioUrl: urlData.publicUrl,
+      duration: Math.round(estimatedDuration * 100) / 100 // Round to 2 decimal places
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

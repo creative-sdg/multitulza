@@ -109,18 +109,13 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
 
       if (error) throw error;
 
-      // Get audio duration
-      const audio = new Audio(data.audioUrl);
-      audio.addEventListener('loadedmetadata', () => {
-        setChunks(prev => prev.map(c => 
-          c.id === chunkId 
-            ? { ...c, audioUrl: data.audioUrl, audioDuration: audio.duration, isGenerating: false }
-            : c
-        ));
-      });
-      audio.load();
+      setChunks(prev => prev.map(c => 
+        c.id === chunkId 
+          ? { ...c, audioUrl: data.audioUrl, audioDuration: data.duration, isGenerating: false }
+          : c
+      ));
 
-      toast.success(`Звук ${chunkId} готов`);
+      toast.success(`Звук ${chunkId} готов (${data.duration?.toFixed(1)}с)`);
     } catch (error: any) {
       console.error('Error generating audio:', error);
       toast.error(`Ошибка генерации звука: ${error.message}`);
