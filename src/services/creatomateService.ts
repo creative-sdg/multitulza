@@ -93,7 +93,7 @@ export class CreatomateService {
           
           // Set video duration based on audio duration
           if (chunk.audioDuration) {
-            modifications[`Main_Video_${chunkIndex}.trim_duration`] = chunk.audioDuration;
+            modifications[`Main_Video_${chunkIndex}.duration`] = chunk.audioDuration;
             console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.audioDuration}s`);
           }
         }
@@ -105,7 +105,7 @@ export class CreatomateService {
           
           // Set audio start time if available
           if (chunk.startTime !== undefined) {
-            modifications[`Audio_${chunkIndex}.start_time`] = chunk.startTime;
+            modifications[`Audio_${chunkIndex}.time`] = chunk.startTime;
             console.log(`⏰ Set Audio_${chunkIndex} start time: ${chunk.startTime}s`);
           }
         }
