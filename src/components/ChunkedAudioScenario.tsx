@@ -24,6 +24,7 @@ interface ChunkedAudioScenarioProps {
 
 const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) => {
   const [tableId, setTableId] = useState('');
+  const [rowNumber, setRowNumber] = useState('');
   const [texts, setTexts] = useState<string[]>([]);
   const [chunks, setChunks] = useState<AudioChunk[]>([]);
   const [isLoadingTexts, setIsLoadingTexts] = useState(false);
@@ -37,11 +38,25 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
       toast.error('Введите ID таблицы');
       return;
     }
+    
+    if (!rowNumber.trim()) {
+      toast.error('Введите номер строки');
+      return;
+    }
+
+    const row = parseInt(rowNumber);
+    if (isNaN(row) || row < 1 || row > 1000) {
+      toast.error('Номер строки должен быть от 1 до 1000');
+      return;
+    }
 
     setIsLoadingTexts(true);
     try {
       const { data, error } = await supabase.functions.invoke('google-sheets', {
-        body: { spreadsheetId: tableId }
+        body: { 
+          spreadsheetId: tableId,
+          rowNumber: row
+        }
       });
 
       if (error) throw error;
@@ -226,22 +241,34 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
             <h3 className="text-lg font-semibold">Загрузка текстов из Google Sheets</h3>
           </div>
           
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <Label>ID таблицы Google Sheets</Label>
               <Input
                 placeholder="ID таблицы Google Sheets..."
                 value={tableId}
                 onChange={(e) => setTableId(e.target.value)}
               />
             </div>
-            <Button 
-              onClick={loadTexts}
-              disabled={isLoadingTexts}
-              className="bg-video-primary hover:bg-video-primary-hover"
-            >
-              {isLoadingTexts ? 'Загрузка...' : 'Загрузить тексты'}
-            </Button>
+            <div>
+              <Label>Номер строки (1-1000)</Label>
+              <Input
+                placeholder="Номер строки..."
+                value={rowNumber}
+                onChange={(e) => setRowNumber(e.target.value)}
+                type="number"
+                min="1"
+                max="1000"
+              />
+            </div>
           </div>
+          <Button 
+            onClick={loadTexts}
+            disabled={isLoadingTexts}
+            className="bg-video-primary hover:bg-video-primary-hover w-full"
+          >
+            {isLoadingTexts ? 'Загрузка...' : 'Загрузить тексты из столбцов H-Q'}
+          </Button>
         </div>
       </Card>
 
@@ -273,7 +300,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {chunks.map((chunk, index) => (
                 <Card key={chunk.id} className="p-4 bg-video-surface-elevated">
                   <div className="space-y-4">

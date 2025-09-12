@@ -24,9 +24,9 @@ serve(async (req) => {
     }
 
     if (rowNumber) {
-      // Single row mode (existing functionality)
-      if (rowNumber < 2) {
-        throw new Error('Row number must be >= 2');
+      // Single row mode - get texts from columns H to Q
+      if (rowNumber < 1) {
+        throw new Error('Row number must be >= 1');
       }
 
       const range = `Sheet1!H${rowNumber}:Q${rowNumber}`; 
@@ -45,35 +45,29 @@ serve(async (req) => {
       
       if (rows.length === 0) {
         console.log(`❌ No data found for row ${rowNumber}`);
-        return new Response(JSON.stringify({ textBlock: null }), {
+        return new Response(JSON.stringify({ texts: [] }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       const row = rows[0];
-      const textBlock = {
-        id: `block-${rowNumber}`,
-        hook: row[0] || '',           // Column H
-        problem: row[1] || '',        // Column I  
-        solution: row[2] || '',       // Column J
-        proof: row[3] || '',          // Column K
-        offer: row[4] || '',          // Column L
-        urgency: row[5] || '',        // Column M
-        cta: row[6] || '',            // Column N
-        bodyLine1: row[7] || '',      // Column O
-        bodyLine2: row[8] || '',      // Column P
-        bodyLine3: row[9] || '',      // Column Q
-        bodyLine4: row[10] || '',     // Additional columns if present
-        bodyLine5: row[11] || '',
-        bodyLine6: row[12] || '',
-        bodyLine7: row[13] || '',
-        bodyLine8: row[14] || '',
-        bodyLine9: row[15] || '',
-      };
+      // Extract texts from columns H to Q, filter out empty ones
+      const texts = [
+        row[0] || '',   // Column H
+        row[1] || '',   // Column I  
+        row[2] || '',   // Column J
+        row[3] || '',   // Column K
+        row[4] || '',   // Column L
+        row[5] || '',   // Column M
+        row[6] || '',   // Column N
+        row[7] || '',   // Column O
+        row[8] || '',   // Column P
+        row[9] || '',   // Column Q
+      ].filter(text => text.trim().length > 0);
 
-      console.log(`✅ Successfully fetched text block for row ${rowNumber} from Google Sheets`);
+      console.log(`✅ Successfully fetched ${texts.length} texts from row ${rowNumber} (columns H-Q)`);
 
-      return new Response(JSON.stringify({ textBlock }), {
+      return new Response(JSON.stringify({ texts }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
