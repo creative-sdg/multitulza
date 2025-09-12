@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import TextScenarioControls from '@/components/TextScenarioControls';
+import ChunkedAudioScenario from '@/components/ChunkedAudioScenario';
 
 interface VideoVariant {
   id: string;
@@ -26,7 +27,7 @@ interface VideoVariant {
 
 const VideoGenerator = () => {
   // Scenario selection
-  const [scenario, setScenario] = useState<'with-audio' | 'without-audio' | null>(null);
+  const [scenario, setScenario] = useState<'with-audio' | 'without-audio' | 'chunked-audio' | null>(null);
   
   // Original video workflow
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
@@ -37,6 +38,9 @@ const VideoGenerator = () => {
   const [finalText, setFinalText] = useState<string>('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string>('');
   const [textScenarioVideo, setTextScenarioVideo] = useState<UploadedVideo | null>(null);
+  
+  // Chunked audio scenario workflow
+  const [chunkedAudioData, setChunkedAudioData] = useState<any[]>([]);
   
   // Global subtitle and voiceover options
   const [enableSubtitles, setEnableSubtitles] = useState(false);
@@ -84,6 +88,10 @@ const VideoGenerator = () => {
     setTextScenarioVideo(video);
   };
 
+  const handleChunkedAudioReady = (chunks: any[]) => {
+    setChunkedAudioData(chunks);
+  };
+
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -114,6 +122,12 @@ const VideoGenerator = () => {
       if (!textScenarioVideo) {
         console.error('❌ No video uploaded for text scenario');
         toast.error('Загрузите видео для наложения звука');
+        return;
+      }
+    } else if (scenario === 'chunked-audio') {
+      if (chunkedAudioData.length === 0) {
+        console.error('❌ No chunked audio data');
+        toast.error('Подготовьте звуки по кусочкам');
         return;
       }
     }
@@ -427,7 +441,7 @@ const VideoGenerator = () => {
                 </p>
               </div>
               
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 <Button
                   onClick={() => setScenario('with-audio')}
                   className="h-32 flex-col gap-4 bg-video-surface-elevated hover:bg-video-primary/10 text-foreground border border-video-primary/30"
@@ -451,6 +465,18 @@ const VideoGenerator = () => {
                     <div className="text-sm text-muted-foreground">Работа с текстами и генерация озвучки</div>
                   </div>
                 </Button>
+
+                <Button
+                  onClick={() => setScenario('chunked-audio')}
+                  className="h-32 flex-col gap-4 bg-video-surface-elevated hover:bg-video-primary/10 text-foreground border border-video-primary/30"
+                  variant="outline"
+                >
+                  <Zap className="h-8 w-8 text-video-primary" />
+                  <div className="text-center">
+                    <div className="font-semibold">Звуки по кусочкам</div>
+                    <div className="text-sm text-muted-foreground">Каждый текст озвучивается отдельно</div>
+                  </div>
+                </Button>
               </div>
             </div>
           </Card>
@@ -462,6 +488,13 @@ const VideoGenerator = () => {
             onTextReady={handleTextReady}
             onBrandChange={handleBrandChange}
             onVideoReady={handleTextScenarioVideoReady}
+          />
+        )}
+
+        {/* Chunked Audio Scenario */}
+        {scenario === 'chunked-audio' && (
+          <ChunkedAudioScenario 
+            onReady={handleChunkedAudioReady}
           />
         )}
 
@@ -637,7 +670,8 @@ const VideoGenerator = () => {
                   isUploading ||
                   selectedSizes.length === 0 ||
                   (scenario === 'with-audio' && !uploadedVideo) ||
-                  (scenario === 'without-audio' && !finalText.trim())
+                  (scenario === 'without-audio' && !finalText.trim()) ||
+                  (scenario === 'chunked-audio' && chunkedAudioData.length === 0)
                 }
                 className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
               >
