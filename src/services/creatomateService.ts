@@ -119,14 +119,17 @@ export class CreatomateService {
         
         // Set subtitles source for each chunk if subtitles are enabled
         if (options.enableSubtitles) {
-          // For chunked-v2, use single subtitle layer, for chunked use multiple
+          // For chunked-v2, set individual subtitle layers with timing
           if (template.size === 'chunked-v2') {
-            // Only set for the first chunk since there's only one subtitle layer
-            if (chunkIndex === 1) {
-              modifications['element_subtitles.transcript_source'] = options.chunkedAudio.map((_, idx) => `Audio_${idx + 1}`).join(',');
-              modifications['element_subtitles.visible'] = true;
-              console.log(`🔤 Set single subtitles layer with multiple sources`);
+            modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
+            modifications[`element_subtitles_${chunkIndex}.visible`] = true;
+            
+            // Set subtitle start time based on audio start time
+            if (chunk.startTime !== undefined) {
+              modifications[`element_subtitles_${chunkIndex}.time`] = chunk.startTime;
+              console.log(`🔤 Set subtitle ${chunkIndex} start time: ${chunk.startTime}s`);
             }
+            console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
           } else {
             // Original chunked logic with multiple subtitle layers
             modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
@@ -374,7 +377,7 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     supportsSubtitles: true
   },
   {
-    id: 'f9bff9fd-b413-4b32-a95e-b63790748122',
+    id: 'f355b779-a825-473e-bba3-434e404c7030',
     name: 'Тест 9x16 Кусочки v2',
     size: 'chunked-v2',
     dimensions: '1080x1920',
