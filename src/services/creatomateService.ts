@@ -140,20 +140,20 @@ export class CreatomateService {
       });
       
       // Calculate packshot timing and total duration
-      const packshotDuration = 3; // Assume 3 seconds for packshot, but will be overridden by media duration
       const packshotStartTime = totalAudioDuration;
-      const totalVideoDuration = totalAudioDuration + packshotDuration;
       
-      // Set packshot properties
+      // Set packshot properties  
       if (packshotUrl && template.packshotField) {
         modifications['Packshot.time'] = packshotStartTime;
         modifications['Packshot.duration'] = 'media'; // Use actual media duration
         console.log(`🎯 Set Packshot start time: ${packshotStartTime}s with media duration`);
       }
       
-      // Set total video duration (will be adjusted automatically based on packshot media duration)
-      modifications['duration'] = null; // Let Creatomate calculate based on content
-      console.log(`🎬 Set total video duration: auto-calculated based on content`);
+      // Set total video duration to be exactly audio duration + packshot duration (3s default)
+      // This prevents extra empty time at the end
+      const estimatedPackshotDuration = 3; // Standard packshot duration
+      modifications['duration'] = totalAudioDuration + estimatedPackshotDuration;
+      console.log(`🎬 Set total video duration: ${totalAudioDuration + estimatedPackshotDuration}s (audio: ${totalAudioDuration}s + packshot: ~${estimatedPackshotDuration}s)`);
       
     } else {
       // Add main video field(s) for regular scenarios

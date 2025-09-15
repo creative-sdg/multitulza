@@ -622,9 +622,18 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                                 className="w-full h-full object-cover"
                                 muted
                                 preload="metadata"
-                                poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Crect width='24' height='32' fill='%23334155'/%3E%3C/svg%3E"
+                                onLoadedMetadata={(e) => {
+                                  // Set current time to get first frame
+                                  e.currentTarget.currentTime = 0.1;
+                                }}
+                                onError={(e) => {
+                                  console.error('Video preview error:', e);
+                                  // Show fallback placeholder
+                                  e.currentTarget.style.display = 'none';
+                                }}
                               >
                                 <source src={chunk.videoFile.url} type="video/mp4" />
+                                Your browser does not support the video tag.
                               </video>
                             </div>
                             <Badge variant="outline" className="border-success/30 text-success max-w-32 truncate">
