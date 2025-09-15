@@ -30,8 +30,7 @@ interface ChunkedAudioScenarioProps {
 }
 
 const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, onBrandChange }) => {
-  // ElevenLabs API Key
-  const [apiKey, setApiKey] = useState('');
+  // ElevenLabs API Key - используем сохраненный ключ
   
   // Google Sheets
   const [tableId, setTableId] = useState('');
@@ -54,11 +53,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   // Load texts from Google Sheets
   const loadTexts = async () => {
-    if (!apiKey.trim()) {
-      toast.error('Сначала введите API ключ ElevenLabs');
-      return;
-    }
-    
     if (!tableId.trim()) {
       toast.error('Введите ID таблицы');
       return;
@@ -131,6 +125,15 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     return processedText;
   };
 
+  // Apply brand replacements to all chunks
+  const applyReplacementsToAllChunks = () => {
+    setChunks(prev => prev.map(chunk => ({
+      ...chunk,
+      text: applyBrandReplacements(texts[chunk.id - 1] || chunk.text)
+    })));
+    toast.success('Изменения применены ко всем текстам');
+  };
+
   // Handle brand toggle for quick replacement
   const handleBrandToggle = (brandId: string, replacementWord: string) => {
     const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
@@ -161,10 +164,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   // Generate audio for a specific chunk
   const generateAudio = async (chunkId: number) => {
-    if (!apiKey.trim()) {
-      toast.error('Введите API ключ ElevenLabs');
-      return;
-    }
 
     const chunk = chunks.find(c => c.id === chunkId);
     if (!chunk || !chunk.text.trim()) {
@@ -341,25 +340,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   return (
     <div className="space-y-6">
-      {/* API Key Input */}
-      <Card className="p-6 bg-video-surface border-video-primary/20">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-video-primary" />
-            <h3 className="text-lg font-semibold">API ключ ElevenLabs</h3>
-          </div>
-          
-          <div>
-            <Label>Введите ваш API ключ ElevenLabs</Label>
-            <Input
-              type="password"
-              placeholder="Введите API ключ..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-          </div>
-        </div>
-      </Card>
 
       {/* Google Sheets Integration */}
       <Card className="p-6 bg-video-surface border-video-primary/20">
@@ -392,7 +372,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           </div>
           <Button 
             onClick={loadTexts}
-            disabled={isLoadingTexts || !apiKey.trim()}
+            disabled={isLoadingTexts}
             className="bg-video-primary hover:bg-video-primary-hover w-full"
           >
             {isLoadingTexts ? 'Загрузка...' : 'Загрузить тексты из столбцов H-Q'}
@@ -461,13 +441,24 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                   <div className="text-muted-foreground text-sm">Нет настроенных замен</div>
                 )}
                 
-                <Button
-                  onClick={() => setBrandReplacements(prev => ({ ...prev, '': '' }))}
-                  variant="outline"
-                  size="sm"
-                >
-                  + Добавить замену
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setBrandReplacements(prev => ({ ...prev, '': '' }))}
+                    variant="outline"
+                    size="sm"
+                  >
+                    + Добавить замену
+                  </Button>
+                  
+                  <Button
+                    onClick={applyReplacementsToAllChunks}
+                    className="bg-video-primary hover:bg-video-primary-hover"
+                    size="sm"
+                    disabled={Object.keys(brandReplacements).length === 0}
+                  >
+                    Применить изменения
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -563,7 +554,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                     <div className="flex items-center gap-2">
                       <Button
                         onClick={() => generateAudio(chunk.id)}
-                        disabled={chunk.isGenerating || !chunk.text.trim() || !apiKey.trim()}
+                        disabled={chunk.isGenerating || !chunk.text.trim()}
                         className="bg-video-primary hover:bg-video-primary-hover flex-1"
                       >
                         {chunk.isGenerating ? 'Генерация...' : 'Сгенерировать звук'}
@@ -587,7 +578,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                             variant="outline"
                             size="sm"
                             onClick={() => generateAudio(chunk.id)}
-                            disabled={chunk.isGenerating || !apiKey.trim()}
+                            disabled={chunk.isGenerating}
                             className="border-video-primary/30"
                             title="Перегенерировать звук"
                           >
@@ -625,9 +616,21 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                           {chunk.videoFile ? 'Изменить видео' : 'Загрузить видео'}
                         </label>
                         {chunk.videoFile && (
-                          <Badge variant="outline" className="border-success/30 text-success">
-                            {chunk.videoFile.file.name}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <div className="w-12 h-16 bg-video-surface-elevated rounded border border-video-primary/20 flex items-center justify-center overflow-hidden">
+                              <video 
+                                className="w-full h-full object-cover"
+                                muted
+                                preload="metadata"
+                                poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='32' viewBox='0 0 24 32'%3E%3Crect width='24' height='32' fill='%23334155'/%3E%3C/svg%3E"
+                              >
+                                <source src={chunk.videoFile.url} type="video/mp4" />
+                              </video>
+                            </div>
+                            <Badge variant="outline" className="border-success/30 text-success max-w-32 truncate">
+                              {chunk.videoFile.file.name}
+                            </Badge>
+                          </div>
                         )}
                       </div>
                     </div>
