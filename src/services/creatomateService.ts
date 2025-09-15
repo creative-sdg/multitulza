@@ -128,9 +128,13 @@ export class CreatomateService {
         
         // Set subtitles source for each chunk if subtitles are enabled
         if (options.enableSubtitles) {
-          // Set subtitle source and visibility for each chunk
+          // Set subtitle source for each chunk
           modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
-          modifications[`element_subtitles_${chunkIndex}.visible`] = true;
+          
+          // For all chunks except the first one, set time to null for auto-calculation
+          if (chunkIndex > 1) {
+            modifications[`element_subtitles_${chunkIndex}.time`] = null;
+          }
           
           console.log(`🔤 Set subtitles for chunk ${chunkIndex} with source Audio_${chunkIndex}`);
         }
