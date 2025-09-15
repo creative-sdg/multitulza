@@ -128,16 +128,15 @@ export class CreatomateService {
         
         // Set subtitles source for each chunk if subtitles are enabled
         if (options.enableSubtitles) {
-          // For all chunked templates, set individual subtitle layers with timing
+          // Set subtitle source for each chunk
           modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
-          modifications[`element_subtitles_${chunkIndex}.visible`] = true;
           
-          // Set subtitle start time based on audio start time (but not for first chunk)
-          if (chunk.startTime !== undefined && chunkIndex > 1) {
-            modifications[`element_subtitles_${chunkIndex}.time`] = null; // Auto-calculate timing
-            console.log(`🔤 Set subtitle ${chunkIndex} with auto timing`);
+          // For all chunks except the first one, set time to null for auto-calculation
+          if (chunkIndex > 1) {
+            modifications[`element_subtitles_${chunkIndex}.time`] = null;
           }
-          console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
+          
+          console.log(`🔤 Set subtitles for chunk ${chunkIndex} with source Audio_${chunkIndex}`);
         }
       });
       
