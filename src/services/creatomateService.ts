@@ -79,7 +79,7 @@ export class CreatomateService {
     }
     
     // Handle chunked audio scenario
-    if (options?.chunkedAudio && (template.size === 'chunked' || template.size === 'chunked-v2')) {
+    if (options?.chunkedAudio && (template.size === 'chunked-v2' || template.size === 'chunked-square' || template.size === 'chunked-horizontal')) {
       console.log('🎵 Processing chunked audio scenario...');
       
       let totalAudioDuration = 0;
@@ -93,10 +93,19 @@ export class CreatomateService {
           modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
           console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
           
+          // For square and horizontal templates, also set the _back video
+          if (template.size === 'chunked-square' || template.size === 'chunked-horizontal') {
+            modifications[`Main_Video_${chunkIndex}_back`] = chunk.videoFile.url;
+            console.log(`📹 Set Main_Video_${chunkIndex}_back: ${chunk.videoFile.url}`);
+            modifications[`Main_Video_${chunkIndex}_back.duration`] = 'media';
+          }
+          
           // Set video duration based on effective audio duration
           if (chunk.effectiveDuration) {
             modifications[`Main_Video_${chunkIndex}.duration`] = chunk.effectiveDuration;
             console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.effectiveDuration}s`);
+          } else {
+            modifications[`Main_Video_${chunkIndex}.duration`] = 'media';
           }
         }
         
@@ -119,23 +128,16 @@ export class CreatomateService {
         
         // Set subtitles source for each chunk if subtitles are enabled
         if (options.enableSubtitles) {
-          // For chunked-v2, set individual subtitle layers with timing
-          if (template.size === 'chunked-v2') {
-            modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
-            modifications[`element_subtitles_${chunkIndex}.visible`] = true;
-            
-            // Set subtitle start time based on audio start time
-            if (chunk.startTime !== undefined) {
-              modifications[`element_subtitles_${chunkIndex}.time`] = chunk.startTime;
-              console.log(`🔤 Set subtitle ${chunkIndex} start time: ${chunk.startTime}s`);
-            }
-            console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
-          } else {
-            // Original chunked logic with multiple subtitle layers
-            modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
-            modifications[`element_subtitles_${chunkIndex}.visible`] = true;
-            console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
+          // For all chunked templates, set individual subtitle layers with timing
+          modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
+          modifications[`element_subtitles_${chunkIndex}.visible`] = true;
+          
+          // Set subtitle start time based on audio start time (but not for first chunk)
+          if (chunk.startTime !== undefined && chunkIndex > 1) {
+            modifications[`element_subtitles_${chunkIndex}.time`] = null; // Auto-calculate timing
+            console.log(`🔤 Set subtitle ${chunkIndex} with auto timing`);
           }
+          console.log(`🔤 Set subtitles for chunk ${chunkIndex}`);
         }
       });
       
@@ -291,7 +293,9 @@ export const AVAILABLE_BRANDS = [
       horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
       test: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
-      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4'
+          'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
     }
   },
   { 
@@ -303,7 +307,9 @@ export const AVAILABLE_BRANDS = [
       horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1920x1080.mp4',
       test: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
-      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4'
+      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1080.mp4',
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1920x1080.mp4'
     }
   },
   { 
@@ -315,7 +321,9 @@ export const AVAILABLE_BRANDS = [
       horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
       test: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
-      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4'
+      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
     }
   },
   { 
@@ -327,7 +335,9 @@ export const AVAILABLE_BRANDS = [
       horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
       test: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
-      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4'
+      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
     }
   }
 ];
@@ -371,19 +381,28 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     supportsSubtitles: true
   },
   {
-    id: 'ec935357-c0b3-4603-99c4-24b3759670ec',
-    name: 'Тест 9x16 Кусочки',
-    size: 'chunked',
+    id: 'f355b779-a825-473e-bba3-434e404c7030',
+    name: '9x16',
+    size: 'chunked-v2',
     dimensions: '1080x1920',
     mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
     packshotField: 'Packshot',
     supportsSubtitles: true
   },
   {
-    id: 'f355b779-a825-473e-bba3-434e404c7030',
-    name: 'Тест 9x16 Кусочки v2',
-    size: 'chunked-v2',
-    dimensions: '1080x1920',
+    id: 'd858c331-52b5-4916-a2f5-f7e1ae4d7493',
+    name: '1x1',
+    size: 'chunked-square',
+    dimensions: '1080x1080',
+    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
+    packshotField: 'Packshot',
+    supportsSubtitles: true
+  },
+  {
+    id: '105d7ae4-294c-496a-b7af-9b1c35af6dbe',
+    name: '16x9',
+    size: 'chunked-horizontal',
+    dimensions: '1920x1080',
     mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
     packshotField: 'Packshot',
     supportsSubtitles: true
