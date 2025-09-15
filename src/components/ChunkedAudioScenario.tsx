@@ -5,10 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, Upload, Trash2, FileText, Volume2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Play, Pause, Upload, Trash2, FileText, Volume2, Key, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
+import { AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
+import { AVAILABLE_BRANDS } from '@/services/creatomateService';
 
 interface AudioChunk {
   id: number;
@@ -23,20 +26,39 @@ interface AudioChunk {
 
 interface ChunkedAudioScenarioProps {
   onReady: (chunks: AudioChunk[]) => void;
+  onBrandChange: (brands: string[]) => void;
 }
 
-const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) => {
+const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, onBrandChange }) => {
+  // ElevenLabs API Key
+  const [apiKey, setApiKey] = useState('');
+  
+  // Google Sheets
   const [tableId, setTableId] = useState('');
   const [rowNumber, setRowNumber] = useState('');
   const [texts, setTexts] = useState<string[]>([]);
   const [chunks, setChunks] = useState<AudioChunk[]>([]);
   const [isLoadingTexts, setIsLoadingTexts] = useState(false);
+  
+  // Voice selection
+  const [selectedVoice, setSelectedVoice] = useState<string>('TX3LPaxmHKxFdv7VOQHJ'); // Liam voice by default
+  
+  // Brand replacement functionality
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [brandReplacements, setBrandReplacements] = useState<{[key: string]: string}>({});
+  
+  // Audio controls
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { uploadVideo, isUploading } = useVideoUpload();
 
   // Load texts from Google Sheets
   const loadTexts = async () => {
+    if (!apiKey.trim()) {
+      toast.error('Сначала введите API ключ ElevenLabs');
+      return;
+    }
+    
     if (!tableId.trim()) {
       toast.error('Введите ID таблицы');
       return;
@@ -69,15 +91,21 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
         const limitedTexts = data.texts.slice(0, 10);
         setTexts(limitedTexts);
         
-        // Initialize chunks
+        // Initialize chunks and apply brand replacements
         const initialChunks: AudioChunk[] = limitedTexts.map((text, index) => ({
           id: index + 1,
-          text,
+          text: applyBrandReplacements(text),
           isGenerating: false
         }));
         
         setChunks(initialChunks);
         toast.success(`Загружено ${limitedTexts.length} текстов`);
+        
+        // Auto-set brands for packshots
+        if (selectedBrands.length === 0) {
+          setSelectedBrands(['datemyage']); // Default brand
+          onBrandChange(['datemyage']);
+        }
       } else {
         toast.error('Тексты не найдены в таблице');
       }
@@ -89,8 +117,55 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
     }
   };
 
+  // Apply brand replacements to text
+  const applyBrandReplacements = (text: string): string => {
+    let processedText = text;
+    
+    Object.entries(brandReplacements).forEach(([original, replacement]) => {
+      if (replacement.trim()) {
+        const regex = new RegExp(original, 'gi');
+        processedText = processedText.replace(regex, replacement);
+      }
+    });
+    
+    return processedText;
+  };
+
+  // Handle brand toggle for quick replacement
+  const handleBrandToggle = (brandId: string, replacementWord: string) => {
+    const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
+    if (!brand) return;
+
+    // Update brand replacements
+    setBrandReplacements(prev => ({
+      ...prev,
+      [replacementWord]: brand.name
+    }));
+
+    // Update selected brands for packshots
+    const newBrands = selectedBrands.includes(brandId)
+      ? selectedBrands
+      : [...selectedBrands.filter(b => !AVAILABLE_BRANDS.find(br => br.name === brandReplacements[replacementWord])?.id || b !== AVAILABLE_BRANDS.find(br => br.name === brandReplacements[replacementWord])?.id), brandId];
+    
+    setSelectedBrands(newBrands);
+    onBrandChange(newBrands);
+
+    // Apply replacements to existing chunks
+    setChunks(prev => prev.map(chunk => ({
+      ...chunk,
+      text: applyBrandReplacements(chunk.text)
+    })));
+
+    toast.success(`Бренд ${brand.name} выбран для замены "${replacementWord}"`);
+  };
+
   // Generate audio for a specific chunk
   const generateAudio = async (chunkId: number) => {
+    if (!apiKey.trim()) {
+      toast.error('Введите API ключ ElevenLabs');
+      return;
+    }
+
     const chunk = chunks.find(c => c.id === chunkId);
     if (!chunk || !chunk.text.trim()) {
       toast.error('Текст пуст');
@@ -105,7 +180,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
       const { data, error } = await supabase.functions.invoke('elevenlabs', {
         body: {
           text: chunk.text,
-          voiceId: '9BWtsMINqrJLrRacOk9x' // Aria voice
+          voiceId: selectedVoice
         }
       });
 
@@ -214,7 +289,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
   // Update text for a chunk
   const updateChunkText = (chunkId: number, text: string) => {
     setChunks(prev => prev.map(c => 
-      c.id === chunkId ? { ...c, text } : c
+      c.id === chunkId ? { ...c, text: applyBrandReplacements(text) } : c
     ));
   };
 
@@ -266,6 +341,26 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
 
   return (
     <div className="space-y-6">
+      {/* API Key Input */}
+      <Card className="p-6 bg-video-surface border-video-primary/20">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Key className="h-5 w-5 text-video-primary" />
+            <h3 className="text-lg font-semibold">API ключ ElevenLabs</h3>
+          </div>
+          
+          <div>
+            <Label>Введите ваш API ключ ElevenLabs</Label>
+            <Input
+              type="password"
+              placeholder="Введите API ключ..."
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+          </div>
+        </div>
+      </Card>
+
       {/* Google Sheets Integration */}
       <Card className="p-6 bg-video-surface border-video-primary/20">
         <div className="space-y-4">
@@ -297,13 +392,115 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
           </div>
           <Button 
             onClick={loadTexts}
-            disabled={isLoadingTexts}
+            disabled={isLoadingTexts || !apiKey.trim()}
             className="bg-video-primary hover:bg-video-primary-hover w-full"
           >
             {isLoadingTexts ? 'Загрузка...' : 'Загрузить тексты из столбцов H-Q'}
           </Button>
         </div>
       </Card>
+
+      {/* Brand Replacement */}
+      {texts.length > 0 && (
+        <Card className="p-6 bg-video-surface border-video-primary/20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-video-primary" />
+              <h3 className="text-lg font-semibold">Быстрая замена брендов</h3>
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Введите слово для замены и выберите бренд</Label>
+              <div className="space-y-3">
+                {Object.keys(brandReplacements).length > 0 ? (
+                  Object.entries(brandReplacements).map(([original, replacement], index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <Input
+                          placeholder="Слово для замены"
+                          value={original}
+                          onChange={(e) => {
+                            const newReplacements = { ...brandReplacements };
+                            delete newReplacements[original];
+                            newReplacements[e.target.value] = replacement;
+                            setBrandReplacements(newReplacements);
+                          }}
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={() => {
+                            const newReplacements = { ...brandReplacements };
+                            delete newReplacements[original];
+                            setBrandReplacements(newReplacements);
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                      <div className="ml-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {AVAILABLE_BRANDS.map(brand => (
+                            <label key={brand.id} className="flex items-center space-x-2 cursor-pointer p-2 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                              <input
+                                type="radio"
+                                name={`replacement-${index}`}
+                                checked={replacement === brand.name}
+                                onChange={() => handleBrandToggle(brand.id, original)}
+                                className="rounded border-video-primary/30"
+                              />
+                              <span className="text-sm font-medium">{brand.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-muted-foreground text-sm">Нет настроенных замен</div>
+                )}
+                
+                <Button
+                  onClick={() => setBrandReplacements(prev => ({ ...prev, '': '' }))}
+                  variant="outline"
+                  size="sm"
+                >
+                  + Добавить замену
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Voice Selection */}
+      {texts.length > 0 && (
+        <Card className="p-6 bg-video-surface border-video-primary/20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Volume2 className="h-5 w-5 text-video-primary" />
+              <h3 className="text-lg font-semibold">Выбор голоса</h3>
+            </div>
+            
+            <div>
+              <Label>Выберите голос для озвучки</Label>
+              <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите голос" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_VOICES.filter(voice => voice.language === 'en').map(voice => (
+                    <SelectItem key={voice.id} value={voice.id}>
+                      {voice.name} ({voice.gender === 'male' ? 'Мужской' : 'Женский'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Chunks Management */}
       {chunks.length > 0 && (
@@ -366,25 +563,37 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady }) 
                     <div className="flex items-center gap-2">
                       <Button
                         onClick={() => generateAudio(chunk.id)}
-                        disabled={chunk.isGenerating || !chunk.text.trim()}
-                        className="bg-video-primary hover:bg-video-primary-hover"
+                        disabled={chunk.isGenerating || !chunk.text.trim() || !apiKey.trim()}
+                        className="bg-video-primary hover:bg-video-primary-hover flex-1"
                       >
                         {chunk.isGenerating ? 'Генерация...' : 'Сгенерировать звук'}
                       </Button>
                       
                       {chunk.audioUrl && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => playAudio(chunk.audioUrl!, chunk.id)}
-                          className="border-video-primary/30"
-                        >
-                          {currentlyPlaying === chunk.id ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => playAudio(chunk.audioUrl!, chunk.id)}
+                            className="border-video-primary/30"
+                          >
+                            {currentlyPlaying === chunk.id ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generateAudio(chunk.id)}
+                            disabled={chunk.isGenerating || !apiKey.trim()}
+                            className="border-video-primary/30"
+                            title="Перегенерировать звук"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
 
