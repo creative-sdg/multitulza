@@ -551,27 +551,34 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                     </div>
 
                     {/* Audio Generation */}
-                    <div className="flex items-center gap-2">
+                    <div className="space-y-2">
                       <Button
                         onClick={() => generateAudio(chunk.id)}
                         disabled={chunk.isGenerating || !chunk.text.trim()}
-                        className="bg-video-primary hover:bg-video-primary-hover flex-1"
+                        className="bg-video-primary hover:bg-video-primary-hover w-full"
+                        size="sm"
                       >
-                        {chunk.isGenerating ? 'Генерация...' : 'Сгенерировать звук'}
+                        {chunk.isGenerating ? 'Генерация...' : 'Генерировать'}
                       </Button>
                       
                       {chunk.audioUrl && (
-                        <>
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => playAudio(chunk.audioUrl!, chunk.id)}
-                            className="border-video-primary/30"
+                            className="border-video-primary/30 flex-1"
                           >
                             {currentlyPlaying === chunk.id ? (
-                              <Pause className="h-4 w-4" />
+                              <>
+                                <Pause className="h-4 w-4 mr-1" />
+                                Стоп
+                              </>
                             ) : (
-                              <Play className="h-4 w-4" />
+                              <>
+                                <Play className="h-4 w-4 mr-1" />
+                                Играть
+                              </>
                             )}
                           </Button>
                           <Button
@@ -579,12 +586,12 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                             size="sm"
                             onClick={() => generateAudio(chunk.id)}
                             disabled={chunk.isGenerating}
-                            className="border-video-primary/30"
-                            title="Перегенерировать звук"
+                            className="border-video-primary/30 px-3"
+                            title="Перегенерировать"
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
-                        </>
+                        </div>
                       )}
                     </div>
 
@@ -610,14 +617,14 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                         />
                         <label
                           htmlFor={`video-upload-${chunk.id}`}
-                          className="flex items-center gap-2 px-4 py-2 border border-video-primary/30 rounded-md cursor-pointer hover:bg-video-primary/10"
+                          className="flex items-center justify-center gap-2 px-3 py-2 border border-video-primary/30 rounded-md cursor-pointer hover:bg-video-primary/10 w-full text-sm"
                         >
                           <Upload className="h-4 w-4" />
-                          {chunk.videoFile ? 'Изменить видео' : 'Загрузить видео'}
+                          {chunk.videoFile ? 'Изменить' : 'Загрузить'}
                         </label>
                         {chunk.videoFile && (
-                          <div className="flex items-center gap-2">
-                            <div className="w-12 h-16 bg-video-surface-elevated rounded border border-video-primary/20 flex items-center justify-center overflow-hidden">
+                          <div className="flex items-center justify-center mt-2">
+                            <div className="w-16 h-20 bg-video-surface-elevated rounded border border-video-primary/20 flex items-center justify-center overflow-hidden">
                               <video 
                                 className="w-full h-full object-cover"
                                 muted
@@ -636,9 +643,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                                 Your browser does not support the video tag.
                               </video>
                             </div>
-                            <Badge variant="outline" className="border-success/30 text-success max-w-32 truncate">
-                              {chunk.videoFile.file.name}
-                            </Badge>
                           </div>
                         )}
                       </div>
