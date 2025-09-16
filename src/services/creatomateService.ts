@@ -131,19 +131,20 @@ export class CreatomateService {
           // Set subtitle source for each chunk
           modifications[`element_subtitles_${chunkIndex}.transcript_source`] = `Audio_${chunkIndex}`;
           
+          // Set subtitle start time if available (same as audio)
+          if (chunk.startTime !== undefined) {
+            modifications[`element_subtitles_${chunkIndex}.time`] = chunk.startTime;
+            console.log(`⏰ Set element_subtitles_${chunkIndex} start time: ${chunk.startTime}s`);
+          }
+          
           console.log(`🔤 Set subtitles for chunk ${chunkIndex} with source Audio_${chunkIndex}`);
         }
       });
       
-      // Set subtitles for all 10 chunks if subtitles are enabled
+      // Set subtitles for all 10 chunks if subtitles are enabled (only transcript_source)
       if (options.enableSubtitles) {
         for (let i = 1; i <= 10; i++) {
           modifications[`element_subtitles_${i}.transcript_source`] = `Audio_${i}`;
-          
-          // For all chunks except the first one, set time to null for auto-calculation
-          if (i > 1) {
-            modifications[`element_subtitles_${i}.time`] = null;
-          }
         }
         console.log(`🔤 Set subtitles for all 10 chunks`);
       }
