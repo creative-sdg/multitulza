@@ -24,9 +24,13 @@ interface VideoVariant {
 }
 
 
-const VideoGenerator = () => {
+interface VideoGeneratorProps {
+  scenario?: 'with-audio' | 'chunked-audio';
+}
+
+const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) => {
   // Scenario selection
-  const [scenario, setScenario] = useState<'with-audio' | 'chunked-audio' | null>(null);
+  const [scenario, setScenario] = useState<'with-audio' | 'chunked-audio' | null>(propScenario || null);
   
   // Original video workflow
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
@@ -388,7 +392,7 @@ const VideoGenerator = () => {
         </div>
 
         {/* Scenario Selection */}
-        {!scenario && (
+        {!propScenario && !scenario && (
           <Card className="p-8 bg-video-surface border-video-primary/20">
             <div className="space-y-6">
               <div className="text-center space-y-4">

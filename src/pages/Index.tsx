@@ -1,7 +1,7 @@
-import VideoGenerator from '@/components/VideoGenerator';
+import Home from '@/pages/Home';
 
 const Index = () => {
-  return <VideoGenerator />;
+  return <Home />;
 };
 
 export default Index;
