@@ -544,14 +544,14 @@ const VideoGenerator = () => {
                 <h3 className="font-medium text-lg">Размеры видео</h3>
                  <div className="grid grid-cols-1 gap-3">
                    {CREATOMATE_TEMPLATES
-                     .filter(template => {
-                       if (scenario === 'chunked-audio') {
-                         // For chunked audio scenario, only show chunked templates
-                         return ['chunked-v2', 'chunked-square', 'chunked-horizontal'].includes(template.size);
-                       }
-                       // For other scenarios, show all templates
-                       return true;
-                     })
+                      .filter(template => {
+                        if (scenario === 'chunked-audio') {
+                          // For chunked audio scenario, only show chunked templates
+                          return ['chunked-v2', 'chunked-square', 'chunked-horizontal'].includes(template.size);
+                        }
+                        // For other scenarios, show only non-chunked templates
+                        return ['vertical', 'horizontal', 'square'].includes(template.size);
+                      })
                      .map(template => (
                      <label key={template.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
                        <input
