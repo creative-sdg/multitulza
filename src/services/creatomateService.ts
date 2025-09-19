@@ -380,15 +380,6 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     supportsSubtitles: true
   },
   {
-    id: '196ce1c1-324b-4af0-85a6-b1808e79ac3d',
-    name: 'Тест (Субтитры/Текст)',
-    size: 'test',
-    dimensions: '1080x1920',
-    mainVideoField: 'Main_Video_front',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
     id: 'f355b779-a825-473e-bba3-434e404c7030',
     name: '9x16',
     size: 'chunked-v2',
