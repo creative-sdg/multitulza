@@ -62,7 +62,7 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string; chunkedAudio?: any[]; textBlocks?: string[]; useTextMode?: boolean }): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string; chunkedAudio?: any[]; textBlocks?: string[]; subtitleVisibility?: number; audioVolume?: number }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
@@ -184,28 +184,28 @@ export class CreatomateService {
           });
         }
         
-        modifications['duration'] = null; // Let template determine duration
+        // Calculate packshot timing - right after all video chunks
+        const totalVideoDuration = options.chunkedAudio ? options.chunkedAudio.length * 2 : 0;
+        modifications['Packshot.time'] = totalVideoDuration;
+        modifications['Packshot.duration'] = 'media';
+        modifications['duration'] = null;
+        console.log(`🎯 Set Packshot start time: ${totalVideoDuration}s for text-emoji template`);
+        
       } else if (template.size === 'text-emoji-v2') {
         // For text-emoji-v2 template, use media duration for videos
         for (let i = 1; i <= 10; i++) {
           modifications[`Main_Video_${i}.duration`] = 'media';
         }
         
-        // If using text mode, hide subtitles and disable audio
-        if (options.useTextMode) {
-          for (let i = 1; i <= 10; i++) {
-            modifications[`Audio_${i}.volume`] = '0%';
-            modifications[`element_subtitles_${i}.opacity`] = '0%';
-          }
-          console.log('🔇 Text mode: disabled audio and subtitles');
-        } else {
-          // Normal mode with audio and subtitles
-          for (let i = 1; i <= 10; i++) {
-            modifications[`Audio_${i}.volume`] = '100%';
-            modifications[`element_subtitles_${i}.opacity`] = '100%';
-          }
-          console.log('🔊 Audio mode: enabled audio and subtitles');
+        // Set audio volume and subtitle visibility based on options
+        const audioVol = options.audioVolume !== undefined ? `${options.audioVolume}%` : '100%';
+        const subtitleOp = options.subtitleVisibility !== undefined ? `${options.subtitleVisibility}%` : '100%';
+        
+        for (let i = 1; i <= 10; i++) {
+          modifications[`Audio_${i}.volume`] = audioVol;
+          modifications[`element_subtitles_${i}.opacity`] = subtitleOp;
         }
+        console.log(`🔊 Set audio volume: ${audioVol}, subtitle opacity: ${subtitleOp}`);
         
         // Set text blocks if provided
         if (options.textBlocks) {

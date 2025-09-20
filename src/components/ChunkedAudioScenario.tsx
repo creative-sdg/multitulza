@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Pause, Upload, Trash2, FileText, Volume2, Key, RefreshCw, Settings } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Play, Pause, Upload, Trash2, FileText, Volume2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import { AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
-import { AVAILABLE_BRANDS } from '@/services/creatomateService';
+import { AVAILABLE_BRANDS, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
 
 interface AudioChunk {
   id: number;
@@ -25,13 +26,17 @@ interface AudioChunk {
 }
 
 interface ChunkedAudioScenarioProps {
-  onReady: (chunks: AudioChunk[], textBlocks?: string[], useTextMode?: boolean) => void;
+  onReady: (chunks: AudioChunk[], options?: { 
+    textBlocks?: string[]; 
+    subtitleVisibility?: number; 
+    audioVolume?: number; 
+    enableSubtitles?: boolean;
+    selectedTemplate?: any;
+  }) => void;
   onBrandChange: (brands: string[]) => void;
 }
 
 const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, onBrandChange }) => {
-  // ElevenLabs API Key - используем сохраненный ключ
-  
   // Google Sheets
   const [tableId, setTableId] = useState('');
   const [rowNumber, setRowNumber] = useState('');
@@ -39,11 +44,13 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const [chunks, setChunks] = useState<AudioChunk[]>([]);
   const [isLoadingTexts, setIsLoadingTexts] = useState(false);
   
-  // Text Mode Selection
-  const [useTextMode, setUseTextMode] = useState(false);
-  const [textBlocks, setTextBlocks] = useState<string[]>([]);
-  const [textTableId, setTextTableId] = useState('');
-  const [textRowNumber, setTextRowNumber] = useState('');
+  // New state for controls
+  const [enableSubtitles, setEnableSubtitles] = useState(false);
+  const [customTextEnabled, setCustomTextEnabled] = useState(false);
+  const [customTexts, setCustomTexts] = useState<string[]>([]);
+  const [subtitleVisibility, setSubtitleVisibility] = useState(100);
+  const [audioVolume, setAudioVolume] = useState(100);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   
   // Voice selection
   const [selectedVoice, setSelectedVoice] = useState<string>('TX3LPaxmHKxFdv7VOQHJ'); // Liam voice by default
@@ -56,6 +63,17 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { uploadVideo, isUploading } = useVideoUpload();
+
+  // Get text emoji templates
+  const textEmojiTemplates = CREATOMATE_TEMPLATES.filter(t => 
+    t.size === 'text-emoji' || t.size === 'text-emoji-v2'
+  );
+
+  // Handle template change
+  const handleTemplateChange = (templateId: string) => {
+    const template = textEmojiTemplates.find(t => t.id === templateId);
+    setSelectedTemplate(template);
+  };
 
   // Load texts from Google Sheets
   const loadTexts = async () => {
@@ -99,6 +117,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         }));
         
         setChunks(initialChunks);
+        
+        // Load custom texts from the same data
+        const texts = limitedTexts.slice(0, 10);
+        setCustomTexts(texts);
+        
         toast.success(`Загружено ${limitedTexts.length} текстов`);
         
         // Auto-set brands for packshots
@@ -170,7 +193,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   // Generate audio for a specific chunk
   const generateAudio = async (chunkId: number) => {
-
     const chunk = chunks.find(c => c.id === chunkId);
     if (!chunk || !chunk.text.trim()) {
       toast.error('Текст пуст');
@@ -334,47 +356,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     });
   };
 
-  // Load text blocks from Google Sheets
-  const loadTextBlocks = async () => {
-    if (!textTableId.trim()) {
-      toast.error('Введите ID таблицы для текстовых блоков');
-      return;
-    }
-    
-    if (!textRowNumber.trim()) {
-      toast.error('Введите номер строки для текстовых блоков');
-      return;
-    }
-
-    const row = parseInt(textRowNumber);
-    if (isNaN(row) || row < 1 || row > 1000) {
-      toast.error('Номер строки должен быть от 1 до 1000');
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('google-sheets', {
-        body: { 
-          spreadsheetId: textTableId,
-          rowNumber: row
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.texts && data.texts.length > 0) {
-        const limitedTexts = data.texts.slice(0, 10);
-        setTextBlocks(limitedTexts);
-        toast.success(`Загружено ${limitedTexts.length} текстовых блоков`);
-      } else {
-        toast.error('Текстовые блоки не найдены в таблице');
-      }
-    } catch (error: any) {
-      console.error('Error loading text blocks:', error);
-      toast.error(`Ошибка загрузки текстовых блоков: ${error.message}`);
-    }
-  };
-
   // Notify parent when data is ready
   const handleReady = () => {
     const readyChunks = chunks.filter(c => c.text.trim());
@@ -382,50 +363,65 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       toast.error('Добавьте хотя бы один текст');
       return;
     }
-    onReady(readyChunks, textBlocks, useTextMode);
+    
+    if (!selectedTemplate) {
+      toast.error('Выберите шаблон');
+      return;
+    }
+    
+    onReady(readyChunks, {
+      textBlocks: customTextEnabled ? customTexts : chunks.map(chunk => chunk.text || '').slice(0, 10),
+      subtitleVisibility,
+      audioVolume,
+      enableSubtitles,
+      selectedTemplate
+    });
   };
 
   return (
     <div className="space-y-6">
-
-      {/* Text Mode Selection */}
+      {/* Template Selection */}
       <Card className="p-6 bg-video-surface border-video-primary/20">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-video-primary" />
-            <h3 className="text-lg font-semibold">Режим работы</h3>
+            <FileText className="h-5 w-5 text-video-primary" />
+            <h3 className="text-lg font-semibold">Выбор шаблона</h3>
           </div>
           
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <input
-                type="radio"
-                id="audio-mode"
-                name="mode"
-                checked={!useTextMode}
-                onChange={() => setUseTextMode(false)}
-                className="rounded border-video-primary/30"
-              />
-              <label htmlFor="audio-mode" className="font-medium cursor-pointer">
-                Режим с озвучкой и субтитрами
-              </label>
-            </div>
-            <div className="flex items-center space-x-3">
-              <input
-                type="radio"
-                id="text-mode"
-                name="mode"
-                checked={useTextMode}
-                onChange={() => setUseTextMode(true)}
-                className="rounded border-video-primary/30"
-              />
-              <label htmlFor="text-mode" className="font-medium cursor-pointer">
-                Текстовый режим (блоки по 2 секунды без озвучки)
-              </label>
-            </div>
-            {useTextMode && (
-              <div className="text-sm text-muted-foreground pl-6">
-                В этом режиме каждый текстовый блок будет отображаться 2 секунды без озвучки и субтитров
+          <div>
+            <Label>Размер видео</Label>
+            <Select value={selectedTemplate?.id || ''} onValueChange={handleTemplateChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Выберите размер видео" />
+              </SelectTrigger>
+              <SelectContent>
+                {textEmojiTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Настройки для 9x16 Text Emoji V2 */}
+            {selectedTemplate?.size === 'text-emoji-v2' && (
+              <div className="mt-4 p-4 border rounded-lg space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="subtitle-visibility" 
+                    checked={subtitleVisibility === 100}
+                    onCheckedChange={(checked) => setSubtitleVisibility(checked ? 100 : 0)}
+                  />
+                  <Label htmlFor="subtitle-visibility" className="text-sm">Видимость субтитров</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="audio-volume" 
+                    checked={audioVolume === 100}
+                    onCheckedChange={(checked) => setAudioVolume(checked ? 100 : 0)}
+                  />
+                  <Label htmlFor="audio-volume" className="text-sm">Громкость озвучки</Label>
+                </div>
               </div>
             )}
           </div>
@@ -471,53 +467,53 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         </div>
       </Card>
 
-      {/* Text Blocks for Text Mode */}
-      {useTextMode && (
+      {/* Subtitles */}
+      {texts.length > 0 && (
         <Card className="p-6 bg-video-surface border-video-primary/20">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Текстовые блоки (отдельная таблица)</h3>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="subtitles" 
+                checked={enableSubtitles} 
+                onCheckedChange={(checked) => setEnableSubtitles(checked === true)}
+              />
+              <Label htmlFor="subtitles" className="text-sm">Включить субтитры</Label>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <Label>ID таблицы для текстовых блоков</Label>
-                <Input
-                  placeholder="ID таблицы для текстовых блоков..."
-                  value={textTableId}
-                  onChange={(e) => setTextTableId(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Номер строки (1-1000)</Label>
-                <Input
-                  placeholder="Номер строки..."
-                  value={textRowNumber}
-                  onChange={(e) => setTextRowNumber(e.target.value)}
-                  type="number"
-                  min="1"
-                  max="1000"
-                />
-              </div>
-            </div>
-            <Button 
-              onClick={loadTextBlocks}
-              className="bg-video-primary hover:bg-video-primary-hover w-full"
-            >
-              Загрузить текстовые блоки
-            </Button>
-            
-            {textBlocks.length > 0 && (
-              <div className="space-y-2">
-                <Label>Загруженные текстовые блоки:</Label>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {textBlocks.map((text, index) => (
-                    <div key={index} className="p-2 bg-video-surface-elevated rounded text-sm">
-                      <span className="font-mono text-xs text-muted-foreground">Text-{index + 1}:</span> {text}
-                    </div>
-                  ))}
+            {/* Кастомный текст для 9x16 Text Emoji V2 */}
+            {selectedTemplate?.size === 'text-emoji-v2' && (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="custom-text" 
+                    checked={customTextEnabled} 
+                    onCheckedChange={(checked) => setCustomTextEnabled(checked === true)}
+                  />
+                  <Label htmlFor="custom-text" className="text-sm font-medium">Кастомный текст</Label>
                 </div>
+                
+                {customTextEnabled && (
+                  <div className="space-y-2 p-4 border rounded-lg">
+                    <Label className="text-sm text-muted-foreground">
+                      Редактировать текстовые блоки (максимум 10)
+                    </Label>
+                    {customTexts.slice(0, 10).map((text, index) => (
+                      <div key={index} className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Блок {index + 1}</Label>
+                        <Textarea
+                          value={text}
+                          onChange={(e) => {
+                            const newTexts = [...customTexts];
+                            newTexts[index] = e.target.value;
+                            setCustomTexts(newTexts);
+                          }}
+                          placeholder={`Текст для блока ${index + 1}`}
+                          className="min-h-[60px]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -534,21 +530,32 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
             </div>
             
             <div className="space-y-3">
-              <Label>Введите слово для замены и выберите бренд</Label>
-              <div className="space-y-3">
-                {Object.keys(brandReplacements).length > 0 ? (
+              <Label>Настройте замены слов на названия брендов:</Label>
+              <div className="space-y-4">
+                {Object.entries(brandReplacements).length > 0 ? (
                   Object.entries(brandReplacements).map(([original, replacement], index) => (
                     <div key={index} className="space-y-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex gap-2">
                         <Input
                           placeholder="Слово для замены"
                           value={original}
                           onChange={(e) => {
                             const newReplacements = { ...brandReplacements };
                             delete newReplacements[original];
-                            newReplacements[e.target.value] = replacement;
+                            if (e.target.value.trim()) {
+                              newReplacements[e.target.value] = replacement;
+                            }
                             setBrandReplacements(newReplacements);
                           }}
+                          className="flex-1"
+                        />
+                        <Input
+                          placeholder="Заменить на"
+                          value={replacement}
+                          onChange={(e) => setBrandReplacements(prev => ({
+                            ...prev,
+                            [original]: e.target.value
+                          }))}
                           className="flex-1"
                         />
                         <Button

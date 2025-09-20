@@ -75,10 +75,19 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
     setSelectedBrands(brands);
   };
 
-  const handleChunkedAudioReady = (chunks: any[], textBlocks?: string[], useTextMode?: boolean) => {
+  const handleChunkedAudioReady = (chunks: any[], options?: { 
+    textBlocks?: string[]; 
+    subtitleVisibility?: number; 
+    audioVolume?: number; 
+    enableSubtitles?: boolean;
+    selectedTemplate?: any;
+  }) => {
     setChunkedAudioData(chunks);
-    if (textBlocks) setTextBlocks(textBlocks);
-    if (useTextMode !== undefined) setUseTextMode(useTextMode);
+    if (options?.textBlocks) setTextBlocks(options.textBlocks);
+    if (options?.selectedTemplate) {
+      // Store template info for later use
+      console.log('Selected template:', options.selectedTemplate);
+    }
   };
 
 
