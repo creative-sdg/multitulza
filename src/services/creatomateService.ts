@@ -7,6 +7,7 @@ interface CreatomateTemplate {
   packshotField: string;
   supportsCustomText?: boolean;
   supportsSubtitles?: boolean;
+  textMode?: boolean;
 }
 
 interface Brand {
@@ -61,7 +62,7 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string; chunkedAudio?: any[] }): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string; chunkedAudio?: any[]; textBlocks?: string[]; useTextMode?: boolean }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
@@ -78,9 +79,15 @@ export class CreatomateService {
       modifications[template.packshotField] = packshotUrl;
     }
     
-    // Handle chunked audio scenario
-    if (options?.chunkedAudio && (template.size === 'chunked-v2' || template.size === 'chunked-square' || template.size === 'chunked-horizontal')) {
-      console.log('🎵 Processing chunked audio scenario...');
+    // Handle chunked audio scenario and text emoji templates
+    if (options?.chunkedAudio && (
+      template.size === 'chunked-v2' || 
+      template.size === 'chunked-square' || 
+      template.size === 'chunked-horizontal' ||
+      template.size === 'text-emoji' ||
+      template.size === 'text-emoji-v2'
+    )) {
+      console.log('🎵 Processing chunked audio/text scenario...');
       
       let totalAudioDuration = 0;
       
@@ -159,11 +166,68 @@ export class CreatomateService {
         console.log(`🎯 Set Packshot start time: ${packshotStartTime}s with media duration`);
       }
       
-      // Set total video duration to be exactly audio duration + packshot duration (3s default)
-      // This prevents extra empty time at the end
-      const estimatedPackshotDuration = 3; // Standard packshot duration
-      modifications['duration'] = totalAudioDuration + estimatedPackshotDuration;
-      console.log(`🎬 Set total video duration: ${totalAudioDuration + estimatedPackshotDuration}s (audio: ${totalAudioDuration}s + packshot: ~${estimatedPackshotDuration}s)`);
+      // Handle text-emoji specific configurations
+      if (template.size === 'text-emoji') {
+        // For text-emoji template, set 2-second durations for all video chunks
+        for (let i = 1; i <= 10; i++) {
+          modifications[`Main_Video_${i}.duration`] = 2;
+        }
+        console.log('📝 Set all Main_Video durations to 2 seconds for text-emoji template');
+        
+        // Set text blocks if provided in options
+        if (options.textBlocks) {
+          options.textBlocks.forEach((text, index) => {
+            if (index < 10) {
+              modifications[`Text-${index + 1}.text`] = text;
+              console.log(`📝 Set Text-${index + 1}: ${text}`);
+            }
+          });
+        }
+        
+        modifications['duration'] = null; // Let template determine duration
+      } else if (template.size === 'text-emoji-v2') {
+        // For text-emoji-v2 template, use media duration for videos
+        for (let i = 1; i <= 10; i++) {
+          modifications[`Main_Video_${i}.duration`] = 'media';
+        }
+        
+        // If using text mode, hide subtitles and disable audio
+        if (options.useTextMode) {
+          for (let i = 1; i <= 10; i++) {
+            modifications[`Audio_${i}.volume`] = '0%';
+            modifications[`element_subtitles_${i}.opacity`] = '0%';
+          }
+          console.log('🔇 Text mode: disabled audio and subtitles');
+        } else {
+          // Normal mode with audio and subtitles
+          for (let i = 1; i <= 10; i++) {
+            modifications[`Audio_${i}.volume`] = '100%';
+            modifications[`element_subtitles_${i}.opacity`] = '100%';
+          }
+          console.log('🔊 Audio mode: enabled audio and subtitles');
+        }
+        
+        // Set text blocks if provided
+        if (options.textBlocks) {
+          options.textBlocks.forEach((text, index) => {
+            if (index < 10) {
+              modifications[`Text-${index + 1}.text`] = text;
+              modifications[`Text-${index + 1}.time`] = index === 0 ? 0 : null;
+              modifications[`Text-${index + 1}.duration`] = null;
+              console.log(`📝 Set Text-${index + 1}: ${text}`);
+            }
+          });
+        }
+        
+        modifications['duration'] = null;
+      } else {
+        // Standard chunked audio processing
+        // Set total video duration to be exactly audio duration + packshot duration (3s default)
+        // This prevents extra empty time at the end
+        const estimatedPackshotDuration = 3; // Standard packshot duration
+        modifications['duration'] = totalAudioDuration + estimatedPackshotDuration;
+        console.log(`🎬 Set total video duration: ${totalAudioDuration + estimatedPackshotDuration}s (audio: ${totalAudioDuration}s + packshot: ~${estimatedPackshotDuration}s)`);
+      }
       
     } else {
       // Add main video field(s) for regular scenarios
@@ -190,6 +254,12 @@ export class CreatomateService {
         // Hide subtitles
         modifications['element_subtitles.visible'] = false;
       }
+    }
+
+    // Add emoji style for text emoji templates
+    if (template.size === 'text-emoji' || template.size === 'text-emoji-v2') {
+      modifications['emoji_style'] = 'apple';
+      console.log('🍎 Set emoji style to apple');
     }
 
     const renderRequest: CreatomateRenderRequest = {
@@ -301,9 +371,11 @@ export const AVAILABLE_BRANDS = [
       horizontal: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
       test: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
-          'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
-      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
+      'text-emoji': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'text-emoji-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4'
     }
   },
   { 
@@ -317,7 +389,9 @@ export const AVAILABLE_BRANDS = [
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
       'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
       'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1080.mp4',
-      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1920x1080.mp4'
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1920x1080.mp4',
+      'text-emoji': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      'text-emoji-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/dc_packshot_simple_languages_1080x1920.mp4'
     }
   },
   { 
@@ -331,7 +405,9 @@ export const AVAILABLE_BRANDS = [
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
-      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
+      'text-emoji': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'text-emoji-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4'
     }
   },
   { 
@@ -345,7 +421,9 @@ export const AVAILABLE_BRANDS = [
       chunked: 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       'chunked-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
       'chunked-square': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_1x1.mp4',
-      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4'
+      'chunked-horizontal': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_16x9.mp4',
+      'text-emoji': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4',
+      'text-emoji-v2': 'https://kyasmnsbddufkyhcdroj.supabase.co/storage/v1/object/public/packshots/DateMyAge_packshot_9x16.mp4'
     }
   }
 ];
@@ -405,6 +483,26 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
     packshotField: 'Packshot',
     supportsSubtitles: true
+  },
+  {
+    id: 'bb27c72e-a8a7-4471-b412-d5cfd8a53381',
+    name: '9x16 Text Emoji',
+    size: 'text-emoji',
+    dimensions: '1080x1920',
+    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
+    packshotField: 'Packshot',
+    supportsSubtitles: false,
+    textMode: true
+  },
+  {
+    id: '4a4c47f1-555c-414f-b45a-1905be6b591d',
+    name: '9x16 Text Emoji V2',
+    size: 'text-emoji-v2',
+    dimensions: '1080x1920',
+    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
+    packshotField: 'Packshot',
+    supportsSubtitles: true,
+    textMode: true
   }
 ];
 

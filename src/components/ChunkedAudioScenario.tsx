@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Pause, Upload, Trash2, FileText, Volume2, Key, RefreshCw } from 'lucide-react';
+import { Play, Pause, Upload, Trash2, FileText, Volume2, Key, RefreshCw, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
@@ -25,7 +25,7 @@ interface AudioChunk {
 }
 
 interface ChunkedAudioScenarioProps {
-  onReady: (chunks: AudioChunk[]) => void;
+  onReady: (chunks: AudioChunk[], textBlocks?: string[], useTextMode?: boolean) => void;
   onBrandChange: (brands: string[]) => void;
 }
 
@@ -38,6 +38,12 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const [texts, setTexts] = useState<string[]>([]);
   const [chunks, setChunks] = useState<AudioChunk[]>([]);
   const [isLoadingTexts, setIsLoadingTexts] = useState(false);
+  
+  // Text Mode Selection
+  const [useTextMode, setUseTextMode] = useState(false);
+  const [textBlocks, setTextBlocks] = useState<string[]>([]);
+  const [textTableId, setTextTableId] = useState('');
+  const [textRowNumber, setTextRowNumber] = useState('');
   
   // Voice selection
   const [selectedVoice, setSelectedVoice] = useState<string>('TX3LPaxmHKxFdv7VOQHJ'); // Liam voice by default
@@ -328,6 +334,47 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     });
   };
 
+  // Load text blocks from Google Sheets
+  const loadTextBlocks = async () => {
+    if (!textTableId.trim()) {
+      toast.error('Введите ID таблицы для текстовых блоков');
+      return;
+    }
+    
+    if (!textRowNumber.trim()) {
+      toast.error('Введите номер строки для текстовых блоков');
+      return;
+    }
+
+    const row = parseInt(textRowNumber);
+    if (isNaN(row) || row < 1 || row > 1000) {
+      toast.error('Номер строки должен быть от 1 до 1000');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('google-sheets', {
+        body: { 
+          spreadsheetId: textTableId,
+          rowNumber: row
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.texts && data.texts.length > 0) {
+        const limitedTexts = data.texts.slice(0, 10);
+        setTextBlocks(limitedTexts);
+        toast.success(`Загружено ${limitedTexts.length} текстовых блоков`);
+      } else {
+        toast.error('Текстовые блоки не найдены в таблице');
+      }
+    } catch (error: any) {
+      console.error('Error loading text blocks:', error);
+      toast.error(`Ошибка загрузки текстовых блоков: ${error.message}`);
+    }
+  };
+
   // Notify parent when data is ready
   const handleReady = () => {
     const readyChunks = chunks.filter(c => c.text.trim());
@@ -335,11 +382,55 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       toast.error('Добавьте хотя бы один текст');
       return;
     }
-    onReady(readyChunks);
+    onReady(readyChunks, textBlocks, useTextMode);
   };
 
   return (
     <div className="space-y-6">
+
+      {/* Text Mode Selection */}
+      <Card className="p-6 bg-video-surface border-video-primary/20">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-video-primary" />
+            <h3 className="text-lg font-semibold">Режим работы</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <input
+                type="radio"
+                id="audio-mode"
+                name="mode"
+                checked={!useTextMode}
+                onChange={() => setUseTextMode(false)}
+                className="rounded border-video-primary/30"
+              />
+              <label htmlFor="audio-mode" className="font-medium cursor-pointer">
+                Режим с озвучкой и субтитрами
+              </label>
+            </div>
+            <div className="flex items-center space-x-3">
+              <input
+                type="radio"
+                id="text-mode"
+                name="mode"
+                checked={useTextMode}
+                onChange={() => setUseTextMode(true)}
+                className="rounded border-video-primary/30"
+              />
+              <label htmlFor="text-mode" className="font-medium cursor-pointer">
+                Текстовый режим (блоки по 2 секунды без озвучки)
+              </label>
+            </div>
+            {useTextMode && (
+              <div className="text-sm text-muted-foreground pl-6">
+                В этом режиме каждый текстовый блок будет отображаться 2 секунды без озвучки и субтитров
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* Google Sheets Integration */}
       <Card className="p-6 bg-video-surface border-video-primary/20">
@@ -379,6 +470,59 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           </Button>
         </div>
       </Card>
+
+      {/* Text Blocks for Text Mode */}
+      {useTextMode && (
+        <Card className="p-6 bg-video-surface border-video-primary/20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-video-primary" />
+              <h3 className="text-lg font-semibold">Текстовые блоки (отдельная таблица)</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <Label>ID таблицы для текстовых блоков</Label>
+                <Input
+                  placeholder="ID таблицы для текстовых блоков..."
+                  value={textTableId}
+                  onChange={(e) => setTextTableId(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Номер строки (1-1000)</Label>
+                <Input
+                  placeholder="Номер строки..."
+                  value={textRowNumber}
+                  onChange={(e) => setTextRowNumber(e.target.value)}
+                  type="number"
+                  min="1"
+                  max="1000"
+                />
+              </div>
+            </div>
+            <Button 
+              onClick={loadTextBlocks}
+              className="bg-video-primary hover:bg-video-primary-hover w-full"
+            >
+              Загрузить текстовые блоки
+            </Button>
+            
+            {textBlocks.length > 0 && (
+              <div className="space-y-2">
+                <Label>Загруженные текстовые блоки:</Label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {textBlocks.map((text, index) => (
+                    <div key={index} className="p-2 bg-video-surface-elevated rounded text-sm">
+                      <span className="font-mono text-xs text-muted-foreground">Text-{index + 1}:</span> {text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Brand Replacement */}
       {texts.length > 0 && (
