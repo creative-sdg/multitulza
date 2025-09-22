@@ -28,10 +28,7 @@ interface AudioChunk {
 interface ChunkedAudioScenarioProps {
   onReady: (chunks: AudioChunk[], options?: { 
     textBlocks?: string[]; 
-    subtitleVisibility?: number; 
-    audioVolume?: number; 
-    enableSubtitles?: boolean;
-    selectedTemplate?: any;
+    customTextEnabled?: boolean;
   }) => void;
   onBrandChange: (brands: string[]) => void;
 }
@@ -45,12 +42,8 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const [isLoadingTexts, setIsLoadingTexts] = useState(false);
   
   // New state for controls
-  const [enableSubtitles, setEnableSubtitles] = useState(false);
   const [customTextEnabled, setCustomTextEnabled] = useState(false);
   const [customTexts, setCustomTexts] = useState<string[]>([]);
-  const [subtitleVisibility, setSubtitleVisibility] = useState(100);
-  const [audioVolume, setAudioVolume] = useState(100);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   
   // Voice selection
   const [selectedVoice, setSelectedVoice] = useState<string>('TX3LPaxmHKxFdv7VOQHJ'); // Liam voice by default
@@ -64,16 +57,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { uploadVideo, isUploading } = useVideoUpload();
 
-  // Get text emoji templates
-  const textEmojiTemplates = CREATOMATE_TEMPLATES.filter(t => 
-    t.size === 'text-emoji' || t.size === 'text-emoji-v2'
-  );
-
-  // Handle template change
-  const handleTemplateChange = (templateId: string) => {
-    const template = textEmojiTemplates.find(t => t.id === templateId);
-    setSelectedTemplate(template);
-  };
 
   // Load texts from Google Sheets
   const loadTexts = async () => {
@@ -364,17 +347,9 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       return;
     }
     
-    if (!selectedTemplate) {
-      toast.error('Выберите шаблон');
-      return;
-    }
-    
     onReady(readyChunks, {
       textBlocks: customTextEnabled ? customTexts : chunks.map(chunk => chunk.text || '').slice(0, 10),
-      subtitleVisibility,
-      audioVolume,
-      enableSubtitles,
-      selectedTemplate
+      customTextEnabled
     });
   };
 
@@ -419,58 +394,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         </div>
       </Card>
 
-      {/* Subtitles */}
-      {texts.length > 0 && (
-        <Card className="p-6 bg-video-surface border-video-primary/20">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="subtitles" 
-                checked={enableSubtitles} 
-                onCheckedChange={(checked) => setEnableSubtitles(checked === true)}
-              />
-              <Label htmlFor="subtitles" className="text-sm">Включить субтитры</Label>
-            </div>
-            
-            {/* Кастомный текст для 9x16 Text Emoji V2 */}
-            {selectedTemplate?.size === 'text-emoji-v2' && (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="custom-text" 
-                    checked={customTextEnabled} 
-                    onCheckedChange={(checked) => setCustomTextEnabled(checked === true)}
-                  />
-                  <Label htmlFor="custom-text" className="text-sm font-medium">Кастомный текст</Label>
-                </div>
-                
-                {customTextEnabled && (
-                  <div className="space-y-2 p-4 border rounded-lg">
-                    <Label className="text-sm text-muted-foreground">
-                      Редактировать текстовые блоки (максимум 10)
-                    </Label>
-                    {customTexts.slice(0, 10).map((text, index) => (
-                      <div key={index} className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Блок {index + 1}</Label>
-                        <Textarea
-                          value={text}
-                          onChange={(e) => {
-                            const newTexts = [...customTexts];
-                            newTexts[index] = e.target.value;
-                            setCustomTexts(newTexts);
-                          }}
-                          placeholder={`Текст для блока ${index + 1}`}
-                          className="min-h-[60px]"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
 
       {/* Brand Replacement */}
       {texts.length > 0 && (
@@ -770,52 +693,41 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         </Card>
       )}
 
-      {/* Template Selection - moved to end */}
+      {/* Кастомный текст */}
       {chunks.length > 0 && (
         <Card className="p-6 bg-video-surface border-video-primary/20">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Выбор шаблона</h3>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="custom-text" 
+                checked={customTextEnabled} 
+                onCheckedChange={(checked) => setCustomTextEnabled(checked === true)}
+              />
+              <Label htmlFor="custom-text" className="text-sm font-medium">Кастомный текст</Label>
             </div>
             
-            <div>
-              <Label>Размер видео</Label>
-              <Select value={selectedTemplate?.id || ''} onValueChange={handleTemplateChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Выберите размер видео" />
-                </SelectTrigger>
-                <SelectContent>
-                  {textEmojiTemplates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Настройки для 9x16 Text Emoji V2 */}
-              {selectedTemplate?.size === 'text-emoji-v2' && (
-                <div className="mt-4 p-4 border rounded-lg space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="subtitle-visibility" 
-                      checked={subtitleVisibility === 100}
-                      onCheckedChange={(checked) => setSubtitleVisibility(checked ? 100 : 0)}
+            {customTextEnabled && (
+              <div className="space-y-2 p-4 border rounded-lg">
+                <Label className="text-sm text-muted-foreground">
+                  Редактировать текстовые блоки (максимум 10)
+                </Label>
+                {customTexts.slice(0, 10).map((text, index) => (
+                  <div key={index} className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Блок {index + 1}</Label>
+                    <Textarea
+                      value={text}
+                      onChange={(e) => {
+                        const newTexts = [...customTexts];
+                        newTexts[index] = e.target.value;
+                        setCustomTexts(newTexts);
+                      }}
+                      placeholder={`Текст для блока ${index + 1}`}
+                      className="min-h-[60px]"
                     />
-                    <Label htmlFor="subtitle-visibility" className="text-sm">Видимость субтитров</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="audio-volume" 
-                      checked={audioVolume === 100}
-                      onCheckedChange={(checked) => setAudioVolume(checked ? 100 : 0)}
-                    />
-                    <Label htmlFor="audio-volume" className="text-sm">Громкость озвучки</Label>
-                  </div>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       )}

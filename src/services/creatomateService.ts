@@ -62,7 +62,16 @@ export class CreatomateService {
     return result;
   }
 
-  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { enableSubtitles?: boolean; customText?: string; chunkedAudio?: any[]; textBlocks?: string[]; subtitleVisibility?: number; audioVolume?: number }): Promise<string> {
+  async renderVideo(template: CreatomateTemplate, videoUrl: string, packshotUrl?: string, videoDuration?: number, options?: { 
+    enableSubtitles?: boolean; 
+    customText?: string; 
+    chunkedAudio?: any[]; 
+    textBlocks?: string[]; 
+    subtitleVisibility?: number; 
+    audioVolume?: number; 
+    customTextEnabled?: boolean;
+    selectedTemplate?: any;
+  }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
     if (packshotUrl) console.log(`🎯 Packshot URL: ${packshotUrl}`);
@@ -203,7 +212,10 @@ export class CreatomateService {
         
         for (let i = 1; i <= 10; i++) {
           modifications[`Audio_${i}.volume`] = audioVol;
+          modifications[`Audio_${i}.time`] = i === 1 ? null : null;
           modifications[`element_subtitles_${i}.opacity`] = subtitleOp;
+          modifications[`element_subtitles_${i}.time`] = i === 1 ? null : null;
+          modifications[`element_subtitles_${i}.transcript_source`] = `Audio_${i}`;
         }
         console.log(`🔊 Set audio volume: ${audioVol}, subtitle opacity: ${subtitleOp}`);
         
@@ -219,7 +231,25 @@ export class CreatomateService {
           });
         }
         
-        modifications['duration'] = null;
+        // Calculate duration based on audio vs text mode
+        let calculatedDuration = 0;
+        const estimatedPackshotDuration = 3;
+        
+        if (audioVol === '0%') {
+          // Text mode - use 2 seconds per text block
+          const textBlockCount = options.chunkedAudio ? options.chunkedAudio.length : 0;
+          calculatedDuration = textBlockCount * 2 + estimatedPackshotDuration;
+          console.log(`📝 Text mode: ${textBlockCount} blocks × 2s + ${estimatedPackshotDuration}s packshot = ${calculatedDuration}s`);
+        } else {
+          // Audio mode - use audio duration
+          calculatedDuration = totalAudioDuration + estimatedPackshotDuration;
+          console.log(`🔊 Audio mode: ${totalAudioDuration}s audio + ${estimatedPackshotDuration}s packshot = ${calculatedDuration}s`);
+        }
+        
+        modifications['duration'] = calculatedDuration;
+        modifications['Packshot.time'] = calculatedDuration - estimatedPackshotDuration;
+        modifications['Packshot.duration'] = 'media';
+        console.log(`🎯 Set total video duration: ${calculatedDuration}s, packshot starts at: ${calculatedDuration - estimatedPackshotDuration}s`);
       } else {
         // Standard chunked audio processing
         // Set total video duration to be exactly audio duration + packshot duration (3s default)

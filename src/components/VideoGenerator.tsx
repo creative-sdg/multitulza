@@ -41,7 +41,12 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
   // Chunked audio scenario workflow
   const [chunkedAudioData, setChunkedAudioData] = useState<any[]>([]);
   const [textBlocks, setTextBlocks] = useState<string[]>([]);
-  const [useTextMode, setUseTextMode] = useState(false);
+  const [customTextEnabled, setCustomTextEnabled] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  
+  // Template specific options
+  const [subtitleVisibility, setSubtitleVisibility] = useState(100);
+  const [audioVolume, setAudioVolume] = useState(100);
   
   // Always enable subtitles for chunked audio scenario
   const enableSubtitles = true;
@@ -77,17 +82,11 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
 
   const handleChunkedAudioReady = (chunks: any[], options?: { 
     textBlocks?: string[]; 
-    subtitleVisibility?: number; 
-    audioVolume?: number; 
-    enableSubtitles?: boolean;
-    selectedTemplate?: any;
+    customTextEnabled?: boolean;
   }) => {
     setChunkedAudioData(chunks);
     if (options?.textBlocks) setTextBlocks(options.textBlocks);
-    if (options?.selectedTemplate) {
-      // Store template info for later use
-      console.log('Selected template:', options.selectedTemplate);
-    }
+    if (options?.customTextEnabled !== undefined) setCustomTextEnabled(options.customTextEnabled);
   };
 
 
@@ -314,7 +313,10 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           ...options,
           chunkedAudio: chunkedAudioData,
           textBlocks: textBlocks,
-          useTextMode: useTextMode
+          customTextEnabled: customTextEnabled,
+          subtitleVisibility: subtitleVisibility,
+          audioVolume: audioVolume,
+          selectedTemplate: selectedTemplate
         };
         
         renderId = await service.renderVideo(template, '', packshot, 30, renderOptions);
@@ -572,18 +574,51 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                          return ['vertical', 'horizontal', 'square'].includes(template.size);
                        })
                      .map(template => (
-                     <label key={template.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                       <input
-                         type="checkbox"
-                         checked={selectedSizes.includes(template.size)}
-                        onChange={() => handleSizeToggle(template.size)}
-                        className="rounded border-video-primary/30"
-                      />
-                      <div>
-                        <p className="font-medium">{template.name}</p>
-                        <p className="text-sm text-muted-foreground">{template.dimensions}</p>
-                      </div>
-                    </label>
+                     <div key={template.id}>
+                       <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                         <input
+                           type="checkbox"
+                           checked={selectedSizes.includes(template.size)}
+                          onChange={() => {
+                            handleSizeToggle(template.size);
+                            if (template.size === 'text-emoji-v2') {
+                              setSelectedTemplate(template);
+                            }
+                          }}
+                          className="rounded border-video-primary/30"
+                        />
+                        <div>
+                          <p className="font-medium">{template.name}</p>
+                          <p className="text-sm text-muted-foreground">{template.dimensions}</p>
+                        </div>
+                      </label>
+                      
+                      {/* Настройки для 9x16 Text Emoji V2 */}
+                      {template.size === 'text-emoji-v2' && selectedSizes.includes(template.size) && (
+                        <div className="mt-2 ml-8 p-4 border rounded-lg space-y-4 bg-video-surface">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="subtitle-visibility"
+                              checked={subtitleVisibility === 100}
+                              onChange={(e) => setSubtitleVisibility(e.target.checked ? 100 : 0)}
+                              className="rounded border-video-primary/30"
+                            />
+                            <Label htmlFor="subtitle-visibility" className="text-sm">Видимость субтитров</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="audio-volume"
+                              checked={audioVolume === 100}
+                              onChange={(e) => setAudioVolume(e.target.checked ? 100 : 0)}
+                              className="rounded border-video-primary/30"
+                            />
+                            <Label htmlFor="audio-volume" className="text-sm">Громкость озвучки</Label>
+                          </div>
+                        </div>
+                      )}
+                     </div>
                   ))}
                 </div>
               </div>
