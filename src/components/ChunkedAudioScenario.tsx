@@ -380,54 +380,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   return (
     <div className="space-y-6">
-      {/* Template Selection */}
-      <Card className="p-6 bg-video-surface border-video-primary/20">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-video-primary" />
-            <h3 className="text-lg font-semibold">Выбор шаблона</h3>
-          </div>
-          
-          <div>
-            <Label>Размер видео</Label>
-            <Select value={selectedTemplate?.id || ''} onValueChange={handleTemplateChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Выберите размер видео" />
-              </SelectTrigger>
-              <SelectContent>
-                {textEmojiTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* Настройки для 9x16 Text Emoji V2 */}
-            {selectedTemplate?.size === 'text-emoji-v2' && (
-              <div className="mt-4 p-4 border rounded-lg space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="subtitle-visibility" 
-                    checked={subtitleVisibility === 100}
-                    onCheckedChange={(checked) => setSubtitleVisibility(checked ? 100 : 0)}
-                  />
-                  <Label htmlFor="subtitle-visibility" className="text-sm">Видимость субтитров</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="audio-volume" 
-                    checked={audioVolume === 100}
-                    onCheckedChange={(checked) => setAudioVolume(checked ? 100 : 0)}
-                  />
-                  <Label htmlFor="audio-volume" className="text-sm">Громкость озвучки</Label>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-
       {/* Google Sheets Integration */}
       <Card className="p-6 bg-video-surface border-video-primary/20">
         <div className="space-y-4">
@@ -814,6 +766,56 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                 </Button>
               </div>
             )}
+          </div>
+        </Card>
+      )}
+
+      {/* Template Selection - moved to end */}
+      {chunks.length > 0 && (
+        <Card className="p-6 bg-video-surface border-video-primary/20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-video-primary" />
+              <h3 className="text-lg font-semibold">Выбор шаблона</h3>
+            </div>
+            
+            <div>
+              <Label>Размер видео</Label>
+              <Select value={selectedTemplate?.id || ''} onValueChange={handleTemplateChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Выберите размер видео" />
+                </SelectTrigger>
+                <SelectContent>
+                  {textEmojiTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Настройки для 9x16 Text Emoji V2 */}
+              {selectedTemplate?.size === 'text-emoji-v2' && (
+                <div className="mt-4 p-4 border rounded-lg space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="subtitle-visibility" 
+                      checked={subtitleVisibility === 100}
+                      onCheckedChange={(checked) => setSubtitleVisibility(checked ? 100 : 0)}
+                    />
+                    <Label htmlFor="subtitle-visibility" className="text-sm">Видимость субтитров</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="audio-volume" 
+                      checked={audioVolume === 100}
+                      onCheckedChange={(checked) => setAudioVolume(checked ? 100 : 0)}
+                    />
+                    <Label htmlFor="audio-volume" className="text-sm">Громкость озвучки</Label>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       )}

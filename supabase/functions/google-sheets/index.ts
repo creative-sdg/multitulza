@@ -33,11 +33,13 @@ serve(async (req) => {
       
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
       
+      console.log(`🔍 Fetching data from: ${url}`);
       const response = await fetch(url);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Google Sheets API error: ${errorData.error?.message || response.statusText}`);
+        const errorText = await response.text();
+        console.error('❌ Google Sheets API response:', response.status, errorText);
+        throw new Error(`Google Sheets API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
