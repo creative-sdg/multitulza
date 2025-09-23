@@ -231,8 +231,17 @@ export class CreatomateService {
             if (index < 10) {
               modifications[`Text-${index + 1}.text`] = text;
               modifications[`Text-${index + 1}.time`] = index === 0 ? 0 : null;
-              modifications[`Text-${index + 1}.duration`] = null;
-              console.log(`📝 Set Text-${index + 1}: ${text}`);
+              
+              // Set text duration based on audio mode
+              if (audioVol === '0%') {
+                // No audio mode - use 2 seconds per text block
+                modifications[`Text-${index + 1}.duration`] = 2;
+              } else {
+                // Audio mode - use default duration
+                modifications[`Text-${index + 1}.duration`] = null;
+              }
+              
+              console.log(`📝 Set Text-${index + 1}: ${text} (duration: ${audioVol === '0%' ? '2s' : 'auto'})`);
             }
           });
         }
