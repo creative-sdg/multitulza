@@ -71,6 +71,7 @@ export class CreatomateService {
     audioVolume?: number; 
     customTextEnabled?: boolean;
     selectedTemplate?: any;
+    musicUrl?: string;
   }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
@@ -264,6 +265,14 @@ export class CreatomateService {
         modifications['duration'] = calculatedDuration;
         modifications['Packshot.time'] = calculatedDuration - estimatedPackshotDuration;
         modifications['Packshot.duration'] = 'media';
+        
+        // Add music if provided
+        if (options.musicUrl) {
+          modifications['Song'] = options.musicUrl;
+          modifications['Song.duration'] = 'media';
+          console.log(`🎵 Set music: ${options.musicUrl}`);
+        }
+        
         console.log(`🎯 Set total video duration: ${calculatedDuration}s, packshot starts at: ${calculatedDuration - estimatedPackshotDuration}s`);
       } else {
         // Standard chunked audio processing

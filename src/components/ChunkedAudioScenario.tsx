@@ -29,6 +29,7 @@ interface ChunkedAudioScenarioProps {
   onReady: (chunks: AudioChunk[], options?: { 
     textBlocks?: string[]; 
     customTextEnabled?: boolean;
+    musicUrl?: string;
   }) => void;
   onBrandChange: (brands: string[]) => void;
 }
@@ -44,6 +45,10 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   // New state for controls
   const [customTextEnabled, setCustomTextEnabled] = useState(false);
   const [customTexts, setCustomTexts] = useState<string[]>([]);
+  
+  // Music file state
+  const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [musicUrl, setMusicUrl] = useState<string>('');
   
   // Voice selection
   const [selectedVoice, setSelectedVoice] = useState<string>('TX3LPaxmHKxFdv7VOQHJ'); // Liam voice by default
@@ -339,6 +344,36 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     });
   };
 
+  // Handle music file upload
+  const handleMusicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setMusicFile(file);
+      
+      // Upload to Supabase storage
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `music-${Date.now()}.${fileExt}`;
+        
+        const { data, error } = await supabase.storage
+          .from('videos')
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('videos')
+          .getPublicUrl(fileName);
+
+        setMusicUrl(publicUrl);
+        toast.success('Музыка загружена успешно');
+      } catch (error: any) {
+        console.error('Error uploading music:', error);
+        toast.error(`Ошибка загрузки музыки: ${error.message}`);
+      }
+    }
+  };
+
   // Notify parent when data is ready
   const handleReady = () => {
     const readyChunks = chunks.filter(c => c.text.trim());
@@ -347,9 +382,19 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       return;
     }
     
+    // Prepare text blocks, filling empty slots with spaces for chunks 8-10
+    const textBlocks = customTextEnabled ? customTexts : chunks.map(chunk => chunk.text || '').slice(0, 10);
+    const paddedTextBlocks = [...textBlocks];
+    
+    // Fill remaining slots (8-10) with spaces if we have fewer than 10 text blocks
+    while (paddedTextBlocks.length < 10) {
+      paddedTextBlocks.push(' ');
+    }
+    
     onReady(readyChunks, {
-      textBlocks: customTextEnabled ? customTexts : chunks.map(chunk => chunk.text || '').slice(0, 10),
-      customTextEnabled
+      textBlocks: paddedTextBlocks,
+      customTextEnabled,
+      musicUrl
     });
   };
 
@@ -514,6 +559,43 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Music Upload */}
+      {texts.length > 0 && (
+        <Card className="p-6 bg-video-surface border-video-primary/20">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Volume2 className="h-5 w-5 text-video-primary" />
+              <h3 className="text-lg font-semibold">Загрузка музыки</h3>
+            </div>
+            
+            <div>
+              <Label>Выберите музыкальный файл</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleMusicUpload}
+                  className="hidden"
+                  id="music-upload"
+                />
+                <label
+                  htmlFor="music-upload"
+                  className="flex items-center justify-center gap-2 px-4 py-2 border border-video-primary/30 rounded-md cursor-pointer hover:bg-video-primary/10 w-full text-sm"
+                >
+                  <Upload className="h-4 w-4" />
+                  {musicFile ? `Файл: ${musicFile.name}` : 'Загрузить музыку'}
+                </label>
+              </div>
+              {musicFile && (
+                <div className="mt-2 p-2 bg-video-surface-elevated rounded text-xs text-muted-foreground">
+                  Музыка загружена: {musicFile.name}
+                </div>
+              )}
             </div>
           </div>
         </Card>
