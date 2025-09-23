@@ -201,14 +201,20 @@ export class CreatomateService {
         console.log(`🎯 Set Packshot start time: ${totalVideoDuration}s for text-emoji template`);
         
       } else if (template.size === 'text-emoji-v2') {
-        // For text-emoji-v2 template, use media duration for videos
-        for (let i = 1; i <= 10; i++) {
-          modifications[`Main_Video_${i}.duration`] = 'media';
-        }
-        
         // Set audio volume and subtitle visibility based on options
         const audioVol = options.audioVolume !== undefined ? `${options.audioVolume}%` : '100%';
         const subtitleOp = options.subtitleVisibility !== undefined ? `${options.subtitleVisibility}%` : '100%';
+        
+        // Set video duration based on audio mode
+        for (let i = 1; i <= 10; i++) {
+          if (audioVol === '0%') {
+            // No audio mode - use 2 seconds per video chunk
+            modifications[`Main_Video_${i}.duration`] = 2;
+          } else {
+            // Audio mode - use media duration but adjust based on audio
+            modifications[`Main_Video_${i}.duration`] = 'media';
+          }
+        }
         
         for (let i = 1; i <= 10; i++) {
           modifications[`Audio_${i}.volume`] = audioVol;
