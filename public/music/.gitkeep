@@ -1,0 +1,3 @@
+# Place your music files here
+# Example: track1.mp3, track2.mp3
+# Update AVAILABLE_MUSIC in src/services/creatomateService.ts with your track names

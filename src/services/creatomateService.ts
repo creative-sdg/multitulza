@@ -420,32 +420,32 @@ export const AVAILABLE_BRANDS = [
     id: 'datemyage', 
     name: 'DateMyAge',
     packshots: {
-      vertical: '',
-      square: '',
-      horizontal: '',
-      test: '',
-      chunked: '',
-      'chunked-v2': '',
-      'chunked-square': '',
-      'chunked-horizontal': '',
-      'text-emoji': '',
-      'text-emoji-v2': ''
+      vertical: '/packshots/DateMyAge_packshot_9x16.mp4',
+      square: '/packshots/DateMyAge_packshot_1x1.mp4',
+      horizontal: '/packshots/DateMyAge_packshot_16x9.mp4',
+      test: '/packshots/DateMyAge_packshot_9x16.mp4',
+      chunked: '/packshots/DateMyAge_packshot_9x16.mp4',
+      'chunked-v2': '/packshots/DateMyAge_packshot_9x16.mp4',
+      'chunked-square': '/packshots/DateMyAge_packshot_1x1.mp4',
+      'chunked-horizontal': '/packshots/DateMyAge_packshot_16x9.mp4',
+      'text-emoji': '/packshots/DateMyAge_packshot_9x16.mp4',
+      'text-emoji-v2': '/packshots/DateMyAge_packshot_9x16.mp4'
     }
   },
   { 
     id: 'dating', 
     name: 'Dating.Com',
     packshots: {
-      vertical: '',
-      square: '',
-      horizontal: '',
-      test: '',
-      chunked: '',
-      'chunked-v2': '',
-      'chunked-square': '',
-      'chunked-horizontal': '',
-      'text-emoji': '',
-      'text-emoji-v2': ''
+      vertical: '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      square: '/packshots/dc_packshot_simple_languages_1080x1080.mp4',
+      horizontal: '/packshots/dc_packshot_simple_languages_1920x1080.mp4',
+      test: '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      chunked: '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      'chunked-v2': '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      'chunked-square': '/packshots/dc_packshot_simple_languages_1080x1080.mp4',
+      'chunked-horizontal': '/packshots/dc_packshot_simple_languages_1920x1080.mp4',
+      'text-emoji': '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
+      'text-emoji-v2': '/packshots/dc_packshot_simple_languages_1080x1920.mp4'
     }
   },
   { 
@@ -480,6 +480,26 @@ export const AVAILABLE_BRANDS = [
       'text-emoji-v2': ''
     }
   }
+];
+
+// Available music tracks
+export const AVAILABLE_MUSIC = [
+  {
+    id: 'track1',
+    name: 'Track 1',
+    url: '/music/track1.mp3'
+  },
+  {
+    id: 'track2',
+    name: 'Track 2',
+    url: '/music/track2.mp3'
+  },
+  {
+    id: 'track3',
+    name: 'Track 3',
+    url: '/music/track3.mp3'
+  }
+  // Добавь свои треки в public/music/ и обнови здесь
 ];
 
 // Template configurations with real Creatomate template IDs

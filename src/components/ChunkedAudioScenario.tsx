@@ -7,13 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Play, Pause, Upload, Trash2, FileText, Volume2, RefreshCw } from 'lucide-react';
+import { Play, Pause, Upload, Trash2, FileText, Volume2, RefreshCw, Music } from 'lucide-react';
 import { toast } from 'sonner';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import { AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
-import { AVAILABLE_BRANDS, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
-import { PackshotLibrary } from './PackshotLibrary';
-import { PackshotFile } from '@/hooks/usePackshotLibrary';
+import { AVAILABLE_BRANDS, AVAILABLE_MUSIC, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
 
 interface AudioChunk {
   id: number;
@@ -58,8 +56,8 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [brandReplacements, setBrandReplacements] = useState<{[key: string]: string}>({});
   
-  // Packshot selection per brand
-  const [selectedPackshots, setSelectedPackshots] = useState<{[brandId: string]: PackshotFile}>({});
+  // Music selection
+  const [selectedMusicId, setSelectedMusicId] = useState<string>('');
   
   // Audio controls
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
@@ -345,24 +343,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     });
   };
 
-  // Handle music file upload
-  const handleMusicUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setMusicFile(file);
-      
-      // Create local URL for the file
-      try {
-        const objectUrl = URL.createObjectURL(file);
-        setMusicUrl(objectUrl);
-        toast.success('Музыка загружена локально');
-      } catch (error: any) {
-        console.error('Error uploading music:', error);
-        toast.error(`Ошибка загрузки музыки: ${error.message}`);
-      }
-    }
-  };
-
   // Notify parent when data is ready
   const handleReady = () => {
     const readyChunks = chunks.filter(c => c.text.trim());
@@ -370,6 +350,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       toast.error('Добавьте хотя бы один текст');
       return;
     }
+    
+    // Get selected music URL
+    const musicUrl = selectedMusicId 
+      ? AVAILABLE_MUSIC.find(m => m.id === selectedMusicId)?.url 
+      : '';
     
     // Prepare text blocks, filling empty slots with spaces for chunks 8-10
     const textBlocks = customTextEnabled ? customTexts : chunks.map(chunk => chunk.text || '').slice(0, 10);
@@ -429,27 +414,13 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       </Card>
 
 
-      {/* Packshot Library */}
-      <PackshotLibrary 
-        onSelect={(packshot) => {
-          // Показываем выбранный packshot как последний выбранный
-          const lastBrandId = selectedBrands[selectedBrands.length - 1] || 'default';
-          setSelectedPackshots(prev => ({
-            ...prev,
-            [lastBrandId]: packshot
-          }));
-          toast.success(`Packshot выбран для бренда ${AVAILABLE_BRANDS.find(b => b.id === lastBrandId)?.name || lastBrandId}`);
-        }}
-        selectedPackshotUrl={selectedBrands[selectedBrands.length - 1] ? selectedPackshots[selectedBrands[selectedBrands.length - 1]]?.url : undefined}
-      />
-
       {/* Brand Replacement */}
       {texts.length > 0 && (
         <Card className="p-6 bg-video-surface border-video-primary/20">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <RefreshCw className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Быстрая замена брендов и выбор Packshots</h3>
+              <h3 className="text-lg font-semibold">Быстрая замена брендов</h3>
             </div>
             
             <div className="space-y-3">
@@ -497,50 +468,24 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                           {AVAILABLE_BRANDS.map(brand => {
                             const isSelected = replacement === brand.name;
-                            const hasPackshot = selectedPackshots[brand.id];
                             
                             return (
                               <label 
                                 key={brand.id} 
-                                className={`flex flex-col space-y-2 cursor-pointer p-3 rounded-lg transition-all ${
+                                className={`flex items-center space-x-2 cursor-pointer p-3 rounded-lg transition-all ${
                                   isSelected 
                                     ? 'bg-video-primary/20 border-2 border-video-primary' 
                                     : 'bg-video-surface-elevated border-2 border-transparent hover:border-video-primary/50'
                                 }`}
                               >
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="radio"
-                                    name={`replacement-${index}`}
-                                    checked={isSelected}
-                                    onChange={() => handleBrandToggle(brand.id, original)}
-                                    className="rounded border-video-primary/30"
-                                  />
-                                  <span className="text-sm font-medium">{brand.name}</span>
-                                </div>
-                                {hasPackshot && (
-                                  <div className="ml-6">
-                                    <div className="aspect-video rounded overflow-hidden border border-video-primary/30">
-                                      {hasPackshot.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                        <img 
-                                          src={hasPackshot.url} 
-                                          alt={brand.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <video 
-                                          src={hasPackshot.url}
-                                          className="w-full h-full object-cover"
-                                          muted
-                                          playsInline
-                                        />
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-1 truncate">
-                                      {hasPackshot.name}
-                                    </p>
-                                  </div>
-                                )}
+                                <input
+                                  type="radio"
+                                  name={`replacement-${index}`}
+                                  checked={isSelected}
+                                  onChange={() => handleBrandToggle(brand.id, original)}
+                                  className="rounded border-video-primary/30"
+                                />
+                                <span className="text-sm font-medium">{brand.name}</span>
                               </label>
                             );
                           })}
@@ -604,38 +549,37 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         </Card>
       )}
 
-      {/* Music Upload */}
+      {/* Music Selection */}
       {texts.length > 0 && (
         <Card className="p-6 bg-video-surface border-video-primary/20">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Volume2 className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Загрузка музыки</h3>
+              <Music className="h-5 w-5 text-video-primary" />
+              <h3 className="text-lg font-semibold">Выбор музыки</h3>
             </div>
             
             <div>
-              <Label>Выберите музыкальный файл</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleMusicUpload}
-                  className="hidden"
-                  id="music-upload"
-                />
-                <label
-                  htmlFor="music-upload"
-                  className="flex items-center justify-center gap-2 px-4 py-2 border border-video-primary/30 rounded-md cursor-pointer hover:bg-video-primary/10 w-full text-sm"
-                >
-                  <Upload className="h-4 w-4" />
-                  {musicFile ? `Файл: ${musicFile.name}` : 'Загрузить музыку'}
-                </label>
-              </div>
-              {musicFile && (
+              <Label>Выберите музыкальный трек</Label>
+              <Select value={selectedMusicId} onValueChange={setSelectedMusicId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Выберите трек..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABLE_MUSIC.map(track => (
+                    <SelectItem key={track.id} value={track.id}>
+                      {track.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedMusicId && (
                 <div className="mt-2 p-2 bg-video-surface-elevated rounded text-xs text-muted-foreground">
-                  Музыка загружена: {musicFile.name}
+                  Выбран трек: {AVAILABLE_MUSIC.find(m => m.id === selectedMusicId)?.name}
                 </div>
               )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Треки хранятся в public/music/. Добавьте свои файлы и обновите AVAILABLE_MUSIC в creatomateService.ts
+              </p>
             </div>
           </div>
         </Card>
