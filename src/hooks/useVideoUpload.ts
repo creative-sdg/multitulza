@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UploadedVideo {
   file: File;
   url: string;
   path: string;
-  duration?: number; // Duration in seconds with decimal precision
+  duration?: number;
 }
 
 export const useVideoUpload = () => {
@@ -40,26 +41,51 @@ export const useVideoUpload = () => {
     setUploadProgress(0);
 
     try {
-      // Create object URL for the file
-      const objectUrl = URL.createObjectURL(file);
-      console.log('📤 Creating local URL for video:', file.name);
-
-      // Get video duration
+      console.log('📤 Uploading video to storage:', file.name);
+      
+      // Get video duration first
       const duration = await getVideoDuration(file);
+      setUploadProgress(30);
 
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `videos/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Storage upload error:', error);
+        throw error;
+      }
+
+      setUploadProgress(70);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath);
+
+      console.log('✅ Video uploaded to storage:', publicUrl);
       setUploadProgress(100);
-      toast.success('Видео успешно загружено!');
+      toast.success('Видео загружено в облако!');
 
       return {
         file,
-        url: objectUrl,
-        path: file.name,
+        url: publicUrl,
+        path: filePath,
         duration
       };
 
     } catch (error) {
-      console.error('❌ Unexpected upload error:', error);
-      toast.error('Неожиданная ошибка при загрузке видео');
+      console.error('❌ Upload error:', error);
+      toast.error('Ошибка при загрузке видео');
       return null;
     } finally {
       setIsUploading(false);
