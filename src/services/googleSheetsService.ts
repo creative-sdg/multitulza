@@ -16,6 +16,9 @@ export interface TextBlock {
   bodyLine7?: string;
   bodyLine8?: string;
   bodyLine9?: string;
+  bodyLine10?: string;
+  bodyLine11?: string;
+  [key: string]: string | undefined;
 }
 
 export interface GoogleSheetsService {

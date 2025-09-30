@@ -128,7 +128,17 @@ serve(async (req) => {
     }
     
     const row = data.values[0];
-    const textBlock = {
+    
+    // Read cells H-R (indices 7-17) and skip empty ones
+    const bodyCells = [];
+    for (let i = 7; i <= 17; i++) {
+      const cellValue = row[i] || '';
+      if (cellValue.trim()) {
+        bodyCells.push(cellValue);
+      }
+    }
+    
+    const textBlock: any = {
       id: `row-${rowNumber}`,
       hook: row[0] || '',
       problem: row[1] || '',
@@ -137,16 +147,12 @@ serve(async (req) => {
       offer: row[4] || '',
       urgency: row[5] || '',
       cta: row[6] || '',
-      bodyLine1: row[7] || '',
-      bodyLine2: row[8] || '',
-      bodyLine3: row[9] || '',
-      bodyLine4: row[10] || '',
-      bodyLine5: row[11] || '',
-      bodyLine6: row[12] || '',
-      bodyLine7: row[13] || '',
-      bodyLine8: row[14] || '',
-      bodyLine9: row[15] || '',
     };
+    
+    // Add only non-empty body lines
+    bodyCells.forEach((value, index) => {
+      textBlock[`bodyLine${index + 1}`] = value;
+    });
     
     return new Response(
       JSON.stringify({ textBlock }),
