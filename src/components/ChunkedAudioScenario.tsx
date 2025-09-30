@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import { AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
 import { AVAILABLE_BRANDS, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
+import { PackshotLibrary } from './PackshotLibrary';
+import { PackshotFile } from '@/hooks/usePackshotLibrary';
 
 interface AudioChunk {
   id: number;
@@ -55,6 +57,9 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   // Brand replacement functionality
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [brandReplacements, setBrandReplacements] = useState<{[key: string]: string}>({});
+  
+  // Packshot selection per brand
+  const [selectedPackshots, setSelectedPackshots] = useState<{[brandId: string]: PackshotFile}>({});
   
   // Audio controls
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
@@ -424,13 +429,27 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       </Card>
 
 
+      {/* Packshot Library */}
+      <PackshotLibrary 
+        onSelect={(packshot) => {
+          // Показываем выбранный packshot как последний выбранный
+          const lastBrandId = selectedBrands[selectedBrands.length - 1] || 'default';
+          setSelectedPackshots(prev => ({
+            ...prev,
+            [lastBrandId]: packshot
+          }));
+          toast.success(`Packshot выбран для бренда ${AVAILABLE_BRANDS.find(b => b.id === lastBrandId)?.name || lastBrandId}`);
+        }}
+        selectedPackshotUrl={selectedBrands[selectedBrands.length - 1] ? selectedPackshots[selectedBrands[selectedBrands.length - 1]]?.url : undefined}
+      />
+
       {/* Brand Replacement */}
       {texts.length > 0 && (
         <Card className="p-6 bg-video-surface border-video-primary/20">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <RefreshCw className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Быстрая замена брендов</h3>
+              <h3 className="text-lg font-semibold">Быстрая замена брендов и выбор Packshots</h3>
             </div>
             
             <div className="space-y-3">
@@ -476,18 +495,55 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                       </div>
                       <div className="ml-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {AVAILABLE_BRANDS.map(brand => (
-                            <label key={brand.id} className="flex items-center space-x-2 cursor-pointer p-2 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                              <input
-                                type="radio"
-                                name={`replacement-${index}`}
-                                checked={replacement === brand.name}
-                                onChange={() => handleBrandToggle(brand.id, original)}
-                                className="rounded border-video-primary/30"
-                              />
-                              <span className="text-sm font-medium">{brand.name}</span>
-                            </label>
-                          ))}
+                          {AVAILABLE_BRANDS.map(brand => {
+                            const isSelected = replacement === brand.name;
+                            const hasPackshot = selectedPackshots[brand.id];
+                            
+                            return (
+                              <label 
+                                key={brand.id} 
+                                className={`flex flex-col space-y-2 cursor-pointer p-3 rounded-lg transition-all ${
+                                  isSelected 
+                                    ? 'bg-video-primary/20 border-2 border-video-primary' 
+                                    : 'bg-video-surface-elevated border-2 border-transparent hover:border-video-primary/50'
+                                }`}
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="radio"
+                                    name={`replacement-${index}`}
+                                    checked={isSelected}
+                                    onChange={() => handleBrandToggle(brand.id, original)}
+                                    className="rounded border-video-primary/30"
+                                  />
+                                  <span className="text-sm font-medium">{brand.name}</span>
+                                </div>
+                                {hasPackshot && (
+                                  <div className="ml-6">
+                                    <div className="aspect-video rounded overflow-hidden border border-video-primary/30">
+                                      {hasPackshot.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                        <img 
+                                          src={hasPackshot.url} 
+                                          alt={brand.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <video 
+                                          src={hasPackshot.url}
+                                          className="w-full h-full object-cover"
+                                          muted
+                                          playsInline
+                                        />
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                                      {hasPackshot.name}
+                                    </p>
+                                  </div>
+                                )}
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
