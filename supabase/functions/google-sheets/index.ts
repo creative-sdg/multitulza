@@ -29,7 +29,20 @@ serve(async (req) => {
       );
     }
 
-    const credentials = JSON.parse(serviceAccountKey);
+    console.log('Service account key first 50 chars:', serviceAccountKey.substring(0, 50));
+    console.log('Service account key length:', serviceAccountKey.length);
+    
+    let credentials;
+    try {
+      credentials = JSON.parse(serviceAccountKey);
+    } catch (parseError) {
+      console.error('Failed to parse service account key:', parseError);
+      console.error('Key starts with:', serviceAccountKey.substring(0, 100));
+      return new Response(
+        JSON.stringify({ error: 'Invalid service account key format' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Get OAuth token
     const jwtHeader = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
