@@ -485,21 +485,55 @@ export const AVAILABLE_BRANDS = [
 // Available music tracks
 export const AVAILABLE_MUSIC = [
   {
-    id: 'track1',
-    name: 'Track 1',
-    url: '/music/track1.mp3'
+    id: 'lucas_v2',
+    name: 'Lucas V2',
+    url: '/music/lucas_v2.wav'
   },
   {
-    id: 'track2',
-    name: 'Track 2',
-    url: '/music/track2.mp3'
+    id: 'povdate_esp',
+    name: 'POV Date ESP',
+    url: '/music/povdate_esp.wav'
   },
   {
-    id: 'track3',
-    name: 'Track 3',
-    url: '/music/track3.mp3'
+    id: 'nelson_v1',
+    name: 'Nelson V1',
+    url: '/music/nelson_v1.wav'
+  },
+  {
+    id: 'variations_v1',
+    name: 'Variations V1',
+    url: '/music/variations_v1.wav'
+  },
+  {
+    id: 'variations_v2',
+    name: 'Variations V2',
+    url: '/music/variations_v2.wav'
+  },
+  {
+    id: 'variations_v3',
+    name: 'Variations V3',
+    url: '/music/variations_v3.wav'
+  },
+  {
+    id: 'variations_v4',
+    name: 'Variations V4',
+    url: '/music/variations_v4.wav'
+  },
+  {
+    id: 'benjamin',
+    name: 'Benjamin',
+    url: '/music/benjamin.wav'
+  },
+  {
+    id: 'asher_v2',
+    name: 'Asher V2',
+    url: '/music/asher_v2.wav'
+  },
+  {
+    id: 'felix_v2',
+    name: 'Felix V2',
+    url: '/music/felix_v2.wav'
   }
-  // Добавь свои треки в public/music/ и обнови здесь
 ];
 
 // Template configurations with real Creatomate template IDs
