@@ -23,15 +23,15 @@ export interface GoogleSheetsService {
 }
 
 export class GoogleSheetsServiceImpl implements GoogleSheetsService {
-  private readonly spreadsheetId = '13fHWy8hTrtLK29xzHS-zr6sAJDmVRQzmQL8BMMpczj4';
-  private readonly supabaseUrl = 'https://kyasmnsbddufkyhcdroj.supabase.co';
+  private readonly spreadsheetId = '18fQlTTutBAtuS3NUCEGGmjou5wfw0nj_X3J8Kv88eMM';
   
   async getTextBlock(rowNumber: number): Promise<TextBlock | null> {
     try {
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/google-sheets`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
           spreadsheetId: this.spreadsheetId,

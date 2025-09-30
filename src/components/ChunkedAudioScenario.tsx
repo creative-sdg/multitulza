@@ -67,11 +67,6 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   // Load texts from Google Sheets
   const loadTexts = async () => {
-    if (!tableId.trim()) {
-      toast.error('Введите ID таблицы');
-      return;
-    }
-    
     if (!rowNumber.trim()) {
       toast.error('Введите номер строки');
       return;
@@ -85,11 +80,36 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
     setIsLoadingTexts(true);
     try {
-      toast.error('Функция Google Sheets недоступна. Подключите Supabase для использования этой функции.');
-      return;
+      const { googleSheetsService } = await import('@/services/googleSheetsService');
+      const textBlock = await googleSheetsService.getTextBlock(row);
       
-      // Placeholder code - will work after Supabase reconnection
-      const data = { texts: [] };
+      if (!textBlock) {
+        toast.error('Строка не найдена в таблице');
+        setIsLoadingTexts(false);
+        return;
+      }
+      
+      // Collect all non-empty text fields
+      const collectedTexts = [
+        textBlock.hook,
+        textBlock.problem,
+        textBlock.solution,
+        textBlock.proof,
+        textBlock.offer,
+        textBlock.urgency,
+        textBlock.cta,
+        textBlock.bodyLine1,
+        textBlock.bodyLine2,
+        textBlock.bodyLine3,
+        textBlock.bodyLine4,
+        textBlock.bodyLine5,
+        textBlock.bodyLine6,
+        textBlock.bodyLine7,
+        textBlock.bodyLine8,
+        textBlock.bodyLine9,
+      ].filter((text): text is string => !!text && text.trim() !== '');
+      
+      const data = { texts: collectedTexts };
 
       if (data.texts && data.texts.length > 0) {
         // Limit to 10 chunks maximum
