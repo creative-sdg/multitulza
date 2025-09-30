@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Play, Pause, Upload, Trash2, FileText, Volume2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import { AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
 import { AVAILABLE_BRANDS, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
@@ -83,14 +82,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
     setIsLoadingTexts(true);
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets', {
-        body: { 
-          spreadsheetId: tableId,
-          rowNumber: row
-        }
-      });
-
-      if (error) throw error;
+      toast.error('Функция Google Sheets недоступна. Подключите Supabase для использования этой функции.');
+      return;
+      
+      // Placeholder code - will work after Supabase reconnection
+      const data = { texts: [] };
 
       if (data.texts && data.texts.length > 0) {
         // Limit to 10 chunks maximum
@@ -192,14 +188,14 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     ));
 
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs', {
-        body: {
-          text: chunk.text,
-          voiceId: selectedVoice
-        }
-      });
-
-      if (error) throw error;
+      toast.error('Функция ElevenLabs недоступна. Подключите Supabase для использования этой функции.');
+      setChunks(prev => prev.map(c => 
+        c.id === chunkId ? { ...c, isGenerating: false } : c
+      ));
+      return;
+      
+      // Placeholder code - will work after Supabase reconnection
+      const data = { audioUrl: '', duration: 0 };
 
       // Рассчитываем эффективную длительность (минимум 2 секунды)
       const effectiveDuration = Math.max(2, data.duration || 0);
@@ -350,23 +346,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     if (file) {
       setMusicFile(file);
       
-      // Upload to Supabase storage
+      // Create local URL for the file
       try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `music-${Date.now()}.${fileExt}`;
-        
-        const { data, error } = await supabase.storage
-          .from('videos')
-          .upload(fileName, file);
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('videos')
-          .getPublicUrl(fileName);
-
-        setMusicUrl(publicUrl);
-        toast.success('Музыка загружена успешно');
+        const objectUrl = URL.createObjectURL(file);
+        setMusicUrl(objectUrl);
+        toast.success('Музыка загружена локально');
       } catch (error: any) {
         console.error('Error uploading music:', error);
         toast.error(`Ошибка загрузки музыки: ${error.message}`);

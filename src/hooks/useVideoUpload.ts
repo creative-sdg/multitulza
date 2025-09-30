@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface UploadedVideo {
@@ -41,33 +40,9 @@ export const useVideoUpload = () => {
     setUploadProgress(0);
 
     try {
-      // Generate unique filename
-      const timestamp = Date.now();
-      const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const filePath = `videos/${fileName}`;
-
-      console.log('📤 Uploading video to Supabase Storage:', filePath);
-
-      // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file);
-
-      if (error) {
-        console.error('❌ Upload error:', error);
-        toast.error('Ошибка загрузки видео: ' + error.message);
-        return null;
-      }
-
-      console.log('✅ Video uploaded successfully:', data.path);
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('videos')
-        .getPublicUrl(data.path);
-
-      const publicUrl = urlData.publicUrl;
-      console.log('🔗 Public URL generated:', publicUrl);
+      // Create object URL for the file
+      const objectUrl = URL.createObjectURL(file);
+      console.log('📤 Creating local URL for video:', file.name);
 
       // Get video duration
       const duration = await getVideoDuration(file);
@@ -77,8 +52,8 @@ export const useVideoUpload = () => {
 
       return {
         file,
-        url: publicUrl,
-        path: data.path,
+        url: objectUrl,
+        path: file.name,
         duration
       };
 
