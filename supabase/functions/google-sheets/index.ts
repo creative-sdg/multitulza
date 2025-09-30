@@ -140,13 +140,6 @@ serve(async (req) => {
     
     const textBlock: any = {
       id: `row-${rowNumber}`,
-      hook: row[0] || '',
-      problem: row[1] || '',
-      solution: row[2] || '',
-      proof: row[3] || '',
-      offer: row[4] || '',
-      urgency: row[5] || '',
-      cta: row[6] || '',
     };
     
     // Add only non-empty body lines

@@ -1,12 +1,5 @@
 export interface TextBlock {
   id: string;
-  hook?: string;
-  problem?: string;
-  solution?: string;
-  proof?: string;
-  offer?: string;
-  urgency?: string;
-  cta?: string;
   bodyLine1?: string;
   bodyLine2?: string;
   bodyLine3?: string;
