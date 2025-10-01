@@ -217,13 +217,26 @@ export class CreatomateService {
           }
         }
         
-        for (let i = 1; i <= 10; i++) {
+        // Set audio, subtitles and text with proper timing
+        options.chunkedAudio?.forEach((chunk, index) => {
+          const i = index + 1;
+          
+          // Set audio properties
           modifications[`Audio_${i}.volume`] = audioVol;
-          modifications[`Audio_${i}.time`] = i === 1 ? null : null;
+          if (chunk.startTime !== undefined) {
+            modifications[`Audio_${i}.time`] = chunk.startTime;
+            console.log(`⏰ Set Audio_${i} start time: ${chunk.startTime}s`);
+          }
+          
+          // Set subtitle properties
           modifications[`element_subtitles_${i}.opacity`] = subtitleOp;
-          modifications[`element_subtitles_${i}.time`] = i === 1 ? null : null;
+          if (chunk.startTime !== undefined) {
+            modifications[`element_subtitles_${i}.time`] = chunk.startTime;
+            console.log(`⏰ Set element_subtitles_${i} start time: ${chunk.startTime}s`);
+          }
           modifications[`element_subtitles_${i}.transcript_source`] = `Audio_${i}`;
-        }
+        });
+        
         console.log(`🔊 Set audio volume: ${audioVol}, subtitle opacity: ${subtitleOp}`);
         
         // Set text blocks if provided
@@ -231,18 +244,24 @@ export class CreatomateService {
           options.textBlocks.forEach((text, index) => {
             if (index < 10) {
               modifications[`Text-${index + 1}.text`] = text;
-              modifications[`Text-${index + 1}.time`] = index === 0 ? 0 : null;
+              
+              // Set text timing based on corresponding audio chunk
+              const chunk = options.chunkedAudio?.[index];
+              if (chunk?.startTime !== undefined) {
+                modifications[`Text-${index + 1}.time`] = chunk.startTime;
+                console.log(`⏰ Set Text-${index + 1} start time: ${chunk.startTime}s`);
+              }
               
               // Set text duration based on audio mode
               if (audioVol === '0%') {
                 // No audio mode - use 2 seconds per text block
                 modifications[`Text-${index + 1}.duration`] = 2;
-              } else {
-                // Audio mode - use default duration
-                modifications[`Text-${index + 1}.duration`] = null;
+              } else if (chunk?.effectiveDuration) {
+                // Audio mode - use chunk duration
+                modifications[`Text-${index + 1}.duration`] = chunk.effectiveDuration;
               }
               
-              console.log(`📝 Set Text-${index + 1}: ${text} (duration: ${audioVol === '0%' ? '2s' : 'auto'})`);
+              console.log(`📝 Set Text-${index + 1}: ${text} (duration: ${audioVol === '0%' ? '2s' : chunk?.effectiveDuration || 'auto'}s)`);
             }
           });
         }
