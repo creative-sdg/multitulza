@@ -49,6 +49,12 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
   const [subtitleVisibility, setSubtitleVisibility] = useState(100);
   const [audioVolume, setAudioVolume] = useState(100);
   
+  // Handle subtitle visibility change - when subtitles are enabled (>0), 
+  // custom text becomes invisible and vice versa
+  const handleSubtitleVisibilityChange = (value: number) => {
+    setSubtitleVisibility(value);
+  };
+  
   // Always enable subtitles for chunked audio scenario
   const enableSubtitles = true;
   
@@ -326,6 +332,15 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
         renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
       } else if (scenario === 'chunked-audio') {
         // For chunked audio scenario, use the chunked audio data
+        // Extract brand name from variant ID if it's a branded variant
+        let brandName: string | undefined;
+        if (variant.id.startsWith('branded-')) {
+          const parts = variant.id.split('-');
+          const brandId = parts[1];
+          const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
+          brandName = brand?.name;
+        }
+        
         const renderOptions = {
           ...options,
           chunkedAudio: chunkedAudioData,
@@ -333,7 +348,8 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           customTextEnabled: customTextEnabled,
           subtitleVisibility: subtitleVisibility,
           audioVolume: audioVolume,
-          selectedTemplate: selectedTemplate
+          selectedTemplate: selectedTemplate,
+          brandName: brandName // Pass brand name for text replacement
         };
         
         renderId = await service.renderVideo(template, '', packshot, 30, renderOptions);
@@ -632,15 +648,20 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                       {/* Настройки для 9x16 Text Emoji V2 */}
                       {template.size === 'text-emoji-v2' && selectedSizes.includes(template.size) && (
                         <div className="mt-2 ml-8 p-4 border rounded-lg space-y-4 bg-video-surface">
+                          <div className="text-xs text-muted-foreground mb-2">
+                            ⚠️ Субтитры и кастомный текст взаимоисключающие: когда субтитры видны, текст скрыт и наоборот
+                          </div>
                           <div className="flex items-center space-x-2">
                             <input
                               type="checkbox"
                               id="subtitle-visibility"
                               checked={subtitleVisibility === 100}
-                              onChange={(e) => setSubtitleVisibility(e.target.checked ? 100 : 0)}
+                              onChange={(e) => handleSubtitleVisibilityChange(e.target.checked ? 100 : 0)}
                               className="rounded border-video-primary/30"
                             />
-                            <Label htmlFor="subtitle-visibility" className="text-sm">Видимость субтитров</Label>
+                            <Label htmlFor="subtitle-visibility" className="text-sm">
+                              {subtitleVisibility === 100 ? 'Показать субтитры (текст скрыт)' : 'Показать кастомный текст (субтитры скрыты)'}
+                            </Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <input

@@ -72,6 +72,7 @@ export class CreatomateService {
     customTextEnabled?: boolean;
     selectedTemplate?: any;
     musicUrl?: string;
+    brandName?: string; // Add brand name for text replacement
   }): Promise<string> {
     console.log(`🎬 Starting render for template: ${template.name} (${template.id})`);
     console.log(`📹 Video URL: ${videoUrl}`);
@@ -188,7 +189,12 @@ export class CreatomateService {
         
         // Set text blocks if provided in options
         if (options.textBlocks) {
-          options.textBlocks.forEach((text, index) => {
+          // Apply brand replacement to text blocks if brandName is provided
+          const processedTextBlocks = options.brandName 
+            ? options.textBlocks.map(text => this.applyBrandReplacement(text, options.brandName!))
+            : options.textBlocks;
+          
+          processedTextBlocks.forEach((text, index) => {
             if (index < 10) {
               modifications[`Text-${index + 1}.text`] = text;
               console.log(`📝 Set Text-${index + 1}: ${text}`);
@@ -243,9 +249,20 @@ export class CreatomateService {
         
         // Set text blocks if provided
         if (options.textBlocks) {
-          options.textBlocks.forEach((text, index) => {
+          // Apply brand replacement to text blocks if brandName is provided
+          const processedTextBlocks = options.brandName 
+            ? options.textBlocks.map(text => this.applyBrandReplacement(text, options.brandName!))
+            : options.textBlocks;
+          
+          // Calculate text opacity based on subtitle visibility (inverse relationship)
+          const textOpacity = options.subtitleVisibility !== undefined 
+            ? `${100 - options.subtitleVisibility}%` 
+            : '100%';
+          
+          processedTextBlocks.forEach((text, index) => {
             if (index < 10) {
               modifications[`Text-${index + 1}.text`] = text;
+              modifications[`Text-${index + 1}.opacity`] = textOpacity;
               
               // Set text timing based on corresponding audio chunk
               const chunk = options.chunkedAudio?.[index];
@@ -263,7 +280,7 @@ export class CreatomateService {
                 modifications[`Text-${index + 1}.duration`] = chunk.effectiveDuration;
               }
               
-              console.log(`📝 Set Text-${index + 1}: ${text} (duration: ${audioVol === '0%' ? '2s' : chunk?.effectiveDuration || 'auto'}s)`);
+              console.log(`📝 Set Text-${index + 1}: ${text} (duration: ${audioVol === '0%' ? '2s' : chunk?.effectiveDuration || 'auto'}s, opacity: ${textOpacity})`);
             }
           });
         }
@@ -432,6 +449,32 @@ export class CreatomateService {
 
     // Return as a single string with line breaks
     return blocks.length > 0 ? blocks.join('\n') : text;
+  }
+
+  // Apply brand replacement to text
+  private applyBrandReplacement(text: string, brandName: string): string {
+    let processedText = text;
+    
+    // Common brand patterns to replace
+    const brandPatterns = [
+      'DateMyAge',
+      'Date My Age',
+      'OurLove',
+      'Our Love',
+      'EuroDate',
+      'Euro Date',
+      'DatingClub',
+      'Dating Club',
+      'Dating.Com',
+      'Dating.com',
+    ];
+    
+    brandPatterns.forEach(pattern => {
+      const regex = new RegExp(pattern, 'gi');
+      processedText = processedText.replace(regex, brandName);
+    });
+    
+    return processedText;
   }
 }
 
