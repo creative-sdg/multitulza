@@ -52,9 +52,8 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   // Voice selection
   const [selectedVoice, setSelectedVoice] = useState<string>('TX3LPaxmHKxFdv7VOQHJ'); // Liam voice by default
   
-  // Brand replacement functionality
+  // Brand selection (multiple brands can be selected)
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [brandReplacements, setBrandReplacements] = useState<{[key: string]: string}>({});
   
   // Music selection
   const [selectedMusicId, setSelectedMusicId] = useState<string>('');
@@ -67,6 +66,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   // Load texts from Google Sheets
   const loadTexts = async () => {
+    if (selectedBrands.length === 0) {
+      toast.error('Сначала выберите хотя бы один бренд');
+      return;
+    }
+
     if (!rowNumber.trim()) {
       toast.error('Введите номер строки');
       return;
@@ -116,26 +120,22 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         const limitedTexts = data.texts.slice(0, 10);
         setTexts(limitedTexts);
         
-        // Initialize chunks and apply brand replacements
-        const initialChunks: AudioChunk[] = limitedTexts.map((text, index) => ({
+        // Apply brand replacements automatically
+        const processedTexts = limitedTexts.map(text => applyBrandReplacements(text));
+        
+        // Initialize chunks with processed texts
+        const initialChunks: AudioChunk[] = processedTexts.map((text, index) => ({
           id: index + 1,
-          text: applyBrandReplacements(text),
+          text: text,
           isGenerating: false
         }));
         
         setChunks(initialChunks);
         
-        // Load custom texts from the same data
-        const texts = limitedTexts.slice(0, 10);
-        setCustomTexts(texts);
+        // Load custom texts with brand replacements applied
+        setCustomTexts(processedTexts);
         
         toast.success(`Загружено ${limitedTexts.length} текстов`);
-        
-        // Auto-set brands for packshots
-        if (selectedBrands.length === 0) {
-          setSelectedBrands(['datemyage']); // Default brand
-          onBrandChange(['datemyage']);
-        }
       } else {
         toast.error('Тексты не найдены в таблице');
       }
@@ -149,53 +149,75 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   // Apply brand replacements to text
   const applyBrandReplacements = (text: string): string => {
+    if (selectedBrands.length === 0) return text;
+    
     let processedText = text;
     
-    Object.entries(brandReplacements).forEach(([original, replacement]) => {
-      if (replacement.trim()) {
-        const regex = new RegExp(original, 'gi');
-        processedText = processedText.replace(regex, replacement);
-      }
+    // Get the first selected brand name for display
+    const primaryBrand = AVAILABLE_BRANDS.find(b => b.id === selectedBrands[0]);
+    if (!primaryBrand) return text;
+    
+    // Replace all brand mentions with the primary brand name
+    // Common patterns to replace
+    const brandPatterns = [
+      'DateMyAge',
+      'Date My Age',
+      'OurLove',
+      'Our Love',
+      'EuroDate',
+      'Euro Date',
+      'DatingClub',
+      'Dating Club',
+    ];
+    
+    brandPatterns.forEach(pattern => {
+      const regex = new RegExp(pattern, 'gi');
+      processedText = processedText.replace(regex, primaryBrand.name);
     });
     
     return processedText;
   };
 
-  // Apply brand replacements to all chunks
-  const applyReplacementsToAllChunks = () => {
-    setChunks(prev => prev.map(chunk => ({
-      ...chunk,
-      text: applyBrandReplacements(texts[chunk.id - 1] || chunk.text)
-    })));
-    toast.success('Изменения применены ко всем текстам');
-  };
-
-  // Handle brand toggle for quick replacement
-  const handleBrandToggle = (brandId: string, replacementWord: string) => {
-    const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
-    if (!brand) return;
-
-    // Update brand replacements
-    setBrandReplacements(prev => ({
-      ...prev,
-      [replacementWord]: brand.name
-    }));
-
-    // Update selected brands for packshots
+  // Handle brand toggle
+  const handleBrandToggle = (brandId: string) => {
     const newBrands = selectedBrands.includes(brandId)
-      ? selectedBrands
-      : [...selectedBrands.filter(b => !AVAILABLE_BRANDS.find(br => br.name === brandReplacements[replacementWord])?.id || b !== AVAILABLE_BRANDS.find(br => br.name === brandReplacements[replacementWord])?.id), brandId];
+      ? selectedBrands.filter(b => b !== brandId)
+      : [...selectedBrands, brandId];
     
     setSelectedBrands(newBrands);
     onBrandChange(newBrands);
 
-    // Apply replacements to existing chunks
-    setChunks(prev => prev.map(chunk => ({
-      ...chunk,
-      text: applyBrandReplacements(chunk.text)
-    })));
-
-    toast.success(`Бренд ${brand.name} выбран для замены "${replacementWord}"`);
+    // If we have loaded texts, reapply brand replacements
+    if (texts.length > 0) {
+      const processedTexts = texts.map(text => {
+        if (newBrands.length === 0) return text;
+        
+        let processed = text;
+        const primaryBrand = AVAILABLE_BRANDS.find(b => b.id === newBrands[0]);
+        if (!primaryBrand) return text;
+        
+        const brandPatterns = [
+          'DateMyAge', 'Date My Age',
+          'OurLove', 'Our Love',
+          'EuroDate', 'Euro Date',
+          'DatingClub', 'Dating Club',
+        ];
+        
+        brandPatterns.forEach(pattern => {
+          const regex = new RegExp(pattern, 'gi');
+          processed = processed.replace(regex, primaryBrand.name);
+        });
+        
+        return processed;
+      });
+      
+      setChunks(prev => prev.map((chunk, index) => ({
+        ...chunk,
+        text: processedTexts[index] || chunk.text
+      })));
+      
+      setCustomTexts(processedTexts);
+    }
   };
 
   // Generate audio for a specific chunk
@@ -394,6 +416,54 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
   return (
     <div className="space-y-6">
+      {/* Brand Selection */}
+      <Card className="p-6 bg-video-surface border-video-primary/20">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-video-primary" />
+            <h3 className="text-lg font-semibold">Выбор брендов</h3>
+          </div>
+          
+          <div className="space-y-3">
+            <Label>Выберите бренды для автоматической замены в текстах и пекшотов:</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {AVAILABLE_BRANDS.map(brand => {
+                const isSelected = selectedBrands.includes(brand.id);
+                
+                return (
+                  <label 
+                    key={brand.id} 
+                    className={`flex items-center space-x-2 cursor-pointer p-4 rounded-lg transition-all ${
+                      isSelected 
+                        ? 'bg-video-primary/20 border-2 border-video-primary' 
+                        : 'bg-video-surface-elevated border-2 border-transparent hover:border-video-primary/50'
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => handleBrandToggle(brand.id)}
+                    />
+                    <span className="text-sm font-medium">{brand.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            
+            {selectedBrands.length > 1 && (
+              <div className="p-3 bg-info/10 border border-info/30 rounded-lg text-sm text-info">
+                ⚠️ Внимание: Выбрано {selectedBrands.length} бренда. Текст будет показан с заменой на {AVAILABLE_BRANDS.find(b => b.id === selectedBrands[0])?.name}, но при рендере будут автоматически созданы версии для всех выбранных брендов.
+              </div>
+            )}
+            
+            {selectedBrands.length === 0 && (
+              <div className="p-3 bg-muted/50 border border-muted rounded-lg text-sm text-muted-foreground">
+                Выберите хотя бы один бренд для продолжения
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
       {/* Google Sheets Integration */}
       <Card className="p-6 bg-video-surface border-video-primary/20">
         <div className="space-y-4">
@@ -425,121 +495,13 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           </div>
           <Button 
             onClick={loadTexts}
-            disabled={isLoadingTexts}
+            disabled={isLoadingTexts || selectedBrands.length === 0}
             className="bg-video-primary hover:bg-video-primary-hover w-full"
           >
             {isLoadingTexts ? 'Загрузка...' : 'Загрузить тексты из столбцов H-Q'}
           </Button>
         </div>
       </Card>
-
-
-      {/* Brand Replacement */}
-      {texts.length > 0 && (
-        <Card className="p-6 bg-video-surface border-video-primary/20">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Быстрая замена брендов</h3>
-            </div>
-            
-            <div className="space-y-3">
-              <Label>Настройте замены слов на названия брендов:</Label>
-              <div className="space-y-4">
-                {Object.entries(brandReplacements).length > 0 ? (
-                  Object.entries(brandReplacements).map(([original, replacement], index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Слово для замены"
-                          value={original}
-                          onChange={(e) => {
-                            const newReplacements = { ...brandReplacements };
-                            delete newReplacements[original];
-                            if (e.target.value.trim()) {
-                              newReplacements[e.target.value] = replacement;
-                            }
-                            setBrandReplacements(newReplacements);
-                          }}
-                          className="flex-1"
-                        />
-                        <Input
-                          placeholder="Заменить на"
-                          value={replacement}
-                          onChange={(e) => setBrandReplacements(prev => ({
-                            ...prev,
-                            [original]: e.target.value
-                          }))}
-                          className="flex-1"
-                        />
-                        <Button
-                          onClick={() => {
-                            const newReplacements = { ...brandReplacements };
-                            delete newReplacements[original];
-                            setBrandReplacements(newReplacements);
-                          }}
-                          variant="outline"
-                          size="sm"
-                        >
-                          ✕
-                        </Button>
-                      </div>
-                      <div className="ml-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {AVAILABLE_BRANDS.map(brand => {
-                            const isSelected = replacement === brand.name;
-                            
-                            return (
-                              <label 
-                                key={brand.id} 
-                                className={`flex items-center space-x-2 cursor-pointer p-3 rounded-lg transition-all ${
-                                  isSelected 
-                                    ? 'bg-video-primary/20 border-2 border-video-primary' 
-                                    : 'bg-video-surface-elevated border-2 border-transparent hover:border-video-primary/50'
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name={`replacement-${index}`}
-                                  checked={isSelected}
-                                  onChange={() => handleBrandToggle(brand.id, original)}
-                                  className="rounded border-video-primary/30"
-                                />
-                                <span className="text-sm font-medium">{brand.name}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-muted-foreground text-sm">Нет настроенных замен</div>
-                )}
-                
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setBrandReplacements(prev => ({ ...prev, '': '' }))}
-                    variant="outline"
-                    size="sm"
-                  >
-                    + Добавить замену
-                  </Button>
-                  
-                  <Button
-                    onClick={applyReplacementsToAllChunks}
-                    className="bg-video-primary hover:bg-video-primary-hover"
-                    size="sm"
-                    disabled={Object.keys(brandReplacements).length === 0}
-                  >
-                    Применить изменения
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Voice Selection */}
       {texts.length > 0 && (
