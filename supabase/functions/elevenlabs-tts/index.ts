@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,26 +65,42 @@ serve(async (req) => {
 
     // Get audio data
     const audioArrayBuffer = await response.arrayBuffer();
-    const audioBlob = new Uint8Array(audioArrayBuffer);
     
-    // Convert to base64
-    let binary = '';
-    const chunkSize = 0x8000;
-    for (let i = 0; i < audioBlob.length; i += chunkSize) {
-      const chunk = audioBlob.subarray(i, Math.min(i + chunkSize, audioBlob.length));
-      binary += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    const base64Audio = btoa(binary);
-
     // Calculate duration (rough estimate based on file size)
     // MP3 files are roughly 1MB per minute at 128kbps
     const durationSeconds = (audioArrayBuffer.byteLength / (128 * 1024 / 8));
 
     console.log('Audio generated successfully, duration:', durationSeconds.toFixed(2), 'seconds');
 
+    // Upload to Supabase Storage
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const fileName = `audio/${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('videos')
+      .upload(fileName, audioArrayBuffer, {
+        contentType: 'audio/mpeg',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Failed to upload audio: ${uploadError.message}`);
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('videos')
+      .getPublicUrl(fileName);
+
+    console.log('Audio uploaded to storage:', publicUrl);
+
     return new Response(
       JSON.stringify({ 
-        audioUrl: `data:audio/mpeg;base64,${base64Audio}`,
+        audioUrl: publicUrl,
         duration: durationSeconds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

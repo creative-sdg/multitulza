@@ -86,7 +86,12 @@ export class CreatomateService {
     
     // Add packshot only if provided and template supports it
     if (packshotUrl && template.packshotField) {
-      modifications[template.packshotField] = packshotUrl;
+      // Convert relative packshot paths to full URLs
+      const fullPackshotUrl = packshotUrl.startsWith('http') 
+        ? packshotUrl 
+        : `${window.location.origin}${packshotUrl}`;
+      modifications[template.packshotField] = fullPackshotUrl;
+      console.log(`🎯 Packshot URL: ${fullPackshotUrl}`);
     }
     
     // Handle chunked audio scenario and text emoji templates
