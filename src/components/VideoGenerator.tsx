@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import ChunkedAudioScenario from '@/components/ChunkedAudioScenario';
+import { uploadPackshotsToStorage } from '@/utils/uploadPackshots';
 
 interface VideoVariant {
   id: string;
@@ -57,6 +58,22 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
   const [apiKey, setApiKey] = useState<string>('d4a139301941487db1cd588ba460366fe6cee2119361a4440d2846440738d92dfe9053c8c55cedcbcfa5ef6131916e22');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
   const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
+  
+  // Packshots upload state
+  const [isUploadingPackshots, setIsUploadingPackshots] = useState(false);
+
+  const handleUploadPackshots = async () => {
+    setIsUploadingPackshots(true);
+    toast.info('Загружаю packshots в облако...');
+    try {
+      await uploadPackshotsToStorage();
+    } catch (error) {
+      console.error('Error uploading packshots:', error);
+      toast.error('Ошибка загрузки packshots');
+    } finally {
+      setIsUploadingPackshots(false);
+    }
+  };
 
 
 
@@ -407,6 +424,25 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
               Выберите сценарий для создания видео
             </p>
         </div>
+
+        {/* Upload Packshots Button */}
+        <Card className="p-6 bg-video-surface border-video-primary/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Настройка packshots</h3>
+              <p className="text-sm text-muted-foreground">
+                Загрузите packshots в облако (нужно сделать один раз)
+              </p>
+            </div>
+            <Button
+              onClick={handleUploadPackshots}
+              disabled={isUploadingPackshots}
+              className="bg-video-primary hover:bg-video-primary/90"
+            >
+              {isUploadingPackshots ? 'Загружаю...' : 'Загрузить Packshots'}
+            </Button>
+          </div>
+        </Card>
 
         {/* Scenario Selection */}
         {!propScenario && !scenario && (

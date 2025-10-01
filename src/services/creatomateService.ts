@@ -86,12 +86,9 @@ export class CreatomateService {
     
     // Add packshot only if provided and template supports it
     if (packshotUrl && template.packshotField) {
-      // Convert relative packshot paths to full URLs
-      const fullPackshotUrl = packshotUrl.startsWith('http') 
-        ? packshotUrl 
-        : `${window.location.origin}${packshotUrl}`;
-      modifications[template.packshotField] = fullPackshotUrl;
-      console.log(`🎯 Packshot URL: ${fullPackshotUrl}`);
+      // Packshot URL should already be a full URL from storage
+      modifications[template.packshotField] = packshotUrl;
+      console.log(`🎯 Packshot URL: ${packshotUrl}`);
     }
     
     // Handle chunked audio scenario and text emoji templates
@@ -438,70 +435,77 @@ export class CreatomateService {
   }
 }
 
+import { getPackshotStorageUrl } from '@/utils/uploadPackshots';
+
+// Helper function to get packshot URL (either from storage or fallback to local)
+function getPackshotUrl(path: string): string {
+  return getPackshotStorageUrl(path);
+}
+
 //Available brands with their packshot URLs
 export const AVAILABLE_BRANDS = [
   { 
     id: 'datemyage', 
     name: 'DateMyAge',
     packshots: {
-      vertical: '/packshots/DateMyAge_packshot_9x16.mp4',
-      square: '/packshots/DateMyAge_packshot_1x1.mp4',
-      horizontal: '/packshots/DateMyAge_packshot_16x9.mp4',
-      test: '/packshots/DateMyAge_packshot_9x16.mp4',
-      chunked: '/packshots/DateMyAge_packshot_9x16.mp4',
-      'chunked-v2': '/packshots/DateMyAge_packshot_9x16.mp4',
-      'chunked-square': '/packshots/DateMyAge_packshot_1x1.mp4',
-      'chunked-horizontal': '/packshots/DateMyAge_packshot_16x9.mp4',
-      'text-emoji': '/packshots/DateMyAge_packshot_9x16.mp4',
-      'text-emoji-v2': '/packshots/DateMyAge_packshot_9x16.mp4'
+      vertical: getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
+      square: getPackshotUrl('/packshots/DateMyAge_packshot_1x1.mp4'),
+      horizontal: getPackshotUrl('/packshots/DateMyAge_packshot_16x9.mp4'),
+      test: getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
+      chunked: getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
+      'chunked-v2': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
+      'chunked-square': getPackshotUrl('/packshots/DateMyAge_packshot_1x1.mp4'),
+      'chunked-horizontal': getPackshotUrl('/packshots/DateMyAge_packshot_16x9.mp4'),
+      'text-emoji': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
+      'text-emoji-v2': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4')
     }
   },
   { 
     id: 'dating', 
     name: 'Dating.Com',
     packshots: {
-      vertical: '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
-      square: '/packshots/dc_packshot_simple_languages_1080x1080.mp4',
-      horizontal: '/packshots/dc_packshot_simple_languages_1920x1080.mp4',
-      test: '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
-      chunked: '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
-      'chunked-v2': '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
-      'chunked-square': '/packshots/dc_packshot_simple_languages_1080x1080.mp4',
-      'chunked-horizontal': '/packshots/dc_packshot_simple_languages_1920x1080.mp4',
-      'text-emoji': '/packshots/dc_packshot_simple_languages_1080x1920.mp4',
-      'text-emoji-v2': '/packshots/dc_packshot_simple_languages_1080x1920.mp4'
+      vertical: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      square: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
+      horizontal: getPackshotUrl('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
+      test: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      chunked: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      'chunked-v2': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      'chunked-square': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
+      'chunked-horizontal': getPackshotUrl('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
+      'text-emoji': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      'text-emoji-v2': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4')
     }
   },
   { 
     id: 'eurodate', 
     name: 'EuroDate',
     packshots: {
-      vertical: '/packshots/EuroDate_packshot_9x16.mp4',
-      square: '/packshots/EuroDate_packshot_1x1.mp4',
-      horizontal: '/packshots/EuroDate_packshot_16x9.mp4',
-      test: '/packshots/EuroDate_packshot_9x16.mp4',
-      chunked: '/packshots/EuroDate_packshot_9x16.mp4',
-      'chunked-v2': '/packshots/EuroDate_packshot_9x16.mp4',
-      'chunked-square': '/packshots/EuroDate_packshot_1x1.mp4',
-      'chunked-horizontal': '/packshots/EuroDate_packshot_16x9.mp4',
-      'text-emoji': '/packshots/EuroDate_packshot_9x16.mp4',
-      'text-emoji-v2': '/packshots/EuroDate_packshot_9x16.mp4'
+      vertical: getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
+      square: getPackshotUrl('/packshots/EuroDate_packshot_1x1.mp4'),
+      horizontal: getPackshotUrl('/packshots/EuroDate_packshot_16x9.mp4'),
+      test: getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
+      chunked: getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
+      'chunked-v2': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
+      'chunked-square': getPackshotUrl('/packshots/EuroDate_packshot_1x1.mp4'),
+      'chunked-horizontal': getPackshotUrl('/packshots/EuroDate_packshot_16x9.mp4'),
+      'text-emoji': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
+      'text-emoji-v2': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4')
     }
   },
   { 
     id: 'ourlove', 
     name: 'OurLove',
     packshots: {
-      vertical: '/packshots/OurLove_packshot_9x16.mp4',
-      square: '/packshots/OurLove_packshot_1x1.mp4',
-      horizontal: '/packshots/OurLove_packshot_16x9.mp4',
-      test: '/packshots/OurLove_packshot_9x16.mp4',
-      chunked: '/packshots/OurLove_packshot_9x16.mp4',
-      'chunked-v2': '/packshots/OurLove_packshot_9x16.mp4',
-      'chunked-square': '/packshots/OurLove_packshot_1x1.mp4',
-      'chunked-horizontal': '/packshots/OurLove_packshot_16x9.mp4',
-      'text-emoji': '/packshots/OurLove_packshot_9x16.mp4',
-      'text-emoji-v2': '/packshots/OurLove_packshot_9x16.mp4'
+      vertical: getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
+      square: getPackshotUrl('/packshots/OurLove_packshot_1x1.mp4'),
+      horizontal: getPackshotUrl('/packshots/OurLove_packshot_16x9.mp4'),
+      test: getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
+      chunked: getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
+      'chunked-v2': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
+      'chunked-square': getPackshotUrl('/packshots/OurLove_packshot_1x1.mp4'),
+      'chunked-horizontal': getPackshotUrl('/packshots/OurLove_packshot_16x9.mp4'),
+      'text-emoji': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
+      'text-emoji-v2': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4')
     }
   }
 ];
