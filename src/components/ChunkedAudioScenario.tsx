@@ -35,7 +35,7 @@ interface ChunkedAudioScenarioProps {
 
 const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, onBrandChange }) => {
   // Google Sheets
-  const [tableId, setTableId] = useState('');
+  const [tableId, setTableId] = useState('18fQlTTutBAtuS3NUCEGGmjou5wfw0nj_X3J8Kv88eMM');
   const [rowNumber, setRowNumber] = useState('');
   const [texts, setTexts] = useState<string[]>([]);
   const [chunks, setChunks] = useState<AudioChunk[]>([]);
@@ -233,14 +233,29 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     ));
 
     try {
-      toast.error('Функция ElevenLabs недоступна. Подключите Supabase для использования этой функции.');
-      setChunks(prev => prev.map(c => 
-        c.id === chunkId ? { ...c, isGenerating: false } : c
-      ));
-      return;
+      const { supabase } = await import('@/integrations/supabase/client');
       
-      // Placeholder code - will work after Supabase reconnection
-      const data = { audioUrl: '', duration: 0 };
+      console.log('Generating audio for chunk:', chunkId);
+      console.log('Text:', chunk.text);
+      console.log('Voice:', selectedVoice);
+
+      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+        body: {
+          text: chunk.text,
+          voiceId: selectedVoice
+        }
+      });
+
+      if (error) {
+        console.error('ElevenLabs error:', error);
+        throw new Error(error.message || 'Failed to generate audio');
+      }
+
+      if (!data || !data.audioUrl) {
+        throw new Error('No audio data received');
+      }
+
+      console.log('Audio generated successfully, duration:', data.duration);
 
       // Рассчитываем эффективную длительность (минимум 2 секунды)
       const effectiveDuration = Math.max(2, data.duration || 0);

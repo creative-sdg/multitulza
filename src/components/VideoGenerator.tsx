@@ -54,7 +54,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
-  const [apiKey, setApiKey] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>('d4a139301941487db1cd588ba460366fe6cee2119361a4440d2846440738d92dfe9053c8c55cedcbcfa5ef6131916e22');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
   const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
 
