@@ -449,35 +449,35 @@ export const AVAILABLE_BRANDS = [
     }
   },
   { 
-    id: 'youtravelmate', 
-    name: 'YouTravelMate',
+    id: 'eurodate', 
+    name: 'EuroDate',
     packshots: {
-      vertical: '',
-      square: '',
-      horizontal: '',
-      test: '',
-      chunked: '',
-      'chunked-v2': '',
-      'chunked-square': '',
-      'chunked-horizontal': '',
-      'text-emoji': '',
-      'text-emoji-v2': ''
+      vertical: '/packshots/EuroDate_packshot_9x16.mp4',
+      square: '/packshots/EuroDate_packshot_1x1.mp4',
+      horizontal: '/packshots/EuroDate_packshot_16x9.mp4',
+      test: '/packshots/EuroDate_packshot_9x16.mp4',
+      chunked: '/packshots/EuroDate_packshot_9x16.mp4',
+      'chunked-v2': '/packshots/EuroDate_packshot_9x16.mp4',
+      'chunked-square': '/packshots/EuroDate_packshot_1x1.mp4',
+      'chunked-horizontal': '/packshots/EuroDate_packshot_16x9.mp4',
+      'text-emoji': '/packshots/EuroDate_packshot_9x16.mp4',
+      'text-emoji-v2': '/packshots/EuroDate_packshot_9x16.mp4'
     }
   },
   { 
-    id: 'onelove', 
-    name: 'OneLove',
+    id: 'ourlove', 
+    name: 'OurLove',
     packshots: {
-      vertical: '',
-      square: '',
-      horizontal: '',
-      test: '',
-      chunked: '',
-      'chunked-v2': '',
-      'chunked-square': '',
-      'chunked-horizontal': '',
-      'text-emoji': '',
-      'text-emoji-v2': ''
+      vertical: '/packshots/OurLove_packshot_9x16.mp4',
+      square: '/packshots/OurLove_packshot_1x1.mp4',
+      horizontal: '/packshots/OurLove_packshot_16x9.mp4',
+      test: '/packshots/OurLove_packshot_9x16.mp4',
+      chunked: '/packshots/OurLove_packshot_9x16.mp4',
+      'chunked-v2': '/packshots/OurLove_packshot_9x16.mp4',
+      'chunked-square': '/packshots/OurLove_packshot_1x1.mp4',
+      'chunked-horizontal': '/packshots/OurLove_packshot_16x9.mp4',
+      'text-emoji': '/packshots/OurLove_packshot_9x16.mp4',
+      'text-emoji-v2': '/packshots/OurLove_packshot_9x16.mp4'
     }
   }
 ];
