@@ -14,6 +14,31 @@ import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import ChunkedAudioScenario from '@/components/ChunkedAudioScenario';
 import { uploadPackshotsToStorage } from '@/utils/uploadPackshots';
 
+// Helper function to apply brand replacement to text
+const applyBrandReplacement = (text: string, brandName: string): string => {
+  let processedText = text;
+  
+  // Replace all brand mentions with the target brand name
+  const brandPatterns = [
+    'DateMyAge',
+    'Date My Age',
+    'OurLove',
+    'Our Love',
+    'EuroDate',
+    'Euro Date',
+    'DatingClub',
+    'Dating Club',
+    'Dating.com',
+  ];
+  
+  brandPatterns.forEach(pattern => {
+    const regex = new RegExp(pattern, 'gi');
+    processedText = processedText.replace(regex, brandName);
+  });
+  
+  return processedText;
+};
+
 interface VideoVariant {
   id: string;
   name: string;
@@ -334,16 +359,74 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
         // For chunked audio scenario, use the chunked audio data
         // Extract brand name from variant ID if it's a branded variant
         let brandName: string | undefined;
+        let brandedAudioData = chunkedAudioData;
+        
         if (variant.id.startsWith('branded-')) {
           const parts = variant.id.split('-');
           const brandId = parts[1];
           const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
           brandName = brand?.name;
+          
+          // Generate brand-specific audio for each chunk
+          if (brandName) {
+            console.log(`🎤 Generating brand-specific audio for ${brandName}...`);
+            brandedAudioData = await Promise.all(chunkedAudioData.map(async (chunk) => {
+              // Apply brand replacement to the text
+              const brandedText = applyBrandReplacement(chunk.text, brandName!);
+              
+              // If text is the same, use existing audio
+              if (brandedText === chunk.text && chunk.audioUrl) {
+                return chunk;
+              }
+              
+              // Generate new audio for this brand
+              try {
+                const { supabase } = await import('@/integrations/supabase/client');
+                const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+                  body: {
+                    text: brandedText,
+                    voiceId: chunk.audioUrl ? 'TX3LPaxmHKxFdv7VOQHJ' : undefined // Use same voice
+                  }
+                });
+                
+                if (error || !data?.audioUrl) {
+                  console.error('Error generating branded audio:', error);
+                  return chunk; // Fallback to original
+                }
+                
+                console.log(`✅ Generated branded audio for chunk: "${brandedText.substring(0, 30)}..."`);
+                
+                // Calculate effective duration
+                const effectiveDuration = Math.max(2, data.duration || 0);
+                
+                return {
+                  ...chunk,
+                  text: brandedText,
+                  audioUrl: data.audioUrl,
+                  audioDuration: data.duration,
+                  effectiveDuration
+                };
+              } catch (error) {
+                console.error('Error generating branded audio:', error);
+                return chunk; // Fallback to original
+              }
+            }));
+            
+            // Recalculate start times for the branded audio
+            let currentTime = 0;
+            brandedAudioData = brandedAudioData.map((chunk) => {
+              const updatedChunk = { ...chunk, startTime: currentTime };
+              if (chunk.effectiveDuration) {
+                currentTime += chunk.effectiveDuration;
+              }
+              return updatedChunk;
+            });
+          }
         }
         
         const renderOptions = {
           ...options,
-          chunkedAudio: chunkedAudioData,
+          chunkedAudio: brandedAudioData,
           textBlocks: textBlocks,
           customTextEnabled: customTextEnabled,
           subtitleVisibility: subtitleVisibility,

@@ -214,14 +214,16 @@ export class CreatomateService {
         const audioVol = options.audioVolume !== undefined ? `${options.audioVolume}%` : '100%';
         const subtitleOp = options.subtitleVisibility !== undefined ? `${options.subtitleVisibility}%` : '100%';
         
-        // Set video duration based on audio mode
+        // Set video duration - always use effectiveDuration or 2 seconds minimum
         for (let i = 1; i <= 10; i++) {
-          if (audioVol === '0%') {
-            // No audio mode - use 2 seconds per video chunk
-            modifications[`Main_Video_${i}.duration`] = 2;
+          const chunk = options.chunkedAudio?.[i - 1];
+          if (chunk?.effectiveDuration) {
+            modifications[`Main_Video_${i}.duration`] = chunk.effectiveDuration;
+            console.log(`⏱️ Set Main_Video_${i} duration to ${chunk.effectiveDuration}s (from chunk effectiveDuration)`);
           } else {
-            // Audio mode - use media duration but adjust based on audio
-            modifications[`Main_Video_${i}.duration`] = 'media';
+            // Default to 2 seconds if no effectiveDuration
+            modifications[`Main_Video_${i}.duration`] = 2;
+            console.log(`⏱️ Set Main_Video_${i} duration to 2s (default)`);
           }
         }
         
