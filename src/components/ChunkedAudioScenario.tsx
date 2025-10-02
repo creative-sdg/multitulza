@@ -58,9 +58,14 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   
   // Music selection
   const [selectedMusicId, setSelectedMusicId] = useState<string>('');
+  const [musicAudio, setMusicAudio] = useState<HTMLAudioElement | null>(null);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   
   // Upload music on first load (one-time)
   useEffect(() => {
+    // Force re-upload for new music files (remove after first run)
+    localStorage.removeItem('musicUploaded');
+    
     const hasUploadedMusic = localStorage.getItem('musicUploaded');
     if (!hasUploadedMusic) {
       uploadMusicToStorage().then(() => {
@@ -68,6 +73,16 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       });
     }
   }, []);
+  
+  // Cleanup music audio on unmount
+  useEffect(() => {
+    return () => {
+      if (musicAudio) {
+        musicAudio.pause();
+        musicAudio.src = '';
+      }
+    };
+  }, [musicAudio]);
   
   // Audio controls
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
@@ -596,18 +611,36 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                     variant="outline"
                     size="icon"
                     onClick={() => {
-                      const track = AVAILABLE_MUSIC.find(m => m.id === selectedMusicId);
-                      if (track) {
-                        const audio = new Audio(track.url);
-                        audio.play().catch(error => {
-                          console.error('Error playing music:', error);
-                          toast.error('Ошибка воспроизведения музыки');
-                        });
+                      if (isMusicPlaying && musicAudio) {
+                        // Pause music
+                        musicAudio.pause();
+                        setIsMusicPlaying(false);
+                      } else {
+                        // Play music
+                        const track = AVAILABLE_MUSIC.find(m => m.id === selectedMusicId);
+                        if (track) {
+                          // Stop previous audio if exists
+                          if (musicAudio) {
+                            musicAudio.pause();
+                            musicAudio.src = '';
+                          }
+                          
+                          const audio = new Audio(track.url);
+                          audio.addEventListener('ended', () => setIsMusicPlaying(false));
+                          audio.play().catch(error => {
+                            console.error('Error playing music:', error);
+                            toast.error('Ошибка воспроизведения музыки');
+                            setIsMusicPlaying(false);
+                          });
+                          
+                          setMusicAudio(audio);
+                          setIsMusicPlaying(true);
+                        }
                       }
                     }}
                     className="border-video-primary/30"
                   >
-                    <Play className="h-4 w-4" />
+                    {isMusicPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
                 )}
               </div>
