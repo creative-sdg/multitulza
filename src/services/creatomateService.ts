@@ -115,6 +115,13 @@ export class CreatomateService {
             modifications[`Main_Video_${chunkIndex}_back`] = chunk.videoFile.url;
             console.log(`📹 Set Main_Video_${chunkIndex}_front and _back: ${chunk.videoFile.url}`);
             
+            // Set start time for front and back (must match)
+            if (chunk.startTime !== undefined) {
+              modifications[`Main_Video_${chunkIndex}_front.time`] = chunk.startTime;
+              modifications[`Main_Video_${chunkIndex}_back.time`] = chunk.startTime;
+              console.log(`⏰ Set Main_Video_${chunkIndex}_front and _back start time: ${chunk.startTime}s`);
+            }
+            
             // Set durations for front and back
             if (chunk.effectiveDuration) {
               modifications[`Main_Video_${chunkIndex}_front.duration`] = chunk.effectiveDuration;
@@ -129,6 +136,12 @@ export class CreatomateService {
             // For 9x16 and 9x16-clean, use normal Main_Video fields
             modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
             console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
+            
+            // Set start time for video
+            if (chunk.startTime !== undefined) {
+              modifications[`Main_Video_${chunkIndex}.time`] = chunk.startTime;
+              console.log(`⏰ Set Main_Video_${chunkIndex} start time: ${chunk.startTime}s`);
+            }
             
             // Set video duration based on effective audio duration
             if (chunk.effectiveDuration) {
@@ -300,19 +313,24 @@ export class CreatomateService {
         
         // Only set packshot timing if packshot is provided and template supports it
         if (packshotUrl && template.packshotField) {
-          modifications['Packshot.time'] = calculatedDuration - estimatedPackshotDuration;
+          modifications['Packshot.time'] = totalAudioDuration; // Packshot starts right after audio
           modifications['Packshot.duration'] = 'media';
-          console.log(`🎯 Set Packshot timing: starts at ${calculatedDuration - estimatedPackshotDuration}s`);
+          console.log(`🎯 Set Packshot timing: starts at ${totalAudioDuration}s`);
         }
         
-        // Add music if provided
+        // Add music if provided (for all templates except 9x16-clean)
         if (options.musicUrl) {
           modifications['Song'] = options.musicUrl;
-          modifications['Song.duration'] = 'media';
-          console.log(`🎵 Set music: ${options.musicUrl}`);
+          modifications['Song.duration'] = calculatedDuration; // Music duration matches total video duration including packshot
+          modifications['Song.provider'] = null;
+          console.log(`🎵 Set music: ${options.musicUrl} with duration: ${calculatedDuration}s`);
         }
         
-        console.log(`🎯 Set total video duration: ${calculatedDuration}s, packshot starts at: ${calculatedDuration - estimatedPackshotDuration}s`);
+        // Set emoji style to iPhone for all templates
+        modifications['emoji_style'] = 'iphone';
+        console.log(`😊 Set emoji style: iPhone`);
+        
+        console.log(`🎯 Set total video duration: ${calculatedDuration}s, packshot starts at: ${totalAudioDuration}s`);
       }
       
     } else {
