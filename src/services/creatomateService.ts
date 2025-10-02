@@ -542,57 +542,59 @@ export const AVAILABLE_BRANDS = [
   }
 ];
 
-// Available music tracks
+// Available music tracks - now using Supabase Storage URLs
+const SUPABASE_URL = 'https://xvxwcqormajrczdmiuul.supabase.co/storage/v1/object/public/videos/music';
+
 export const AVAILABLE_MUSIC = [
   {
     id: 'lucas_v2',
     name: 'Lucas V2',
-    url: '/music/lucas_v2.wav'
+    url: `${SUPABASE_URL}/lucas_v2.wav`
   },
   {
     id: 'povdate_esp',
     name: 'POV Date ESP',
-    url: '/music/povdate_esp.wav'
+    url: `${SUPABASE_URL}/povdate_esp.wav`
   },
   {
     id: 'nelson_v1',
     name: 'Nelson V1',
-    url: '/music/nelson_v1.wav'
+    url: `${SUPABASE_URL}/nelson_v1.wav`
   },
   {
     id: 'variations_v1',
     name: 'Variations V1',
-    url: '/music/variations_v1.wav'
+    url: `${SUPABASE_URL}/variations_v1.wav`
   },
   {
     id: 'variations_v2',
     name: 'Variations V2',
-    url: '/music/variations_v2.wav'
+    url: `${SUPABASE_URL}/variations_v2.wav`
   },
   {
     id: 'variations_v3',
     name: 'Variations V3',
-    url: '/music/variations_v3.wav'
+    url: `${SUPABASE_URL}/variations_v3.wav`
   },
   {
     id: 'variations_v4',
     name: 'Variations V4',
-    url: '/music/variations_v4.wav'
+    url: `${SUPABASE_URL}/variations_v4.wav`
   },
   {
     id: 'benjamin',
     name: 'Benjamin',
-    url: '/music/benjamin.wav'
+    url: `${SUPABASE_URL}/benjamin.wav`
   },
   {
     id: 'asher_v2',
     name: 'Asher V2',
-    url: '/music/asher_v2.wav'
+    url: `${SUPABASE_URL}/asher_v2.wav`
   },
   {
     id: 'felix_v2',
     name: 'Felix V2',
-    url: '/music/felix_v2.wav'
+    url: `${SUPABASE_URL}/felix_v2.wav`
   }
 ];
 

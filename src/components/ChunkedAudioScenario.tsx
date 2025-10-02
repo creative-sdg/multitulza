@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import { AVAILABLE_VOICES, VoiceOption } from '@/services/elevenLabsService';
 import { AVAILABLE_BRANDS, AVAILABLE_MUSIC, CREATOMATE_TEMPLATES } from '@/services/creatomateService';
+import { uploadMusicToStorage } from '@/utils/uploadMusic';
 
 interface AudioChunk {
   id: number;
@@ -57,6 +58,19 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   
   // Music selection
   const [selectedMusicId, setSelectedMusicId] = useState<string>('');
+  const [isMusicUploaded, setIsMusicUploaded] = useState(false);
+  
+  // Upload music to Storage on component mount
+  useEffect(() => {
+    const uploadMusic = async () => {
+      if (!isMusicUploaded) {
+        await uploadMusicToStorage();
+        setIsMusicUploaded(true);
+        toast.success('Музыкальные треки загружены в Storage');
+      }
+    };
+    uploadMusic();
+  }, [isMusicUploaded]);
   
   // Audio controls
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
