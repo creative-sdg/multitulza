@@ -695,71 +695,61 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
             </div>
 
             <div className="space-y-6">
+              {/* Common Parameters Section */}
+              <div className="space-y-4 p-4 border rounded-lg bg-video-surface-elevated">
+                <h3 className="font-medium text-lg">Общие параметры</h3>
+                <div className="text-xs text-muted-foreground mb-2">
+                  ⚠️ Субтитры и кастомный текст взаимоисключающие: когда субтитры видны, текст скрыт и наоборот
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="subtitle-visibility-global"
+                    checked={subtitleVisibility === 100}
+                    onChange={(e) => handleSubtitleVisibilityChange(e.target.checked ? 100 : 0)}
+                    className="rounded border-video-primary/30"
+                  />
+                  <Label htmlFor="subtitle-visibility-global" className="text-sm">
+                    {subtitleVisibility === 100 ? 'Показать субтитры (текст скрыт)' : 'Показать кастомный текст (субтитры скрыты)'}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="audio-volume-global"
+                    checked={audioVolume === 100}
+                    onChange={(e) => setAudioVolume(e.target.checked ? 100 : 0)}
+                    className="rounded border-video-primary/30"
+                  />
+                  <Label htmlFor="audio-volume-global" className="text-sm">Громкость озвучки</Label>
+                </div>
+              </div>
+
               {/* Size Selection */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Размеры видео</h3>
                  <div className="grid grid-cols-1 gap-3">
-                    {CREATOMATE_TEMPLATES
-                       .filter(template => {
-                         if (scenario === 'chunked-audio') {
-                           // For chunked audio scenario, show chunked and text-emoji templates
-                           return ['chunked-v2', 'chunked-square', 'chunked-horizontal', 'text-emoji', 'text-emoji-v2'].includes(template.size);
-                         }
-                         // For other scenarios, show only non-chunked templates
-                         return ['vertical', 'horizontal', 'square'].includes(template.size);
-                       })
-                     .map(template => (
-                     <div key={template.id}>
-                       <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
-                         <input
-                           type="checkbox"
-                           checked={selectedSizes.includes(template.size)}
-                          onChange={() => {
-                            handleSizeToggle(template.size);
-                            if (template.size === 'text-emoji-v2') {
-                              setSelectedTemplate(template);
-                            }
-                          }}
-                          className="rounded border-video-primary/30"
-                        />
-                        <div>
-                          <p className="font-medium">{template.name}</p>
-                          <p className="text-sm text-muted-foreground">{template.dimensions}</p>
-                        </div>
-                      </label>
-                      
-                      {/* Настройки для 9x16 Text Emoji V2 */}
-                      {template.size === 'text-emoji-v2' && selectedSizes.includes(template.size) && (
-                        <div className="mt-2 ml-8 p-4 border rounded-lg space-y-4 bg-video-surface">
-                          <div className="text-xs text-muted-foreground mb-2">
-                            ⚠️ Субтитры и кастомный текст взаимоисключающие: когда субтитры видны, текст скрыт и наоборот
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="subtitle-visibility"
-                              checked={subtitleVisibility === 100}
-                              onChange={(e) => handleSubtitleVisibilityChange(e.target.checked ? 100 : 0)}
-                              className="rounded border-video-primary/30"
-                            />
-                            <Label htmlFor="subtitle-visibility" className="text-sm">
-                              {subtitleVisibility === 100 ? 'Показать субтитры (текст скрыт)' : 'Показать кастомный текст (субтитры скрыты)'}
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="audio-volume"
-                              checked={audioVolume === 100}
-                              onChange={(e) => setAudioVolume(e.target.checked ? 100 : 0)}
-                              className="rounded border-video-primary/30"
-                            />
-                            <Label htmlFor="audio-volume" className="text-sm">Громкость озвучки</Label>
-                          </div>
-                        </div>
-                      )}
-                     </div>
-                  ))}
+                     {CREATOMATE_TEMPLATES.map(template => (
+                      <div key={template.id}>
+                        <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={selectedSizes.includes(template.size)}
+                           onChange={() => {
+                             handleSizeToggle(template.size);
+                             if (template.size === '9x16') {
+                               setSelectedTemplate(template);
+                             }
+                           }}
+                           className="rounded border-video-primary/30"
+                         />
+                         <div>
+                           <p className="font-medium">{template.name}</p>
+                           <p className="text-sm text-muted-foreground">{template.dimensions}</p>
+                         </div>
+                       </label>
+                      </div>
+                   ))}
                 </div>
               </div>
 

@@ -94,11 +94,10 @@ export class CreatomateService {
     
     // Handle chunked audio scenario and text emoji templates
     if (options?.chunkedAudio && (
-      template.size === 'chunked-v2' || 
-      template.size === 'chunked-square' || 
-      template.size === 'chunked-horizontal' ||
-      template.size === 'text-emoji' ||
-      template.size === 'text-emoji-v2'
+      template.size === '9x16' || 
+      template.size === '16x9' || 
+      template.size === '1x1' ||
+      template.size === '9x16-clean'
     )) {
       console.log('🎵 Processing chunked audio/text scenario...');
       
@@ -110,22 +109,35 @@ export class CreatomateService {
         
         // Set video for each chunk
         if (chunk.videoFile?.url) {
-          modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
-          console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
-          
-          // For square and horizontal templates, also set the _back video
-          if (template.size === 'chunked-square' || template.size === 'chunked-horizontal') {
+          // Set front video
+          if (template.size === '16x9' || template.size === '1x1') {
+            modifications[`Main_Video_${chunkIndex}_front`] = chunk.videoFile.url;
             modifications[`Main_Video_${chunkIndex}_back`] = chunk.videoFile.url;
-            console.log(`📹 Set Main_Video_${chunkIndex}_back: ${chunk.videoFile.url}`);
-            modifications[`Main_Video_${chunkIndex}_back.duration`] = 'media';
-          }
-          
-          // Set video duration based on effective audio duration
-          if (chunk.effectiveDuration) {
-            modifications[`Main_Video_${chunkIndex}.duration`] = chunk.effectiveDuration;
-            console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.effectiveDuration}s`);
+            console.log(`📹 Set Main_Video_${chunkIndex}_front and _back: ${chunk.videoFile.url}`);
+            
+            // Set durations for front and back
+            if (chunk.effectiveDuration) {
+              modifications[`Main_Video_${chunkIndex}_front.duration`] = chunk.effectiveDuration;
+              modifications[`Main_Video_${chunkIndex}_back.duration`] = chunk.effectiveDuration;
+              console.log(`⏱️ Set Main_Video_${chunkIndex}_front and _back duration: ${chunk.effectiveDuration}s`);
+            } else {
+              modifications[`Main_Video_${chunkIndex}_front.duration`] = 2;
+              modifications[`Main_Video_${chunkIndex}_back.duration`] = 2;
+              console.log(`⏱️ Set Main_Video_${chunkIndex}_front and _back duration: 2s (default)`);
+            }
           } else {
-            modifications[`Main_Video_${chunkIndex}.duration`] = 'media';
+            // For 9x16 and 9x16-clean, use normal Main_Video fields
+            modifications[`Main_Video_${chunkIndex}`] = chunk.videoFile.url;
+            console.log(`📹 Set Main_Video_${chunkIndex}: ${chunk.videoFile.url}`);
+            
+            // Set video duration based on effective audio duration
+            if (chunk.effectiveDuration) {
+              modifications[`Main_Video_${chunkIndex}.duration`] = chunk.effectiveDuration;
+              console.log(`⏱️ Set Main_Video_${chunkIndex} duration: ${chunk.effectiveDuration}s`);
+            } else {
+              modifications[`Main_Video_${chunkIndex}.duration`] = 2;
+              console.log(`⏱️ Set Main_Video_${chunkIndex} duration: 2s (default)`);
+            }
           }
         }
         
@@ -179,53 +191,13 @@ export class CreatomateService {
         console.log(`🎯 Set Packshot start time: ${packshotStartTime}s with media duration`);
       }
       
-      // Handle text-emoji specific configurations
-      if (template.size === 'text-emoji') {
-        // For text-emoji template, set 2-second durations for all video chunks
-        for (let i = 1; i <= 10; i++) {
-          modifications[`Main_Video_${i}.duration`] = 2;
-        }
-        console.log('📝 Set all Main_Video durations to 2 seconds for text-emoji template');
-        
-        // Set text blocks if provided in options
-        if (options.textBlocks) {
-          // Apply brand replacement to text blocks if brandName is provided
-          const processedTextBlocks = options.brandName 
-            ? options.textBlocks.map(text => this.applyBrandReplacement(text, options.brandName!))
-            : options.textBlocks;
-          
-          processedTextBlocks.forEach((text, index) => {
-            if (index < 10) {
-              modifications[`Text-${index + 1}.text`] = text;
-              console.log(`📝 Set Text-${index + 1}: ${text}`);
-            }
-          });
-        }
-        
-        // Calculate packshot timing - right after all video chunks
-        const totalVideoDuration = options.chunkedAudio ? options.chunkedAudio.length * 2 : 0;
-        modifications['Packshot.time'] = totalVideoDuration;
-        modifications['Packshot.duration'] = 'media';
-        modifications['duration'] = null;
-        console.log(`🎯 Set Packshot start time: ${totalVideoDuration}s for text-emoji template`);
-        
-      } else if (template.size === 'text-emoji-v2') {
+      // For 9x16-clean, no audio or subtitles - only video
+      if (template.size === '9x16-clean') {
+        console.log('🎬 9x16-clean template - videos only, no audio/subtitles/packshot');
+      } else {
         // Set audio volume and subtitle visibility based on options
         const audioVol = options.audioVolume !== undefined ? `${options.audioVolume}%` : '100%';
         const subtitleOp = options.subtitleVisibility !== undefined ? `${options.subtitleVisibility}%` : '100%';
-        
-        // Set video duration - always use effectiveDuration or 2 seconds minimum
-        for (let i = 1; i <= 10; i++) {
-          const chunk = options.chunkedAudio?.[i - 1];
-          if (chunk?.effectiveDuration) {
-            modifications[`Main_Video_${i}.duration`] = chunk.effectiveDuration;
-            console.log(`⏱️ Set Main_Video_${i} duration to ${chunk.effectiveDuration}s (from chunk effectiveDuration)`);
-          } else {
-            // Default to 2 seconds if no effectiveDuration
-            modifications[`Main_Video_${i}.duration`] = 2;
-            console.log(`⏱️ Set Main_Video_${i} duration to 2s (default)`);
-          }
-        }
         
         // Set audio, subtitles and text with proper timing
         options.chunkedAudio?.forEach((chunk, index) => {
@@ -314,13 +286,6 @@ export class CreatomateService {
         }
         
         console.log(`🎯 Set total video duration: ${calculatedDuration}s, packshot starts at: ${calculatedDuration - estimatedPackshotDuration}s`);
-      } else {
-        // Standard chunked audio processing
-        // Set total video duration to be exactly audio duration + packshot duration (3s default)
-        // This prevents extra empty time at the end
-        const estimatedPackshotDuration = 3; // Standard packshot duration
-        modifications['duration'] = totalAudioDuration + estimatedPackshotDuration;
-        console.log(`🎬 Set total video duration: ${totalAudioDuration + estimatedPackshotDuration}s (audio: ${totalAudioDuration}s + packshot: ~${estimatedPackshotDuration}s)`);
       }
       
     } else {
@@ -350,11 +315,6 @@ export class CreatomateService {
       }
     }
 
-    // Add emoji style for text emoji templates
-    if (template.size === 'text-emoji' || template.size === 'text-emoji-v2') {
-      modifications['emoji_style'] = 'apple';
-      console.log('🍎 Set emoji style to apple');
-    }
 
     const renderRequest: CreatomateRenderRequest = {
       template_id: template.id,
@@ -493,64 +453,40 @@ export const AVAILABLE_BRANDS = [
     id: 'datemyage', 
     name: 'DateMyAge',
     packshots: {
-      vertical: getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
-      square: getPackshotUrl('/packshots/DateMyAge_packshot_1x1.mp4'),
-      horizontal: getPackshotUrl('/packshots/DateMyAge_packshot_16x9.mp4'),
-      test: getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
-      chunked: getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
-      'chunked-v2': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
-      'chunked-square': getPackshotUrl('/packshots/DateMyAge_packshot_1x1.mp4'),
-      'chunked-horizontal': getPackshotUrl('/packshots/DateMyAge_packshot_16x9.mp4'),
-      'text-emoji': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
-      'text-emoji-v2': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4')
+      '9x16': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
+      '16x9': getPackshotUrl('/packshots/DateMyAge_packshot_16x9.mp4'),
+      '1x1': getPackshotUrl('/packshots/DateMyAge_packshot_1x1.mp4'),
+      '9x16-clean': '',
     }
   },
   { 
     id: 'dating', 
     name: 'Dating.Com',
     packshots: {
-      vertical: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
-      square: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
-      horizontal: getPackshotUrl('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
-      test: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
-      chunked: getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
-      'chunked-v2': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
-      'chunked-square': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
-      'chunked-horizontal': getPackshotUrl('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
-      'text-emoji': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
-      'text-emoji-v2': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4')
+      '9x16': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      '16x9': getPackshotUrl('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
+      '1x1': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
+      '9x16-clean': '',
     }
   },
   { 
     id: 'eurodate', 
     name: 'EuroDate',
     packshots: {
-      vertical: getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
-      square: getPackshotUrl('/packshots/EuroDate_packshot_1x1.mp4'),
-      horizontal: getPackshotUrl('/packshots/EuroDate_packshot_16x9.mp4'),
-      test: getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
-      chunked: getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
-      'chunked-v2': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
-      'chunked-square': getPackshotUrl('/packshots/EuroDate_packshot_1x1.mp4'),
-      'chunked-horizontal': getPackshotUrl('/packshots/EuroDate_packshot_16x9.mp4'),
-      'text-emoji': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
-      'text-emoji-v2': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4')
+      '9x16': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
+      '16x9': getPackshotUrl('/packshots/EuroDate_packshot_16x9.mp4'),
+      '1x1': getPackshotUrl('/packshots/EuroDate_packshot_1x1.mp4'),
+      '9x16-clean': '',
     }
   },
   { 
     id: 'ourlove', 
     name: 'OurLove',
     packshots: {
-      vertical: getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
-      square: getPackshotUrl('/packshots/OurLove_packshot_1x1.mp4'),
-      horizontal: getPackshotUrl('/packshots/OurLove_packshot_16x9.mp4'),
-      test: getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
-      chunked: getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
-      'chunked-v2': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
-      'chunked-square': getPackshotUrl('/packshots/OurLove_packshot_1x1.mp4'),
-      'chunked-horizontal': getPackshotUrl('/packshots/OurLove_packshot_16x9.mp4'),
-      'text-emoji': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
-      'text-emoji-v2': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4')
+      '9x16': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
+      '16x9': getPackshotUrl('/packshots/OurLove_packshot_16x9.mp4'),
+      '1x1': getPackshotUrl('/packshots/OurLove_packshot_1x1.mp4'),
+      '9x16-clean': '',
     }
   }
 ];
@@ -612,78 +548,40 @@ export const AVAILABLE_MUSIC = [
 // Template configurations with real Creatomate template IDs
 export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
   {
-    id: '41a34610-feae-4e0d-9725-b8157f7de781',
-    name: '9:16 Вертикальное',
-    size: 'vertical',
-    dimensions: '1080x1920',
-    mainVideoField: 'Main_Video',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
-    id: 'c9aa2c57-d883-4a1e-85dd-020f4e911a70',
-    name: '16:9 Горизонтальное',
-    size: 'horizontal',
-    dimensions: '1920x1080',
-    mainVideoField: 'Main_Video_front, Main_Video_back',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
-    id: '41e18070-2198-43f2-9503-807fbbd5f749',
-    name: '1:1 Квадратное',
-    size: 'square',
-    dimensions: '1080x1080',
-    mainVideoField: 'Main_Video_front, Main_Video_back',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
-    id: 'f355b779-a825-473e-bba3-434e404c7030',
-    name: '9x16',
-    size: 'chunked-v2',
-    dimensions: '1080x1920',
-    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
-    id: 'd858c331-52b5-4916-a2f5-f7e1ae4d7493',
-    name: '1x1',
-    size: 'chunked-square',
-    dimensions: '1080x1080',
-    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
-    id: '105d7ae4-294c-496a-b7af-9b1c35af6dbe',
-    name: '16x9',
-    size: 'chunked-horizontal',
-    dimensions: '1920x1080',
-    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
-    packshotField: 'Packshot',
-    supportsSubtitles: true
-  },
-  {
-    id: 'bb27c72e-a8a7-4471-b412-d5cfd8a53381',
-    name: '9x16 Text Emoji',
-    size: 'text-emoji',
-    dimensions: '1080x1920',
-    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
-    packshotField: 'Packshot',
-    supportsSubtitles: false,
-    textMode: true
-  },
-  {
     id: '4a4c47f1-555c-414f-b45a-1905be6b591d',
-    name: '9x16 Text Emoji V2',
-    size: 'text-emoji-v2',
+    name: '9x16',
+    size: '9x16',
     dimensions: '1080x1920',
     mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
     packshotField: 'Packshot',
-    supportsSubtitles: true,
-    textMode: true
+    supportsSubtitles: true
+  },
+  {
+    id: '0dc9573f-22e8-42c0-bac9-b85e7dd349b9',
+    name: '16x9',
+    size: '16x9',
+    dimensions: '1920x1080',
+    mainVideoField: 'Main_Video_1_front,Main_Video_2_front,Main_Video_3_front,Main_Video_4_front,Main_Video_5_front,Main_Video_6_front,Main_Video_7_front,Main_Video_8_front,Main_Video_9_front,Main_Video_10_front',
+    packshotField: 'Packshot',
+    supportsSubtitles: true
+  },
+  {
+    id: '19105fe5-452a-4740-a513-73bbbaedec05',
+    name: '1x1',
+    size: '1x1',
+    dimensions: '1080x1080',
+    mainVideoField: 'Main_Video_1_front,Main_Video_2_front,Main_Video_3_front,Main_Video_4_front,Main_Video_5_front,Main_Video_6_front,Main_Video_7_front,Main_Video_8_front,Main_Video_9_front,Main_Video_10_front',
+    packshotField: 'Packshot',
+    supportsSubtitles: true
+  },
+  {
+    id: '98d7ccf8-03a1-4b8f-b0cf-7b27d40a8853',
+    name: '9x16 (clean)',
+    size: '9x16-clean',
+    dimensions: '1080x1920',
+    mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
+    packshotField: '',
+    supportsSubtitles: false
   }
 ];
 
