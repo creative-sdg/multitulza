@@ -294,17 +294,23 @@ export class CreatomateService {
           });
         }
         
-        // Calculate duration based on audio vs text mode
+        // Calculate duration based on audio vs text mode and template
         let calculatedDuration = 0;
         const estimatedPackshotDuration = 3;
         
-        if (audioVol === '0%') {
-          // Text mode - use 2 seconds per text block
+        // For clean template (no packshot), duration = only audio
+        const isCleanTemplate = !template.packshotField || template.packshotField === '';
+        
+        if (isCleanTemplate) {
+          calculatedDuration = totalAudioDuration;
+          console.log(`🎬 Clean version: duration = ${totalAudioDuration}s (no packshot)`);
+        } else if (audioVol === '0%') {
+          // Text mode - use 2 seconds per text block + packshot
           const textBlockCount = options.chunkedAudio ? options.chunkedAudio.length : 0;
           calculatedDuration = textBlockCount * 2 + estimatedPackshotDuration;
           console.log(`📝 Text mode: ${textBlockCount} blocks × 2s + ${estimatedPackshotDuration}s packshot = ${calculatedDuration}s`);
         } else {
-          // Audio mode - use audio duration
+          // Audio mode - use audio duration + packshot
           calculatedDuration = totalAudioDuration + estimatedPackshotDuration;
           console.log(`🔊 Audio mode: ${totalAudioDuration}s audio + ${estimatedPackshotDuration}s packshot = ${calculatedDuration}s`);
         }
@@ -318,12 +324,13 @@ export class CreatomateService {
           console.log(`🎯 Set Packshot timing: starts at ${totalAudioDuration}s`);
         }
         
-        // Add music if provided (for all templates except 9x16-clean)
+        // Add music if provided
         if (options.musicUrl) {
           modifications['Song'] = options.musicUrl;
-          modifications['Song.duration'] = 'media'; // Use media duration
+          // Music duration = audio + packshot (for all templates including clean)
+          modifications['Song.duration'] = calculatedDuration;
           modifications['Song.provider'] = null;
-          console.log(`🎵 Set music: ${options.musicUrl} with media duration`);
+          console.log(`🎵 Set music: ${options.musicUrl} with duration: ${calculatedDuration}s`);
         }
         
         // Set emoji style to iPhone for all templates
