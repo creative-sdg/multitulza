@@ -484,7 +484,17 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-video-primary" />
-            <h3 className="text-lg font-semibold">Загрузка текстов из Google Sheets</h3>
+            <h3 className="text-lg font-semibold">
+              Загрузка текстов из{' '}
+              <a 
+                href="https://docs.google.com/spreadsheets/d/18fQlTTutBAtuS3NUCEGGmjou5wfw0nj_X3J8Kv88eMM/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-video-primary hover:underline"
+              >
+                Google Sheets
+              </a>
+            </h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -557,18 +567,39 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
             
             <div>
               <Label>Выберите музыкальный трек</Label>
-              <Select value={selectedMusicId} onValueChange={setSelectedMusicId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Выберите трек..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_MUSIC.map(track => (
-                    <SelectItem key={track.id} value={track.id}>
-                      {track.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={selectedMusicId} onValueChange={setSelectedMusicId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите трек..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_MUSIC.map(track => (
+                      <SelectItem key={track.id} value={track.id}>
+                        {track.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedMusicId && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const track = AVAILABLE_MUSIC.find(m => m.id === selectedMusicId);
+                      if (track) {
+                        const audio = new Audio(track.url);
+                        audio.play().catch(error => {
+                          console.error('Error playing music:', error);
+                          toast.error('Ошибка воспроизведения музыки');
+                        });
+                      }
+                    }}
+                    className="border-video-primary/30"
+                  >
+                    <Play className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               {selectedMusicId && (
                 <div className="mt-2 p-2 bg-video-surface-elevated rounded text-xs text-muted-foreground">
                   Выбран трек: {AVAILABLE_MUSIC.find(m => m.id === selectedMusicId)?.name}

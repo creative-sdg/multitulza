@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Upload, Play, Download, Zap, Video, Settings, Key, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import ChunkedAudioScenario from '@/components/ChunkedAudioScenario';
-import { uploadPackshotsToStorage } from '@/utils/uploadPackshots';
 
 // Helper function to apply brand replacement to text
 const applyBrandReplacement = (text: string, brandName: string): string => {
@@ -89,22 +89,6 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
   const [apiKey, setApiKey] = useState<string>('d4a139301941487db1cd588ba460366fe6cee2119361a4440d2846440738d92dfe9053c8c55cedcbcfa5ef6131916e22');
   const [creatomateService, setCreatomateService] = useState<CreatomateService | null>(null);
   const { uploadVideo, isUploading, uploadProgress } = useVideoUpload();
-  
-  // Packshots upload state
-  const [isUploadingPackshots, setIsUploadingPackshots] = useState(false);
-
-  const handleUploadPackshots = async () => {
-    setIsUploadingPackshots(true);
-    toast.info('Загружаю packshots в облако...');
-    try {
-      await uploadPackshotsToStorage();
-    } catch (error) {
-      console.error('Error uploading packshots:', error);
-      toast.error('Ошибка загрузки packshots');
-    } finally {
-      setIsUploadingPackshots(false);
-    }
-  };
 
 
 
@@ -510,6 +494,53 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
 
   return (
     <div className="min-h-screen bg-background p-6">
+      {/* API Settings Button - Fixed in top right corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full shadow-lg bg-video-surface border-video-primary/30 hover:bg-video-primary/10"
+            >
+              <Settings className="h-5 w-5 text-video-primary" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-video-surface border-video-primary/20">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5 text-video-primary" />
+                Настройка API
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="api-key">Creatomate API Key</Label>
+                <Input
+                  id="api-key"
+                  type="password"
+                  placeholder="Введите ваш API ключ Creatomate"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="bg-video-surface-elevated border-video-primary/30"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Получите API ключ на{' '}
+                  <a 
+                    href="https://creatomate.com/dashboard" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-video-primary hover:underline"
+                  >
+                    панели управления Creatomate
+                  </a>
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -524,24 +555,6 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
             </p>
         </div>
 
-        {/* Upload Packshots Button */}
-        <Card className="p-6 bg-video-surface border-video-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Настройка packshots</h3>
-              <p className="text-sm text-muted-foreground">
-                Загрузите packshots в облако (нужно сделать один раз)
-              </p>
-            </div>
-            <Button
-              onClick={handleUploadPackshots}
-              disabled={isUploadingPackshots}
-              className="bg-video-primary hover:bg-video-primary/90"
-            >
-              {isUploadingPackshots ? 'Загружаю...' : 'Загрузить Packshots'}
-            </Button>
-          </div>
-        </Card>
 
         {/* Scenario Selection */}
         {!propScenario && !scenario && (
@@ -591,40 +604,6 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           />
         )}
 
-        {/* API Key Section */}
-        {scenario && (
-        <Card className="p-8 bg-video-surface border-video-primary/20">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Key className="h-6 w-6 text-video-primary" />
-              <h2 className="text-2xl font-semibold">Настройка API</h2>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="api-key">Creatomate API Key</Label>
-              <Input
-                id="api-key"
-                type="password"
-                placeholder="Введите ваш API ключ Creatomate"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="bg-video-surface-elevated border-video-primary/30"
-              />
-              <p className="text-sm text-muted-foreground">
-                Получите API ключ на{' '}
-                <a 
-                  href="https://creatomate.com/dashboard" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-video-primary hover:underline"
-                >
-                  панели управления Creatomate
-                </a>
-              </p>
-            </div>
-          </div>
-        </Card>
-        )}
 
         {/* Upload Section */}
         {scenario === 'with-audio' && (
