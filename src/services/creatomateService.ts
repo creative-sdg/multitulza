@@ -219,7 +219,16 @@ export class CreatomateService {
           modifications[`element_subtitles_${i}.opacity`] = subtitleOp;
           if (chunk.startTime !== undefined) {
             modifications[`element_subtitles_${i}.time`] = chunk.startTime;
-            console.log(`⏰ Set element_subtitles_${i} start time: ${chunk.startTime}s`);
+            
+            // Ensure subtitles end before packshot starts
+            if (chunk.effectiveDuration && packshotUrl) {
+              const maxDuration = totalAudioDuration - chunk.startTime;
+              const subtitleDuration = Math.min(chunk.effectiveDuration, maxDuration);
+              modifications[`element_subtitles_${i}.duration`] = subtitleDuration;
+              console.log(`⏰ Set element_subtitles_${i} start: ${chunk.startTime}s, duration: ${subtitleDuration}s (capped before packshot)`);
+            } else {
+              console.log(`⏰ Set element_subtitles_${i} start time: ${chunk.startTime}s`);
+            }
           }
           modifications[`element_subtitles_${i}.transcript_source`] = `Audio_${i}`;
         });
@@ -247,19 +256,27 @@ export class CreatomateService {
               const chunk = options.chunkedAudio?.[index];
               if (chunk?.startTime !== undefined) {
                 modifications[`Text-${index + 1}.time`] = chunk.startTime;
-                console.log(`⏰ Set Text-${index + 1} start time: ${chunk.startTime}s`);
+                
+                // Set text duration based on audio mode
+                if (audioVol === '0%') {
+                  // No audio mode - use 2 seconds per text block
+                  modifications[`Text-${index + 1}.duration`] = 2;
+                } else if (chunk?.effectiveDuration) {
+                  // Audio mode - ensure text ends before packshot starts
+                  if (packshotUrl) {
+                    const maxDuration = totalAudioDuration - chunk.startTime;
+                    const textDuration = Math.min(chunk.effectiveDuration, maxDuration);
+                    modifications[`Text-${index + 1}.duration`] = textDuration;
+                    console.log(`⏰ Set Text-${index + 1} start: ${chunk.startTime}s, duration: ${textDuration}s (capped before packshot)`);
+                  } else {
+                    // No packshot - use full duration
+                    modifications[`Text-${index + 1}.duration`] = chunk.effectiveDuration;
+                    console.log(`⏰ Set Text-${index + 1} start: ${chunk.startTime}s, duration: ${chunk.effectiveDuration}s`);
+                  }
+                }
+                
+                console.log(`📝 Set Text-${index + 1}: ${text} (opacity: ${textOpacity})`);
               }
-              
-              // Set text duration based on audio mode
-              if (audioVol === '0%') {
-                // No audio mode - use 2 seconds per text block
-                modifications[`Text-${index + 1}.duration`] = 2;
-              } else if (chunk?.effectiveDuration) {
-                // Audio mode - use chunk duration
-                modifications[`Text-${index + 1}.duration`] = chunk.effectiveDuration;
-              }
-              
-              console.log(`📝 Set Text-${index + 1}: ${text} (duration: ${audioVol === '0%' ? '2s' : chunk?.effectiveDuration || 'auto'}s, opacity: ${textOpacity})`);
             }
           });
         }
