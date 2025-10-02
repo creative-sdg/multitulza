@@ -321,9 +321,9 @@ export class CreatomateService {
         // Add music if provided (for all templates except 9x16-clean)
         if (options.musicUrl) {
           modifications['Song'] = options.musicUrl;
-          modifications['Song.duration'] = calculatedDuration; // Music duration matches total video duration including packshot
+          modifications['Song.duration'] = 'media'; // Use media duration
           modifications['Song.provider'] = null;
-          console.log(`🎵 Set music: ${options.musicUrl} with duration: ${calculatedDuration}s`);
+          console.log(`🎵 Set music: ${options.musicUrl} with media duration`);
         }
         
         // Set emoji style to iPhone for all templates
