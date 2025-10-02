@@ -85,8 +85,8 @@ export class CreatomateService {
     // Start rendering with the URLs
     const modifications: any = {};
     
-    // Add packshot only if provided and template supports it
-    if (packshotUrl && template.packshotField) {
+    // Add packshot only if provided and template supports it (not for 9x16-clean)
+    if (packshotUrl && template.packshotField && template.size !== '9x16-clean') {
       // Packshot URL should already be a full URL from storage
       modifications[template.packshotField] = packshotUrl;
       console.log(`🎯 Packshot URL: ${packshotUrl}`);
@@ -184,16 +184,21 @@ export class CreatomateService {
       // Calculate packshot timing and total duration
       const packshotStartTime = totalAudioDuration;
       
-      // Set packshot properties  
-      if (packshotUrl && template.packshotField) {
+      // Set packshot properties only if packshot is provided AND template supports it
+      // Don't set packshot for 9x16-clean or if packshotUrl is empty
+      if (packshotUrl && template.packshotField && template.size !== '9x16-clean') {
         modifications['Packshot.time'] = packshotStartTime;
         modifications['Packshot.duration'] = 'media'; // Use actual media duration
         console.log(`🎯 Set Packshot start time: ${packshotStartTime}s with media duration`);
       }
       
-      // For 9x16-clean, no audio or subtitles - only video
+      // For 9x16-clean, set duration without packshot
       if (template.size === '9x16-clean') {
         console.log('🎬 9x16-clean template - videos only, no audio/subtitles/packshot');
+        
+        // Set duration based on total audio duration (without packshot)
+        modifications['duration'] = totalAudioDuration;
+        console.log(`🎯 Set 9x16-clean total duration: ${totalAudioDuration}s (no packshot)`);
       } else {
         // Set audio volume and subtitle visibility based on options
         const audioVol = options.audioVolume !== undefined ? `${options.audioVolume}%` : '100%';
@@ -275,8 +280,13 @@ export class CreatomateService {
         }
         
         modifications['duration'] = calculatedDuration;
-        modifications['Packshot.time'] = calculatedDuration - estimatedPackshotDuration;
-        modifications['Packshot.duration'] = 'media';
+        
+        // Only set packshot timing if packshot is provided and template supports it
+        if (packshotUrl && template.packshotField) {
+          modifications['Packshot.time'] = calculatedDuration - estimatedPackshotDuration;
+          modifications['Packshot.duration'] = 'media';
+          console.log(`🎯 Set Packshot timing: starts at ${calculatedDuration - estimatedPackshotDuration}s`);
+        }
         
         // Add music if provided
         if (options.musicUrl) {
