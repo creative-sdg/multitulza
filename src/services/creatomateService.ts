@@ -332,9 +332,9 @@ export class CreatomateService {
           console.log(`🎵 Set music: ${options.musicUrl} with media duration`);
         }
         
-        // Set emoji style to iPhone for all templates
-        modifications['emoji_style'] = 'iphone';
-        console.log(`😊 Set emoji style: iPhone`);
+        // Set emoji style to Apple (iPhone emojis) for all templates
+        modifications['emoji_style'] = 'apple';
+        console.log(`😊 Set emoji style: Apple (iPhone)`);
         
         console.log(`🎯 Set total video duration: ${calculatedDuration}s, packshot starts at: ${totalAudioDuration}s`);
       }
