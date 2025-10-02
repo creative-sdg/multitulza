@@ -7,16 +7,16 @@ interface MusicFile {
 }
 
 const MUSIC_FILES: MusicFile[] = [
-  { localPath: '/music/lucas_v2.wav', storagePath: 'music/lucas_v2.wav' },
-  { localPath: '/music/povdate_esp.wav', storagePath: 'music/povdate_esp.wav' },
-  { localPath: '/music/nelson_v1.wav', storagePath: 'music/nelson_v1.wav' },
-  { localPath: '/music/variations_v1.wav', storagePath: 'music/variations_v1.wav' },
-  { localPath: '/music/variations_v2.wav', storagePath: 'music/variations_v2.wav' },
-  { localPath: '/music/variations_v3.wav', storagePath: 'music/variations_v3.wav' },
-  { localPath: '/music/variations_v4.wav', storagePath: 'music/variations_v4.wav' },
-  { localPath: '/music/benjamin.wav', storagePath: 'music/benjamin.wav' },
-  { localPath: '/music/asher_v2.wav', storagePath: 'music/asher_v2.wav' },
-  { localPath: '/music/felix_v2.wav', storagePath: 'music/felix_v2.wav' },
+  { localPath: '/music/lucas_v2.mp3', storagePath: 'music/lucas_v2.mp3' },
+  { localPath: '/music/povdate_esp.mp3', storagePath: 'music/povdate_esp.mp3' },
+  { localPath: '/music/nelson_v1.mp3', storagePath: 'music/nelson_v1.mp3' },
+  { localPath: '/music/variations_v1.mp3', storagePath: 'music/variations_v1.mp3' },
+  { localPath: '/music/variations_v2.mp3', storagePath: 'music/variations_v2.mp3' },
+  { localPath: '/music/variations_v3.mp3', storagePath: 'music/variations_v3.mp3' },
+  { localPath: '/music/variations_v4.mp3', storagePath: 'music/variations_v4.mp3' },
+  { localPath: '/music/benjamin.mp3', storagePath: 'music/benjamin.mp3' },
+  { localPath: '/music/asher_v2.mp3', storagePath: 'music/asher_v2.mp3' },
+  { localPath: '/music/felix_v2.mp3', storagePath: 'music/felix_v2.mp3' },
 ];
 
 export async function uploadMusicToStorage(): Promise<void> {
@@ -53,7 +53,7 @@ export async function uploadMusicToStorage(): Promise<void> {
       const { error } = await supabase.storage
         .from('videos')
         .upload(music.storagePath, blob, {
-          contentType: 'audio/wav',
+          contentType: 'audio/mpeg',
           upsert: false
         });
 

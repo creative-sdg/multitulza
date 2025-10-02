@@ -549,52 +549,52 @@ export const AVAILABLE_MUSIC = [
   {
     id: 'lucas_v2',
     name: 'Lucas V2',
-    url: `${CLOUD_URL}/lucas_v2.wav`
+    url: `${CLOUD_URL}/lucas_v2.mp3`
   },
   {
     id: 'povdate_esp',
     name: 'POV Date ESP',
-    url: `${CLOUD_URL}/povdate_esp.wav`
+    url: `${CLOUD_URL}/povdate_esp.mp3`
   },
   {
     id: 'nelson_v1',
     name: 'Nelson V1',
-    url: `${CLOUD_URL}/nelson_v1.wav`
+    url: `${CLOUD_URL}/nelson_v1.mp3`
   },
   {
     id: 'variations_v1',
     name: 'Variations V1',
-    url: `${CLOUD_URL}/variations_v1.wav`
+    url: `${CLOUD_URL}/variations_v1.mp3`
   },
   {
     id: 'variations_v2',
     name: 'Variations V2',
-    url: `${CLOUD_URL}/variations_v2.wav`
+    url: `${CLOUD_URL}/variations_v2.mp3`
   },
   {
     id: 'variations_v3',
     name: 'Variations V3',
-    url: `${CLOUD_URL}/variations_v3.wav`
+    url: `${CLOUD_URL}/variations_v3.mp3`
   },
   {
     id: 'variations_v4',
     name: 'Variations V4',
-    url: `${CLOUD_URL}/variations_v4.wav`
+    url: `${CLOUD_URL}/variations_v4.mp3`
   },
   {
     id: 'benjamin',
     name: 'Benjamin',
-    url: `${CLOUD_URL}/benjamin.wav`
+    url: `${CLOUD_URL}/benjamin.mp3`
   },
   {
     id: 'asher_v2',
     name: 'Asher V2',
-    url: `${CLOUD_URL}/asher_v2.wav`
+    url: `${CLOUD_URL}/asher_v2.mp3`
   },
   {
     id: 'felix_v2',
     name: 'Felix V2',
-    url: `${CLOUD_URL}/felix_v2.wav`
+    url: `${CLOUD_URL}/felix_v2.mp3`
   }
 ];
 
