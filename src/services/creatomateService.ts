@@ -324,13 +324,12 @@ export class CreatomateService {
           console.log(`🎯 Set Packshot timing: starts at ${totalAudioDuration}s`);
         }
         
-        // Add music if provided
-        if (options.musicUrl) {
+        // Add music if provided (not for clean template)
+        if (options.musicUrl && template.packshotField) {
           modifications['Song'] = options.musicUrl;
-          // Music duration = audio + packshot (for all templates including clean)
-          modifications['Song.duration'] = calculatedDuration;
+          modifications['Song.duration'] = 'media';
           modifications['Song.provider'] = null;
-          console.log(`🎵 Set music: ${options.musicUrl} with duration: ${calculatedDuration}s`);
+          console.log(`🎵 Set music: ${options.musicUrl} with media duration`);
         }
         
         // Set emoji style to iPhone for all templates
