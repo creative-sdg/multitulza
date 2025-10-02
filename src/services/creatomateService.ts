@@ -542,59 +542,59 @@ export const AVAILABLE_BRANDS = [
   }
 ];
 
-// Available music tracks - now using Supabase Storage URLs
-const SUPABASE_URL = 'https://xvxwcqormajrczdmiuul.supabase.co/storage/v1/object/public/videos/music';
+// Available music tracks - using cloud storage URLs
+const CLOUD_URL = 'https://xvxwcqormajrczdmiuul.supabase.co/storage/v1/object/public/videos/music';
 
 export const AVAILABLE_MUSIC = [
   {
     id: 'lucas_v2',
     name: 'Lucas V2',
-    url: `${SUPABASE_URL}/lucas_v2.wav`
+    url: `${CLOUD_URL}/lucas_v2.wav`
   },
   {
     id: 'povdate_esp',
     name: 'POV Date ESP',
-    url: `${SUPABASE_URL}/povdate_esp.wav`
+    url: `${CLOUD_URL}/povdate_esp.wav`
   },
   {
     id: 'nelson_v1',
     name: 'Nelson V1',
-    url: `${SUPABASE_URL}/nelson_v1.wav`
+    url: `${CLOUD_URL}/nelson_v1.wav`
   },
   {
     id: 'variations_v1',
     name: 'Variations V1',
-    url: `${SUPABASE_URL}/variations_v1.wav`
+    url: `${CLOUD_URL}/variations_v1.wav`
   },
   {
     id: 'variations_v2',
     name: 'Variations V2',
-    url: `${SUPABASE_URL}/variations_v2.wav`
+    url: `${CLOUD_URL}/variations_v2.wav`
   },
   {
     id: 'variations_v3',
     name: 'Variations V3',
-    url: `${SUPABASE_URL}/variations_v3.wav`
+    url: `${CLOUD_URL}/variations_v3.wav`
   },
   {
     id: 'variations_v4',
     name: 'Variations V4',
-    url: `${SUPABASE_URL}/variations_v4.wav`
+    url: `${CLOUD_URL}/variations_v4.wav`
   },
   {
     id: 'benjamin',
     name: 'Benjamin',
-    url: `${SUPABASE_URL}/benjamin.wav`
+    url: `${CLOUD_URL}/benjamin.wav`
   },
   {
     id: 'asher_v2',
     name: 'Asher V2',
-    url: `${SUPABASE_URL}/asher_v2.wav`
+    url: `${CLOUD_URL}/asher_v2.wav`
   },
   {
     id: 'felix_v2',
     name: 'Felix V2',
-    url: `${SUPABASE_URL}/felix_v2.wav`
+    url: `${CLOUD_URL}/felix_v2.wav`
   }
 ];
 

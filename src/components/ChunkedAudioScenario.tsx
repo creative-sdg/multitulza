@@ -58,19 +58,16 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   
   // Music selection
   const [selectedMusicId, setSelectedMusicId] = useState<string>('');
-  const [isMusicUploaded, setIsMusicUploaded] = useState(false);
   
-  // Upload music to Storage on component mount
+  // Upload music on first load (one-time)
   useEffect(() => {
-    const uploadMusic = async () => {
-      if (!isMusicUploaded) {
-        await uploadMusicToStorage();
-        setIsMusicUploaded(true);
-        toast.success('Музыкальные треки загружены в Storage');
-      }
-    };
-    uploadMusic();
-  }, [isMusicUploaded]);
+    const hasUploadedMusic = localStorage.getItem('musicUploaded');
+    if (!hasUploadedMusic) {
+      uploadMusicToStorage().then(() => {
+        localStorage.setItem('musicUploaded', 'true');
+      });
+    }
+  }, []);
   
   // Audio controls
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
