@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
+import VideoGenerator from "./pages/VideoGenerator";
 import ResizeRebrand from "./pages/ResizeRebrand";
 import ChunkedAudio from "./pages/ChunkedAudio";
 import Navigation from "./components/Navigation";
@@ -20,6 +21,7 @@ const App = () => (
         <Navigation />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/video-generator" element={<VideoGenerator />} />
           <Route path="/resize-rebrand" element={<ResizeRebrand />} />
           <Route path="/chunked-audio" element={<ChunkedAudio />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
