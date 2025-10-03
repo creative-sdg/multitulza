@@ -33,15 +33,15 @@ const Home = () => {
           </Button>
           
           <Button
-            disabled
-            className="h-48 flex-col gap-6 bg-muted/50 text-muted-foreground border-2 border-border/30 cursor-not-allowed"
+            onClick={() => navigate('/character-studio')}
+            className="h-48 flex-col gap-6 bg-video-surface-elevated hover:bg-video-primary/10 text-foreground border-2 border-video-primary/30 hover:border-video-primary/50 transition-all"
             variant="outline"
           >
-            <Wrench className="h-12 w-12" />
+            <Wrench className="h-12 w-12 text-video-primary" />
             <div className="text-center space-y-2">
-              <div className="text-xl font-semibold">Второй инструмент</div>
-              <div className="text-sm">
-                Скоро будет доступен
+              <div className="text-xl font-semibold">Character Studio</div>
+              <div className="text-sm text-muted-foreground">
+                Генерируйте персонажей с AI: профиль, сцены, изображения и видео
               </div>
             </div>
           </Button>
