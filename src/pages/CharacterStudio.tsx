@@ -8,10 +8,11 @@ import { SettingsModal } from '@/components/conjuring/SettingsModal';
 import { HistorySidebar } from '@/components/conjuring/HistorySidebar';
 import { PromptCard } from '@/components/conjuring/PromptCard';
 import { GenerateAllModal } from '@/components/conjuring/GenerateAllModal';
+import { ImageCropperModal } from '@/components/conjuring/ImageCropperModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Sparkles, Settings, Package, Loader2, RefreshCw, Video } from 'lucide-react';
+import { Sparkles, Settings, Package, Loader2, RefreshCw, Video, Crop } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCharacterProfile, generateImagePrompts, hasGeminiApiKey } from '@/services/conjuring/geminiService';
 import { hasFalApiKey, generateImageFal } from '@/services/conjuring/falService';
@@ -34,6 +35,7 @@ const CharacterStudio: React.FC = () => {
   const [currentImageId, setCurrentImageId] = useState<string>('');
   const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
   const [generatingPromptIndices, setGeneratingPromptIndices] = useState<Set<number>>(new Set());
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
   const { toast } = useToast();
 
   // Load history from localStorage
@@ -258,6 +260,19 @@ const CharacterStudio: React.FC = () => {
         newPrompts[i].generatedImageUrl = imageUrl_;
         setImagePrompts(newPrompts);
         
+        // Update history with generated image
+        const updatedHistory = history.map(item => {
+          if (item.id === currentImageId || item.imageId === currentImageId) {
+            return {
+              ...item,
+              imagePrompts: newPrompts
+            };
+          }
+          return item;
+        });
+        setHistory(updatedHistory);
+        localStorage.setItem('conjuring-history', JSON.stringify(updatedHistory));
+        
         toast({
           title: "Изображение готово",
           description: `Сцена "${imagePrompts[i].scene}" сгенерирована`,
@@ -267,6 +282,19 @@ const CharacterStudio: React.FC = () => {
         const newPrompts = [...imagePrompts];
         newPrompts[i].generationError = error.message;
         setImagePrompts(newPrompts);
+        
+        // Update history even with error
+        const updatedHistory = history.map(item => {
+          if (item.id === currentImageId || item.imageId === currentImageId) {
+            return {
+              ...item,
+              imagePrompts: newPrompts
+            };
+          }
+          return item;
+        });
+        setHistory(updatedHistory);
+        localStorage.setItem('conjuring-history', JSON.stringify(updatedHistory));
       } finally {
         setGeneratingPromptIndices(prev => {
           const newSet = new Set(prev);
@@ -316,6 +344,18 @@ const CharacterStudio: React.FC = () => {
           <div>
             <h2 className="text-xl font-semibold mb-4">Загрузите изображение персонажа</h2>
             <ImageUploader imageUrl={imageUrl} onImageChange={handleImageChange} />
+            {imageUrl && (
+              <div className="mt-4 flex justify-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsCropperOpen(true)}
+                  className="gap-2"
+                >
+                  <Crop className="w-4 h-4" />
+                  Crop / Reframe Image
+                </Button>
+              </div>
+            )}
           </div>
 
           {characterProfile && (
@@ -453,6 +493,53 @@ const CharacterStudio: React.FC = () => {
         )}
 
         <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+        
+        <ImageCropperModal 
+          isOpen={isCropperOpen}
+          onOpenChange={setIsCropperOpen}
+          imageUrl={imageUrl}
+          onCropComplete={async (croppedUrl) => {
+            setImageUrl(croppedUrl);
+            
+            // Save cropped image to IndexedDB
+            const imageId = currentImageId || `char-${Date.now()}`;
+            try {
+              const response = await fetch(croppedUrl);
+              const blob = await response.blob();
+              await saveImage(imageId, blob);
+              setCurrentImageId(imageId);
+            } catch (error) {
+              console.error('Failed to save cropped image:', error);
+            }
+            
+            setIsCropperOpen(false);
+            toast({
+              title: "Изображение обрезано",
+              description: "Изображение успешно обрезано",
+            });
+          }}
+          onCancel={() => setIsCropperOpen(false)}
+          onAiReframeComplete={async (reframedUrl) => {
+            setImageUrl(reframedUrl);
+            
+            // Save reframed image to IndexedDB
+            const imageId = currentImageId || `char-${Date.now()}`;
+            try {
+              const response = await fetch(reframedUrl);
+              const blob = await response.blob();
+              await saveImage(imageId, blob);
+              setCurrentImageId(imageId);
+            } catch (error) {
+              console.error('Failed to save reframed image:', error);
+            }
+            
+            setIsCropperOpen(false);
+            toast({
+              title: "Изображение перекадрировано",
+              description: "AI успешно перекадрировало изображение",
+            });
+          }}
+        />
         
         <Sheet open={assetsOpen} onOpenChange={setAssetsOpen}>
           <SheetContent side="right" className="w-full max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-50">
