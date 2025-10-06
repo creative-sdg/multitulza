@@ -1,8 +1,8 @@
 
 
-
 import { fal } from '@fal-ai/client';
 import type { ImageGenerationModel, VideoGenerationModel, VideoResolution, VideoDuration, GeneratedMedia } from '@/types/conjuring';
+import { optimizePrompt } from '@/utils/conjuring/promptOptimizer';
 
 const FAL_API_KEY_STORAGE_KEY = 'fal-api-key';
 
@@ -45,7 +45,11 @@ export const generateImageFal = async (prompt: string, imageBlob: Blob, model: I
     try {
         let result: any;
 
-        // With ImageGenerationModel now only being 'nano-banana', this is the only path.
+        // Optimize prompt for nano-banana
+        const optimizedPrompt = optimizePrompt(prompt, 'nano-banana');
+        console.log('Original prompt:', prompt);
+        console.log('Optimized for nano-banana:', optimizedPrompt);
+        
         const modelId = 'fal-ai/nano-banana/edit';
         
         const imageUrls: string[] = [];
@@ -59,7 +63,7 @@ export const generateImageFal = async (prompt: string, imageBlob: Blob, model: I
         
         result = await fal.subscribe(modelId, {
             input: {
-                prompt,
+                prompt: optimizedPrompt,
                 image_urls: imageUrls,
             },
         });
@@ -275,12 +279,17 @@ export const editImageFal = async (
     });
 
     try {
+        // Optimize prompt for nano-banana
+        const optimizedPrompt = optimizePrompt(prompt, 'nano-banana');
+        console.log('Original prompt:', prompt);
+        console.log('Optimized for nano-banana:', optimizedPrompt);
+        
         const modelId = 'fal-ai/nano-banana/edit';
         const imageUrl = await fal.storage.upload(imageBlob);
 
         const result: any = await fal.subscribe(modelId, {
             input: {
-                prompt,
+                prompt: optimizedPrompt,
                 image_urls: [imageUrl],
                 num_images: numImages,
             },
