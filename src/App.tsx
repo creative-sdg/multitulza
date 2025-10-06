@@ -8,6 +8,7 @@ import VideoGenerator from "./pages/VideoGenerator";
 import ResizeRebrand from "./pages/ResizeRebrand";
 import ChunkedAudio from "./pages/ChunkedAudio";
 import CharacterStudio from "./pages/CharacterStudio";
+import CreationPage from "./pages/Creation";
 import Navigation from "./components/Navigation";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/resize-rebrand" element={<ResizeRebrand />} />
           <Route path="/chunked-audio" element={<ChunkedAudio />} />
           <Route path="/character-studio" element={<CharacterStudio />} />
+          <Route path="/creation/:characterId/:promptIndex" element={<CreationPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

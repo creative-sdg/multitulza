@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ImageUploader } from '@/components/conjuring/ImageUploader';
 import { CharacterProfileCard } from '@/components/conjuring/CharacterProfileCard';
 import { GenerationModeSelector } from '@/components/conjuring/GenerationModeSelector';
@@ -19,6 +20,7 @@ import { getActivities, getAactivityCounts } from '@/services/conjuring/activity
 import type { CharacterProfile, GenerationMode, GenerationStyle, HistoryItem, ImagePrompt, ImageGenerationModel } from '@/types/conjuring';
 
 const CharacterStudio: React.FC = () => {
+  const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [characterProfile, setCharacterProfile] = useState<CharacterProfile | null>(null);
   const [imagePrompts, setImagePrompts] = useState<ImagePrompt[]>([]);
@@ -441,12 +443,7 @@ const CharacterStudio: React.FC = () => {
                       activityLists={getActivities()}
                       onPromptChange={handlePromptChange}
                       onReimagine={handleReimagine}
-                      onGoToCreate={() => {
-                        toast({
-                          title: "Info",
-                          description: "Creation page coming soon",
-                        });
-                      }}
+                      onGoToCreate={() => navigate(`/creation/${currentImageId}/${index}`)}
                     />
                   ))}
                 </div>

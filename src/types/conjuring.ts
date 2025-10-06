@@ -55,7 +55,7 @@ export type ActivityCategory =
 export type ActivityLists = Record<ActivityCategory, string[]>;
 export type ActivityCounts = Record<ActivityCategory, number>;
 
-export type ImageGenerationModel = 'nano-banana';
+export type ImageGenerationModel = 'nano-banana' | 'seedream';
 export type VideoGenerationModel = 'seedance-pro' | 'seedance-lite' | 'hailuo-2-standard' | 'hailuo-2-pro';
 
 export type VideoResolution = '480p' | '512p' | '720p' | '768p' | '1080p';
