@@ -9,16 +9,17 @@ import { HistorySidebar } from '@/components/conjuring/HistorySidebar';
 import { PromptCard } from '@/components/conjuring/PromptCard';
 import { GenerateAllModal } from '@/components/conjuring/GenerateAllModal';
 import { ImageCropperModal } from '@/components/conjuring/ImageCropperModal';
+import { VideoGenerationModal } from '@/components/conjuring/VideoGenerationModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Sparkles, Settings, Package, Loader2, RefreshCw, Video, Crop } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateCharacterProfile, generateImagePrompts, hasGeminiApiKey } from '@/services/conjuring/geminiService';
-import { hasFalApiKey, generateImageFal } from '@/services/conjuring/falService';
+import { hasFalApiKey, generateImageFal, generateVideoFal } from '@/services/conjuring/falService';
 import { saveImage, getImage } from '@/services/conjuring/storageService';
 import { getActivities, getAactivityCounts } from '@/services/conjuring/activityService';
-import type { CharacterProfile, GenerationMode, GenerationStyle, HistoryItem, ImagePrompt, ImageGenerationModel } from '@/types/conjuring';
+import type { CharacterProfile, GenerationMode, GenerationStyle, HistoryItem, ImagePrompt, ImageGenerationModel, VideoGenerationParams } from '@/types/conjuring';
 
 const CharacterStudio: React.FC = () => {
   const navigate = useNavigate();
@@ -36,6 +37,9 @@ const CharacterStudio: React.FC = () => {
   const [isGenerateAllModalOpen, setIsGenerateAllModalOpen] = useState(false);
   const [generatingPromptIndices, setGeneratingPromptIndices] = useState<Set<number>>(new Set());
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [videoGenerationPromptIndex, setVideoGenerationPromptIndex] = useState<number | null>(null);
+  const [generatingVideoIndices, setGeneratingVideoIndices] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
   // Load history from localStorage
@@ -305,6 +309,97 @@ const CharacterStudio: React.FC = () => {
     }
   };
 
+  const handleStartVideoGeneration = async (promptIndex: number, params: VideoGenerationParams) => {
+    const promptItem = imagePrompts[promptIndex];
+    if (!promptItem.generatedImageUrl) {
+      toast({
+        title: "Ошибка",
+        description: "Сначала нужно сгенерировать изображение",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setGeneratingVideoIndices(prev => new Set(prev).add(promptIndex));
+    
+    try {
+      const videoUrl = await generateVideoFal({
+        prompt: params.prompt,
+        imageUrl: promptItem.generatedImageUrl,
+        resolution: params.resolution,
+        duration: params.duration,
+        model: params.model,
+        onProgress: (logs) => {
+          console.log('Video generation progress:', logs);
+        }
+      });
+
+      // Update prompt with generated video URL
+      const newPrompts = [...imagePrompts];
+      if (!newPrompts[promptIndex].generatedMedia) {
+        newPrompts[promptIndex].generatedMedia = [];
+      }
+      newPrompts[promptIndex].generatedMedia?.push({
+        prompt: params.prompt,
+        url: videoUrl,
+        type: 'video',
+        model: params.model,
+        resolution: params.resolution,
+        duration: params.duration,
+        scene: promptItem.scene
+      });
+      setImagePrompts(newPrompts);
+
+      // Update history
+      const updatedHistory = history.map(item => {
+        if (item.id === currentImageId || item.imageId === currentImageId) {
+          return {
+            ...item,
+            imagePrompts: newPrompts
+          };
+        }
+        return item;
+      });
+      setHistory(updatedHistory);
+      localStorage.setItem('conjuring-history', JSON.stringify(updatedHistory));
+
+      toast({
+        title: "Видео готово",
+        description: `Видео для сцены "${promptItem.scene}" сгенерировано`,
+      });
+    } catch (error: any) {
+      console.error(`Failed to generate video for prompt ${promptIndex}:`, error);
+      toast({
+        title: "Ошибка генерации видео",
+        description: error.message || "Не удалось сгенерировать видео",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingVideoIndices(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(promptIndex);
+        return newSet;
+      });
+    }
+  };
+
+  const handleGenerateAllVideos = () => {
+    // Check if all images are generated
+    const allImagesGenerated = imagePrompts.every(p => p.generatedImageUrl);
+    if (!allImagesGenerated) {
+      toast({
+        title: "Ошибка",
+        description: "Сначала нужно сгенерировать все изображения",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Open video modal for the first prompt (can be expanded to batch process)
+    setVideoGenerationPromptIndex(0);
+    setIsVideoModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -461,7 +556,8 @@ const CharacterStudio: React.FC = () => {
                     <Button 
                       variant="outline"
                       className="gap-2"
-                      disabled
+                      onClick={handleGenerateAllVideos}
+                      disabled={!imagePrompts.every(p => p.generatedImageUrl)}
                     >
                       <Video className="w-4 h-4" />
                       Generate All Scene Videos
@@ -484,6 +580,12 @@ const CharacterStudio: React.FC = () => {
                       onPromptChange={handlePromptChange}
                       onReimagine={handleReimagine}
                       onGoToCreate={() => navigate(`/creation/${currentImageId}/${index}`)}
+                      onGenerateVideo={() => {
+                        setVideoGenerationPromptIndex(index);
+                        setIsVideoModalOpen(true);
+                      }}
+                      isGeneratingVideo={generatingVideoIndices.has(index)}
+                      generatedMedia={promptItem.generatedMedia}
                     />
                   ))}
                 </div>
@@ -562,6 +664,16 @@ const CharacterStudio: React.FC = () => {
           onOpenChange={setIsGenerateAllModalOpen}
           onSelectModel={handleGenerateAllImages}
         />
+
+        {videoGenerationPromptIndex !== null && imagePrompts[videoGenerationPromptIndex] && (
+          <VideoGenerationModal
+            isOpen={isVideoModalOpen}
+            onOpenChange={setIsVideoModalOpen}
+            basePrompt={imagePrompts[videoGenerationPromptIndex].prompt}
+            imageUrl={imagePrompts[videoGenerationPromptIndex].generatedImageUrl || ''}
+            onStartGeneration={(params) => handleStartVideoGeneration(videoGenerationPromptIndex, params)}
+          />
+        )}
       </div>
     </div>
   );

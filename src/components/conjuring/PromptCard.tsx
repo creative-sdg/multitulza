@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, X, WandSparkles, Copy, Check, FilePenLine, Loader2, RefreshCw } from 'lucide-react';
-import type { ActivityLists } from '@/types/conjuring';
+import { Edit, X, WandSparkles, Copy, Check, FilePenLine, Loader2, RefreshCw, Video } from 'lucide-react';
+import type { ActivityLists, GeneratedMedia } from '@/types/conjuring';
 import { ReimagineModal } from './ReimagineModal';
 
 interface PromptCardProps {
@@ -14,14 +14,17 @@ interface PromptCardProps {
   generatedImageUrl?: string;
   isGenerating?: boolean;
   isReimagining?: boolean;
+  isGeneratingVideo?: boolean;
   generationError?: string;
   activityLists: ActivityLists;
+  generatedMedia?: GeneratedMedia[];
   onPromptChange: (index: number, newPrompt: string) => void;
   onReimagine: (index: number, newActivity: string) => void;
   onGoToCreate: () => void;
+  onGenerateVideo?: () => void;
 }
 
-export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, variations, generatedImageUrl, onPromptChange, onGoToCreate, isGenerating, isReimagining, generationError, activityLists, onReimagine }) => {
+export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, variations, generatedImageUrl, onPromptChange, onGoToCreate, isGenerating, isReimagining, isGeneratingVideo, generationError, activityLists, onReimagine, onGenerateVideo, generatedMedia }) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(prompt);
@@ -48,10 +51,12 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   return (
     <>
     <Card className="bg-zinc-900 border-zinc-800 flex h-full hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
-      {(isGenerating || isReimagining) && (
+      {(isGenerating || isReimagining || isGeneratingVideo) && (
           <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center z-10 rounded-lg">
               <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-              <p className="mt-2 text-sm text-zinc-300">{isReimagining ? 'Reimagining...' : 'Generating...'}</p>
+              <p className="mt-2 text-sm text-zinc-300">
+                {isGeneratingVideo ? 'Generating video...' : isReimagining ? 'Reimagining...' : 'Generating...'}
+              </p>
           </div>
       )}
       
@@ -94,6 +99,18 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
                     <WandSparkles className="w-4 h-4 mr-2" />
                     {hasVariations || generatedImageUrl ? 'Variations' : 'Create'}
                 </Button>
+                {generatedImageUrl && onGenerateVideo && (
+                  <Button 
+                    onClick={onGenerateVideo} 
+                    variant="secondary" 
+                    size="sm" 
+                    aria-label="Generate video from image"
+                    disabled={isGeneratingVideo}
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Video
+                  </Button>
+                )}
                 <div className="flex-grow" />
                 <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt">
                     <RefreshCw className="w-4 h-4" />
