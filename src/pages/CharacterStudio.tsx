@@ -3,6 +3,7 @@ import { ImageUploader } from '@/components/conjuring/ImageUploader';
 import { CharacterProfileCard } from '@/components/conjuring/CharacterProfileCard';
 import { GenerationModeSelector } from '@/components/conjuring/GenerationModeSelector';
 import { StyleSelector } from '@/components/conjuring/StyleSelector';
+import { SettingsModal } from '@/components/conjuring/SettingsModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles, Settings } from 'lucide-react';
@@ -13,6 +14,7 @@ const CharacterStudio: React.FC = () => {
   const [characterProfile, setCharacterProfile] = useState<CharacterProfile | null>(null);
   const [generationMode, setGenerationMode] = useState<GenerationMode>('normal');
   const [generationStyle, setGenerationStyle] = useState<GenerationStyle>('ugc');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleImageChange = (file: File) => {
     const reader = new FileReader();
@@ -25,7 +27,15 @@ const CharacterStudio: React.FC = () => {
   return (
     <div className="min-h-screen bg-black text-white p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center space-y-4 mb-12">
+        <div className="relative text-center space-y-4 mb-12">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            className="absolute right-0 top-0"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
           <h1 className="text-4xl font-bold">Character Studio</h1>
           <p className="text-zinc-400">
             Генерируйте персонажей с AI: профиль, сцены, изображения и видео
@@ -75,6 +85,8 @@ const CharacterStudio: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
     </div>
   );
