@@ -239,27 +239,31 @@ const CharacterStudio: React.FC = () => {
 
   const handleSelectHistoryItem = async (item: HistoryItem) => {
     try {
+      console.log('[CharacterStudio] Loading history item, imagePrompts:', 
+        item.imagePrompts?.slice(0, 2).map(p => ({
+          scene: p.scene,
+          generatedImageUrl: p.generatedImageUrl
+        }))
+      );
+      
       const blob = await getImage(item.imageId);
       if (blob) {
         const url = URL.createObjectURL(blob);
         setImageUrl(url);
       }
       
-      // Load generated images from IndexedDB
-      const promptsWithImages = await Promise.all(
-        item.imagePrompts.map(async (prompt) => {
-          if (prompt.generatedImageUrl && prompt.generatedImageUrl.startsWith('generated_')) {
-            // This is a stored image ID, load it from IndexedDB
-            const url = await getGeneratedImageUrl(prompt.generatedImageUrl);
-            return { ...prompt, generatedImageUrl: url || prompt.generatedImageUrl };
-          }
-          return prompt;
-        })
-      );
-      
+      // Keep generatedImageUrl as-is (IDs starting with 'generated_') 
+      // PromptCard will load them from IndexedDB in its useEffect
       setCharacterProfile(item.characterProfile);
-      setImagePrompts(promptsWithImages);
+      setImagePrompts(item.imagePrompts);
       setCurrentImageId(item.imageId);
+      
+      console.log('[CharacterStudio] Set imagePrompts state:', 
+        item.imagePrompts?.slice(0, 2).map(p => ({
+          scene: p.scene,
+          generatedImageUrl: p.generatedImageUrl
+        }))
+      );
     } catch (error) {
       console.error('Failed to load history item:', error);
       toast({

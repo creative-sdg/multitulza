@@ -32,16 +32,18 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   const [isReimagineOpen, setIsReimagineOpen] = useState(false);
   const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(null);
 
+  console.log('[PromptCard] Rendered, scene:', scene, 'generatedImageUrl:', generatedImageUrl);
+
   // Load image URL if it's stored as an ID in IndexedDB
   useEffect(() => {
     const loadImage = async () => {
-      console.log('[PromptCard] Loading image, generatedImageUrl:', generatedImageUrl);
+      console.log('[PromptCard] useEffect triggered, generatedImageUrl:', generatedImageUrl);
       if (generatedImageUrl) {
         if (generatedImageUrl.startsWith('generated_')) {
           // This is a stored image ID, load from IndexedDB
           console.log('[PromptCard] Loading from IndexedDB with ID:', generatedImageUrl);
           const url = await getGeneratedImageUrl(generatedImageUrl);
-          console.log('[PromptCard] Loaded URL from IndexedDB:', url ? 'success' : 'failed');
+          console.log('[PromptCard] Loaded URL from IndexedDB:', url ? 'success' : 'failed', url?.substring(0, 50));
           setDisplayImageUrl(url);
         } else {
           // This is already a URL
@@ -49,6 +51,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           setDisplayImageUrl(generatedImageUrl);
         }
       } else {
+        console.log('[PromptCard] No generatedImageUrl provided');
         setDisplayImageUrl(null);
       }
     };
