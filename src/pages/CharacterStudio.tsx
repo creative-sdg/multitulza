@@ -47,7 +47,18 @@ const CharacterStudio: React.FC = () => {
   useEffect(() => {
     const loadHistory = async () => {
       const dbHistory = await loadHistoryFromDatabase();
+      console.log('[CharacterStudio] Loaded history from DB:', dbHistory.length, 'items');
       if (dbHistory.length > 0) {
+        // Log first item to check structure
+        if (dbHistory[0]?.imagePrompts) {
+          console.log('[CharacterStudio] First history item imagePrompts sample:', 
+            dbHistory[0].imagePrompts.slice(0, 2).map(p => ({
+              scene: p.scene,
+              hasGeneratedUrl: !!p.generatedImageUrl,
+              generatedImageUrl: p.generatedImageUrl
+            }))
+          );
+        }
         setHistory(dbHistory);
       } else {
         // Fallback to localStorage for migration
@@ -307,7 +318,8 @@ const CharacterStudio: React.FC = () => {
           setImagePrompts(prev => {
             const updatedPrompts = [...prev];
             updatedPrompts[i].generatedImageUrl = savedImageId;
-            console.log('[CharacterStudio] Updated imagePrompts with savedImageId for prompt', i);
+            console.log('[CharacterStudio] Updated imagePrompts with savedImageId for prompt', i, 
+              'Full prompt object:', updatedPrompts[i]);
             
             // Update history with the permanent ID
             const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
@@ -316,6 +328,13 @@ const CharacterStudio: React.FC = () => {
                 ...historyItem,
                 imagePrompts: updatedPrompts
               };
+              console.log('[CharacterStudio] Saving to history, imagePrompts sample:', 
+                updatedPrompts.slice(0, 2).map(p => ({
+                  scene: p.scene,
+                  hasGeneratedUrl: !!p.generatedImageUrl,
+                  generatedImageUrl: p.generatedImageUrl
+                }))
+              );
               saveHistoryItem(updatedItem);
             }
             

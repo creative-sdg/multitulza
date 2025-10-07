@@ -18,6 +18,14 @@ export const saveHistoryItem = async (historyItem: any) => {
   const userId = getUserId();
   
   try {
+    console.log('[userService] Saving history item, imagePrompts sample:', 
+      historyItem.imagePrompts?.slice(0, 2).map((p: any) => ({
+        scene: p.scene,
+        hasGeneratedUrl: !!p.generatedImageUrl,
+        generatedImageUrl: p.generatedImageUrl
+      }))
+    );
+    
     const { error } = await supabase
       .from('user_history')
       .upsert({
@@ -55,6 +63,14 @@ export const loadHistoryFromDatabase = async () => {
     if (error) throw error;
     
     if (data) {
+      console.log('[userService] Loaded history from DB, sample imagePrompts from first item:', 
+        data[0]?.image_prompts?.slice(0, 2).map((p: any) => ({
+          scene: p.scene,
+          hasGeneratedUrl: !!p.generatedImageUrl,
+          generatedImageUrl: p.generatedImageUrl
+        }))
+      );
+      
       return data.map(item => ({
         id: item.image_id,
         imageId: item.image_id,
