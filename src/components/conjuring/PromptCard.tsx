@@ -88,7 +88,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
 
   return (
     <>
-    <Card className="bg-zinc-900 border-zinc-800 flex flex-row min-h-[240px] hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
+    <Card className="bg-zinc-900 border-zinc-800 flex h-full hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
       {(isGenerating || isReimagining || isGeneratingVideo) && (
           <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center z-10 rounded-lg">
               <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
@@ -98,80 +98,83 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           </div>
       )}
       
+      <div className="flex-grow flex flex-col">
+        <CardHeader>
+          <CardTitle className="text-lg text-zinc-200">{scene}</CardTitle>
+        </CardHeader>
+        
+        <CardContent className="flex-grow flex flex-col justify-between">
+          <div>
+            {isEditing ? (
+                <Textarea
+                value={editedPrompt}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                className="h-24 min-h-0 resize-none"
+                aria-label={`Edit prompt for ${scene}`}
+                />
+            ) : (
+                <p className="text-zinc-300 text-sm h-24 overflow-y-auto">{prompt}</p>
+            )}
+            {generationError && (
+                <p className="mt-2 text-sm text-red-400">Error: {generationError}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            {isEditing ? (
+              <>
+                <Button onClick={handleCancel} variant="ghost" size="sm" className="w-full">
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                </Button>
+                <Button onClick={handleSave} variant="secondary" size="sm" className="w-full">
+                    <Check className="w-4 h-4 mr-2" />
+                    Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={onGoToCreate} variant={hasVariations || displayImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
+                    <WandSparkles className="w-4 h-4 mr-2" />
+                    {hasVariations || displayImageUrl ? 'Variations' : 'Create'}
+                </Button>
+                {displayImageUrl && onGenerateVideo && (
+                  <Button 
+                    onClick={onGenerateVideo} 
+                    variant="secondary" 
+                    size="sm" 
+                    aria-label="Generate video from image"
+                    disabled={isGeneratingVideo}
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Video
+                  </Button>
+                )}
+                <div className="flex-grow" />
+                <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt">
+                    <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt">
+                    <FilePenLine className="w-4 h-4" />
+                </Button>
+                <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt">
+                  {copied ? (
+                      <Check className="w-4 h-4 text-green-400" />
+                  ) : (
+                      <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </div>
+      
       {displayImageUrl && (
-          <div className="w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-l-lg" onClick={onGoToCreate}>
+          <div className="w-32 flex-shrink-0 cursor-pointer" onClick={onGoToCreate}>
               <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
           </div>
       )}
-      
-      <div className="flex-grow flex flex-col p-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-zinc-200">{scene}</h3>
-        </div>
-        <div className="flex-grow">
-          {isEditing ? (
-              <Textarea
-              value={editedPrompt}
-              onChange={(e) => setEditedPrompt(e.target.value)}
-              className="h-24 min-h-0 resize-none"
-              aria-label={`Edit prompt for ${scene}`}
-              />
-          ) : (
-              <p className="text-zinc-300 text-sm h-24 overflow-y-auto">{prompt}</p>
-          )}
-          {generationError && (
-              <p className="mt-2 text-sm text-red-400">Error: {generationError}</p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 mt-4">
-          {isEditing ? (
-            <>
-              <Button onClick={handleCancel} variant="ghost" size="sm" className="w-full">
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel
-              </Button>
-              <Button onClick={handleSave} variant="secondary" size="sm" className="w-full">
-                  <Check className="w-4 h-4 mr-2" />
-                  Save
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button onClick={onGoToCreate} variant={hasVariations || displayImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
-                  <WandSparkles className="w-4 h-4 mr-2" />
-                  {hasVariations || displayImageUrl ? 'Variations' : 'Create'}
-              </Button>
-              {displayImageUrl && onGenerateVideo && (
-                <Button 
-                  onClick={onGenerateVideo} 
-                  variant="secondary" 
-                  size="sm" 
-                  aria-label="Generate video from image"
-                  disabled={isGeneratingVideo}
-                >
-                  <Video className="w-4 h-4 mr-2" />
-                  Video
-                </Button>
-              )}
-              <div className="flex-grow" />
-              <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt">
-                  <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt">
-                  <FilePenLine className="w-4 h-4" />
-              </Button>
-              <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt">
-                {copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                    <Copy className="w-4 h-4" />
-                )}
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
     </Card>
     <ReimagineModal
       isOpen={isReimagineOpen}
