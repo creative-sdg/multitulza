@@ -292,30 +292,27 @@ const CharacterStudio: React.FC = () => {
         
         const imageUrl_ = await generateImageFal(imagePrompts[i].prompt, blob, model, null);
         
-        // Save generated image to IndexedDB
-        const savedImageId = await saveGeneratedImage(imageUrl_);
-        
+        // First show the temporary URL immediately for instant feedback
         const newPrompts = [...imagePrompts];
-        newPrompts[i].generatedImageUrl = savedImageId; // Store the ID instead of URL
+        newPrompts[i].generatedImageUrl = imageUrl_;
         setImagePrompts(newPrompts);
         
-        // Update history with generated image
-        const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
-        if (historyItem) {
-          const updatedItem = {
-            ...historyItem,
-            imagePrompts: newPrompts
-          };
-          await saveHistoryItem(updatedItem);
+        // Then save to IndexedDB in background and update with ID
+        saveGeneratedImage(imageUrl_).then(savedImageId => {
+          const updatedPrompts = [...imagePrompts];
+          updatedPrompts[i].generatedImageUrl = savedImageId;
+          setImagePrompts(updatedPrompts);
           
-          const updatedHistory = history.map(item => {
-            if (item.id === currentImageId || item.imageId === currentImageId) {
-              return updatedItem;
-            }
-            return item;
-          });
-          setHistory(updatedHistory);
-        }
+          // Update history with the permanent ID
+          const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+          if (historyItem) {
+            const updatedItem = {
+              ...historyItem,
+              imagePrompts: updatedPrompts
+            };
+            saveHistoryItem(updatedItem);
+          }
+        });
         
         toast({
           title: "Изображение готово",
