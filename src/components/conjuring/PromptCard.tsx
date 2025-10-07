@@ -98,6 +98,12 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           </div>
       )}
       
+      {displayImageUrl && (
+          <div className="w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-l-lg" onClick={onGoToCreate}>
+              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+          </div>
+      )}
+      
       <div className="flex-grow flex flex-col p-6">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-zinc-200">{scene}</h3>
@@ -166,12 +172,6 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           )}
         </div>
       </div>
-
-      {displayImageUrl && (
-          <div className="w-48 h-full flex-shrink-0 cursor-pointer overflow-hidden" onClick={onGoToCreate}>
-              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
-          </div>
-      )}
     </Card>
     <ReimagineModal
       isOpen={isReimagineOpen}
