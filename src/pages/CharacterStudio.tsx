@@ -291,27 +291,36 @@ const CharacterStudio: React.FC = () => {
         const blob = await response.blob();
         
         const imageUrl_ = await generateImageFal(imagePrompts[i].prompt, blob, model, null);
+        console.log('[CharacterStudio] Image generated for prompt', i, 'URL:', imageUrl_);
         
         // First show the temporary URL immediately for instant feedback
-        const newPrompts = [...imagePrompts];
-        newPrompts[i].generatedImageUrl = imageUrl_;
-        setImagePrompts(newPrompts);
+        setImagePrompts(prev => {
+          const newPrompts = [...prev];
+          newPrompts[i].generatedImageUrl = imageUrl_;
+          console.log('[CharacterStudio] Updated imagePrompts with temporary URL for prompt', i);
+          return newPrompts;
+        });
         
         // Then save to IndexedDB in background and update with ID
         saveGeneratedImage(imageUrl_).then(savedImageId => {
-          const updatedPrompts = [...imagePrompts];
-          updatedPrompts[i].generatedImageUrl = savedImageId;
-          setImagePrompts(updatedPrompts);
-          
-          // Update history with the permanent ID
-          const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
-          if (historyItem) {
-            const updatedItem = {
-              ...historyItem,
-              imagePrompts: updatedPrompts
-            };
-            saveHistoryItem(updatedItem);
-          }
+          console.log('[CharacterStudio] Saved image to IndexedDB with ID:', savedImageId);
+          setImagePrompts(prev => {
+            const updatedPrompts = [...prev];
+            updatedPrompts[i].generatedImageUrl = savedImageId;
+            console.log('[CharacterStudio] Updated imagePrompts with savedImageId for prompt', i);
+            
+            // Update history with the permanent ID
+            const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+            if (historyItem) {
+              const updatedItem = {
+                ...historyItem,
+                imagePrompts: updatedPrompts
+              };
+              saveHistoryItem(updatedItem);
+            }
+            
+            return updatedPrompts;
+          });
         });
         
         toast({

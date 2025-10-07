@@ -35,13 +35,17 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   // Load image URL if it's stored as an ID in IndexedDB
   useEffect(() => {
     const loadImage = async () => {
+      console.log('[PromptCard] Loading image, generatedImageUrl:', generatedImageUrl);
       if (generatedImageUrl) {
         if (generatedImageUrl.startsWith('generated_')) {
           // This is a stored image ID, load from IndexedDB
+          console.log('[PromptCard] Loading from IndexedDB with ID:', generatedImageUrl);
           const url = await getGeneratedImageUrl(generatedImageUrl);
+          console.log('[PromptCard] Loaded URL from IndexedDB:', url ? 'success' : 'failed');
           setDisplayImageUrl(url);
         } else {
           // This is already a URL
+          console.log('[PromptCard] Using direct URL');
           setDisplayImageUrl(generatedImageUrl);
         }
       } else {
