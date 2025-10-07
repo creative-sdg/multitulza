@@ -245,6 +245,15 @@ const CharacterStudio: React.FC = () => {
         setImageUrl(url);
       }
       
+      console.log('[CharacterStudio] Loading history item, imagePrompts:', 
+        item.imagePrompts.map(p => ({
+          scene: p.scene,
+          hasUrl: !!p.generatedImageUrl,
+          urlType: p.generatedImageUrl?.startsWith('generated_') ? 'ID' : 'URL',
+          urlPreview: p.generatedImageUrl?.substring(0, 30)
+        }))
+      );
+      
       // Keep generatedImageUrl as-is (IDs starting with 'generated_') 
       // PromptCard will load them from IndexedDB in its useEffect
       setCharacterProfile(item.characterProfile);
