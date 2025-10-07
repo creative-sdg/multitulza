@@ -657,6 +657,7 @@ const CharacterStudio: React.FC = () => {
                         setIsVideoModalOpen(true);
                       }}
                       isGeneratingVideo={generatingVideoIndices.has(index)}
+                      generatedMedia={promptItem.generatedMedia}
                     />
                   ))}
                 </div>
