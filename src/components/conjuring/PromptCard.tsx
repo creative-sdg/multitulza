@@ -88,7 +88,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
 
   return (
     <>
-    <Card className="bg-zinc-900 border-zinc-800 flex flex-row min-h-[240px] hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
+    <Card className="bg-zinc-900 border-zinc-800 flex flex-row h-[240px] hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
       {(isGenerating || isReimagining || isGeneratingVideo) && (
           <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center z-10 rounded-lg">
               <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
@@ -98,13 +98,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           </div>
       )}
       
-      {displayImageUrl && (
-          <div className="w-64 flex-shrink-0 cursor-pointer overflow-hidden rounded-l-lg" onClick={onGoToCreate}>
-              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
-          </div>
-      )}
-      
-      <div className="flex-grow flex flex-col p-6">
+      <div className="flex-grow flex flex-col p-6 overflow-hidden">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-zinc-200">{scene}</h3>
         </div>
@@ -172,6 +166,12 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           )}
         </div>
       </div>
+      
+      {displayImageUrl && (
+          <div className="w-48 h-full flex-shrink-0 cursor-pointer overflow-hidden" onClick={onGoToCreate}>
+              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+          </div>
+      )}
     </Card>
     <ReimagineModal
       isOpen={isReimagineOpen}
