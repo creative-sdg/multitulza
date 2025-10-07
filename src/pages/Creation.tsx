@@ -6,6 +6,7 @@ import { CreationPage as CreationPageComponent } from '@/components/conjuring/Cr
 import { getImage } from '@/services/conjuring/storageService';
 import { generateImageFal, editImageFal } from '@/services/conjuring/falService';
 import { useToast } from '@/hooks/use-toast';
+import { loadHistoryFromDatabase, saveHistoryItem } from '@/services/conjuring/userService';
 import type { HistoryItem, ImageGenerationModel, VideoGenerationParams, GeneratedMedia } from '@/types/conjuring';
 
 const Creation: React.FC = () => {
@@ -34,12 +35,13 @@ const Creation: React.FC = () => {
       }
 
       try {
-        const savedHistory = localStorage.getItem('conjuring-history');
-        if (!savedHistory) {
+        // Load from database
+        const history: HistoryItem[] = await loadHistoryFromDatabase();
+        
+        if (!history || history.length === 0) {
           throw new Error('История не найдена');
         }
 
-        const history: HistoryItem[] = JSON.parse(savedHistory);
         const item = history.find(h => h.id === characterId);
         
         if (!item) {
@@ -77,51 +79,45 @@ const Creation: React.FC = () => {
     loadHistoryItem();
   }, [characterId, promptIndex, navigate, toast]);
 
-  const handleVariationsGenerated = (variations: string[]) => {
+  const handleVariationsGenerated = async (variations: string[]) => {
     if (!historyItem || !characterId || promptIndex === undefined) return;
     
-    const newHistory = JSON.parse(localStorage.getItem('conjuring-history') || '[]') as HistoryItem[];
-    const itemIndex = newHistory.findIndex(h => h.id === characterId);
+    const pIndex = parseInt(promptIndex);
+    const updatedItem = { ...historyItem };
+    updatedItem.imagePrompts[pIndex].variations = variations;
     
-    if (itemIndex !== -1) {
-      const pIndex = parseInt(promptIndex);
-      newHistory[itemIndex].imagePrompts[pIndex].variations = variations;
-      localStorage.setItem('conjuring-history', JSON.stringify(newHistory));
-      setHistoryItem(newHistory[itemIndex]);
-    }
+    // Save to database
+    await saveHistoryItem(updatedItem);
+    setHistoryItem(updatedItem);
   };
 
-  const handleGeneratedMediaUpdate = (media: GeneratedMedia[]) => {
+  const handleGeneratedMediaUpdate = async (media: GeneratedMedia[]) => {
     if (!historyItem || !characterId || promptIndex === undefined) return;
     
-    const newHistory = JSON.parse(localStorage.getItem('conjuring-history') || '[]') as HistoryItem[];
-    const itemIndex = newHistory.findIndex(h => h.id === characterId);
+    const pIndex = parseInt(promptIndex);
+    const updatedItem = { ...historyItem };
+    updatedItem.imagePrompts[pIndex].generatedMedia = media;
     
-    if (itemIndex !== -1) {
-      const pIndex = parseInt(promptIndex);
-      newHistory[itemIndex].imagePrompts[pIndex].generatedMedia = media;
-      localStorage.setItem('conjuring-history', JSON.stringify(newHistory));
-      setHistoryItem(newHistory[itemIndex]);
-    }
+    // Save to database
+    await saveHistoryItem(updatedItem);
+    setHistoryItem(updatedItem);
   };
 
-  const handleImageGenerated = (imageUrl: string) => {
+  const handleImageGenerated = async (imageUrl: string) => {
     if (!historyItem || !characterId || promptIndex === undefined) return;
     
-    const newHistory = JSON.parse(localStorage.getItem('conjuring-history') || '[]') as HistoryItem[];
-    const itemIndex = newHistory.findIndex(h => h.id === characterId);
+    const pIndex = parseInt(promptIndex);
+    const updatedItem = { ...historyItem };
+    updatedItem.imagePrompts[pIndex].generatedImageUrl = imageUrl;
     
-    if (itemIndex !== -1) {
-      const pIndex = parseInt(promptIndex);
-      newHistory[itemIndex].imagePrompts[pIndex].generatedImageUrl = imageUrl;
-      localStorage.setItem('conjuring-history', JSON.stringify(newHistory));
-      setHistoryItem(newHistory[itemIndex]);
-      
-      toast({
-        title: "Изображение установлено",
-        description: "Главное изображение сцены обновлено",
-      });
-    }
+    // Save to database
+    await saveHistoryItem(updatedItem);
+    setHistoryItem(updatedItem);
+    
+    toast({
+      title: "Изображение установлено",
+      description: "Главное изображение сцены обновлено",
+    });
   };
 
   const handleStartImageGeneration = async (
