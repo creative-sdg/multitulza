@@ -35,28 +35,38 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   // Load image URL if it's stored as an ID in IndexedDB
   useEffect(() => {
     const loadImage = async () => {
-      console.log(`[PromptCard ${scene}] Loading image, generatedImageUrl:`, generatedImageUrl);
-      
+      // First check if there's a generatedImageUrl
       if (generatedImageUrl) {
         if (generatedImageUrl.startsWith('generated_')) {
           // This is a stored image ID, load from IndexedDB
-          console.log(`[PromptCard ${scene}] Loading from IndexedDB with ID:`, generatedImageUrl);
           const url = await getGeneratedImageUrl(generatedImageUrl);
-          console.log(`[PromptCard ${scene}] Got URL from IndexedDB:`, url ? 'success' : 'FAILED');
           setDisplayImageUrl(url);
         } else {
           // This is already a URL
-          console.log(`[PromptCard ${scene}] Using direct URL:`, generatedImageUrl.substring(0, 50));
           setDisplayImageUrl(generatedImageUrl);
         }
+      } 
+      // If no generatedImageUrl, try to get first image from generatedMedia
+      else if (generatedMedia && generatedMedia.length > 0) {
+        const firstImage = generatedMedia.find(media => media.type === 'image');
+        if (firstImage) {
+          // Check if it's a stored ID or direct URL
+          if (firstImage.url.startsWith('generated_')) {
+            const url = await getGeneratedImageUrl(firstImage.url);
+            setDisplayImageUrl(url);
+          } else {
+            setDisplayImageUrl(firstImage.url);
+          }
+        } else {
+          setDisplayImageUrl(null);
+        }
       } else {
-        console.log(`[PromptCard ${scene}] No generatedImageUrl provided`);
         setDisplayImageUrl(null);
       }
     };
     
     loadImage();
-  }, [generatedImageUrl, scene]);
+  }, [generatedImageUrl, generatedMedia, scene]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(prompt);
