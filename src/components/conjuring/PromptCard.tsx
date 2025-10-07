@@ -88,7 +88,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
 
   return (
     <>
-    <Card className="bg-zinc-900 border-zinc-800 flex h-full hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
+    <Card className="bg-zinc-900 border-zinc-800 flex flex-row h-full hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
       {(isGenerating || isReimagining || isGeneratingVideo) && (
           <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center z-10 rounded-lg">
               <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
