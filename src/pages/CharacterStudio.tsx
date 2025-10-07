@@ -248,11 +248,8 @@ const CharacterStudio: React.FC = () => {
       console.log('[CharacterStudio] Loading history item, imagePrompts detail:');
       item.imagePrompts.forEach((p, idx) => {
         console.log(`  Prompt ${idx} (${p.scene}):`, {
-          hasGeneratedImageUrl: !!p.generatedImageUrl,
-          generatedImageUrl: p.generatedImageUrl,
-          hasVariations: !!p.variations,
-          variationsCount: p.variations?.length || 0,
-          allKeys: Object.keys(p)
+          allKeys: Object.keys(p),
+          fullObject: p
         });
       });
       
