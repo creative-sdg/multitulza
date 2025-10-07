@@ -32,26 +32,19 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   const [isReimagineOpen, setIsReimagineOpen] = useState(false);
   const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(null);
 
-  console.log('[PromptCard] Rendered, scene:', scene, 'generatedImageUrl:', generatedImageUrl);
-
   // Load image URL if it's stored as an ID in IndexedDB
   useEffect(() => {
     const loadImage = async () => {
-      console.log('[PromptCard] useEffect triggered, generatedImageUrl:', generatedImageUrl);
       if (generatedImageUrl) {
         if (generatedImageUrl.startsWith('generated_')) {
           // This is a stored image ID, load from IndexedDB
-          console.log('[PromptCard] Loading from IndexedDB with ID:', generatedImageUrl);
           const url = await getGeneratedImageUrl(generatedImageUrl);
-          console.log('[PromptCard] Loaded URL from IndexedDB:', url ? 'success' : 'failed', url?.substring(0, 50));
           setDisplayImageUrl(url);
         } else {
           // This is already a URL
-          console.log('[PromptCard] Using direct URL');
           setDisplayImageUrl(generatedImageUrl);
         }
       } else {
-        console.log('[PromptCard] No generatedImageUrl provided');
         setDisplayImageUrl(null);
       }
     };
@@ -161,8 +154,8 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
       </div>
 
       {displayImageUrl && (
-          <div className="w-32 flex-shrink-0 cursor-pointer" onClick={onGoToCreate}>
-              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+          <div className="w-48 h-48 flex-shrink-0 cursor-pointer" onClick={onGoToCreate}>
+              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover rounded-r-lg" />
           </div>
       )}
     </Card>

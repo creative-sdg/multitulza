@@ -239,13 +239,6 @@ const CharacterStudio: React.FC = () => {
 
   const handleSelectHistoryItem = async (item: HistoryItem) => {
     try {
-      console.log('[CharacterStudio] Loading history item, imagePrompts:', 
-        item.imagePrompts?.slice(0, 2).map(p => ({
-          scene: p.scene,
-          generatedImageUrl: p.generatedImageUrl
-        }))
-      );
-      
       const blob = await getImage(item.imageId);
       if (blob) {
         const url = URL.createObjectURL(blob);
@@ -257,13 +250,6 @@ const CharacterStudio: React.FC = () => {
       setCharacterProfile(item.characterProfile);
       setImagePrompts(item.imagePrompts);
       setCurrentImageId(item.imageId);
-      
-      console.log('[CharacterStudio] Set imagePrompts state:', 
-        item.imagePrompts?.slice(0, 2).map(p => ({
-          scene: p.scene,
-          generatedImageUrl: p.generatedImageUrl
-        }))
-      );
     } catch (error) {
       console.error('Failed to load history item:', error);
       toast({
