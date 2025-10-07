@@ -37,6 +37,8 @@ export interface HistoryItem {
   companionImageId?: string;
   characterProfile: CharacterProfile;
   imagePrompts: ImagePrompt[];
+  generationMode?: GenerationMode;
+  generationStyle?: GenerationStyle;
 }
 
 export type GenerationMode = 'normal' | 'selfie' | 'romantic' | 'date' | 'couple';

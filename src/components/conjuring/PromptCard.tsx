@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Edit, X, WandSparkles, Copy, Check, FilePenLine, Loader2, RefreshCw, Video } from 'lucide-react';
 import type { ActivityLists, GeneratedMedia } from '@/types/conjuring';
 import { ReimagineModal } from './ReimagineModal';
+import { getGeneratedImageUrl } from '@/services/conjuring/storageService';
 
 interface PromptCardProps {
   scene: string;
@@ -29,6 +30,27 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(prompt);
   const [isReimagineOpen, setIsReimagineOpen] = useState(false);
+  const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(null);
+
+  // Load image URL if it's stored as an ID in IndexedDB
+  useEffect(() => {
+    const loadImage = async () => {
+      if (generatedImageUrl) {
+        if (generatedImageUrl.startsWith('generated_')) {
+          // This is a stored image ID, load from IndexedDB
+          const url = await getGeneratedImageUrl(generatedImageUrl);
+          setDisplayImageUrl(url);
+        } else {
+          // This is already a URL
+          setDisplayImageUrl(generatedImageUrl);
+        }
+      } else {
+        setDisplayImageUrl(null);
+      }
+    };
+    
+    loadImage();
+  }, [generatedImageUrl]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(prompt);
@@ -95,11 +117,11 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
               </>
             ) : (
               <>
-                <Button onClick={onGoToCreate} variant={hasVariations || generatedImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
+                <Button onClick={onGoToCreate} variant={hasVariations || displayImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
                     <WandSparkles className="w-4 h-4 mr-2" />
-                    {hasVariations || generatedImageUrl ? 'Variations' : 'Create'}
+                    {hasVariations || displayImageUrl ? 'Variations' : 'Create'}
                 </Button>
-                {generatedImageUrl && onGenerateVideo && (
+                {displayImageUrl && onGenerateVideo && (
                   <Button 
                     onClick={onGenerateVideo} 
                     variant="secondary" 
@@ -131,9 +153,9 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
         </CardContent>
       </div>
 
-      {generatedImageUrl && (
+      {displayImageUrl && (
           <div className="w-32 flex-shrink-0 cursor-pointer" onClick={onGoToCreate}>
-              <img src={generatedImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
           </div>
       )}
     </Card>

@@ -75,3 +75,31 @@ export const deleteImage = async (id: string): Promise<void> => {
         }
     });
 };
+
+// Save generated image URL as blob
+export const saveGeneratedImage = async (url: string): Promise<string> => {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const imageId = `generated_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+        await saveImage(imageId, blob);
+        return imageId;
+    } catch (error) {
+        console.error("Failed to save generated image:", error);
+        throw error;
+    }
+};
+
+// Get generated image URL from stored blob
+export const getGeneratedImageUrl = async (imageId: string): Promise<string | null> => {
+    try {
+        const blob = await getImage(imageId);
+        if (blob) {
+            return URL.createObjectURL(blob);
+        }
+        return null;
+    } catch (error) {
+        console.error("Failed to get generated image URL:", error);
+        return null;
+    }
+};

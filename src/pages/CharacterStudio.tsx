@@ -17,8 +17,9 @@ import { Sparkles, Settings, Package, Loader2, RefreshCw, Video, Crop } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { generateCharacterProfile, generateImagePrompts, hasGeminiApiKey } from '@/services/conjuring/geminiService';
 import { hasFalApiKey, generateImageFal, generateVideoFal } from '@/services/conjuring/falService';
-import { saveImage, getImage } from '@/services/conjuring/storageService';
+import { saveImage, getImage, saveGeneratedImage, getGeneratedImageUrl } from '@/services/conjuring/storageService';
 import { getActivities, getAactivityCounts } from '@/services/conjuring/activityService';
+import { saveHistoryItem, loadHistoryFromDatabase, deleteHistoryItem as deleteHistoryFromDatabase } from '@/services/conjuring/userService';
 import type { CharacterProfile, GenerationMode, GenerationStyle, HistoryItem, ImagePrompt, ImageGenerationModel, VideoGenerationParams } from '@/types/conjuring';
 
 const CharacterStudio: React.FC = () => {
@@ -42,16 +43,30 @@ const CharacterStudio: React.FC = () => {
   const [generatingVideoIndices, setGeneratingVideoIndices] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
-  // Load history from localStorage
+  // Load history from database
   useEffect(() => {
-    const savedHistory = localStorage.getItem('conjuring-history');
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error('Failed to parse history:', e);
+    const loadHistory = async () => {
+      const dbHistory = await loadHistoryFromDatabase();
+      if (dbHistory.length > 0) {
+        setHistory(dbHistory);
+      } else {
+        // Fallback to localStorage for migration
+        const savedHistory = localStorage.getItem('conjuring-history');
+        if (savedHistory) {
+          try {
+            const parsedHistory = JSON.parse(savedHistory);
+            setHistory(parsedHistory);
+            // Migrate to database
+            for (const item of parsedHistory) {
+              await saveHistoryItem(item);
+            }
+          } catch (e) {
+            console.error('Failed to parse history:', e);
+          }
+        }
       }
-    }
+    };
+    loadHistory();
   }, []);
 
   const handleImageChange = (file: File) => {
@@ -157,12 +172,16 @@ const CharacterStudio: React.FC = () => {
         timestamp: Date.now(),
         imageId: currentImageId,
         characterProfile: profile,
-        imagePrompts: prompts
+        imagePrompts: prompts,
+        generationMode,
+        generationStyle
       };
       
       const newHistory = [historyItem, ...history];
       setHistory(newHistory);
-      localStorage.setItem('conjuring-history', JSON.stringify(newHistory));
+      
+      // Save to database
+      await saveHistoryItem(historyItem);
       
       toast({
         title: "Промпты готовы",
@@ -214,8 +233,21 @@ const CharacterStudio: React.FC = () => {
         const url = URL.createObjectURL(blob);
         setImageUrl(url);
       }
+      
+      // Load generated images from IndexedDB
+      const promptsWithImages = await Promise.all(
+        item.imagePrompts.map(async (prompt) => {
+          if (prompt.generatedImageUrl && prompt.generatedImageUrl.startsWith('generated_')) {
+            // This is a stored image ID, load it from IndexedDB
+            const url = await getGeneratedImageUrl(prompt.generatedImageUrl);
+            return { ...prompt, generatedImageUrl: url || prompt.generatedImageUrl };
+          }
+          return prompt;
+        })
+      );
+      
       setCharacterProfile(item.characterProfile);
-      setImagePrompts(item.imagePrompts);
+      setImagePrompts(promptsWithImages);
       setCurrentImageId(item.imageId);
     } catch (error) {
       console.error('Failed to load history item:', error);
@@ -227,10 +259,10 @@ const CharacterStudio: React.FC = () => {
     }
   };
 
-  const handleDeleteHistoryItem = (id: string) => {
+  const handleDeleteHistoryItem = async (id: string) => {
+    await deleteHistoryFromDatabase(id);
     const newHistory = history.filter(item => item.id !== id);
     setHistory(newHistory);
-    localStorage.setItem('conjuring-history', JSON.stringify(newHistory));
   };
 
   const handlePromptChange = (index: number, newPrompt: string) => {
@@ -260,22 +292,30 @@ const CharacterStudio: React.FC = () => {
         
         const imageUrl_ = await generateImageFal(imagePrompts[i].prompt, blob, model, null);
         
+        // Save generated image to IndexedDB
+        const savedImageId = await saveGeneratedImage(imageUrl_);
+        
         const newPrompts = [...imagePrompts];
-        newPrompts[i].generatedImageUrl = imageUrl_;
+        newPrompts[i].generatedImageUrl = savedImageId; // Store the ID instead of URL
         setImagePrompts(newPrompts);
         
         // Update history with generated image
-        const updatedHistory = history.map(item => {
-          if (item.id === currentImageId || item.imageId === currentImageId) {
-            return {
-              ...item,
-              imagePrompts: newPrompts
-            };
-          }
-          return item;
-        });
-        setHistory(updatedHistory);
-        localStorage.setItem('conjuring-history', JSON.stringify(updatedHistory));
+        const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+        if (historyItem) {
+          const updatedItem = {
+            ...historyItem,
+            imagePrompts: newPrompts
+          };
+          await saveHistoryItem(updatedItem);
+          
+          const updatedHistory = history.map(item => {
+            if (item.id === currentImageId || item.imageId === currentImageId) {
+              return updatedItem;
+            }
+            return item;
+          });
+          setHistory(updatedHistory);
+        }
         
         toast({
           title: "Изображение готово",
@@ -288,17 +328,22 @@ const CharacterStudio: React.FC = () => {
         setImagePrompts(newPrompts);
         
         // Update history even with error
-        const updatedHistory = history.map(item => {
-          if (item.id === currentImageId || item.imageId === currentImageId) {
-            return {
-              ...item,
-              imagePrompts: newPrompts
-            };
-          }
-          return item;
-        });
-        setHistory(updatedHistory);
-        localStorage.setItem('conjuring-history', JSON.stringify(updatedHistory));
+        const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+        if (historyItem) {
+          const updatedItem = {
+            ...historyItem,
+            imagePrompts: newPrompts
+          };
+          await saveHistoryItem(updatedItem);
+          
+          const updatedHistory = history.map(item => {
+            if (item.id === currentImageId || item.imageId === currentImageId) {
+              return updatedItem;
+            }
+            return item;
+          });
+          setHistory(updatedHistory);
+        }
       } finally {
         setGeneratingPromptIndices(prev => {
           const newSet = new Set(prev);
@@ -351,17 +396,22 @@ const CharacterStudio: React.FC = () => {
       setImagePrompts(newPrompts);
 
       // Update history
-      const updatedHistory = history.map(item => {
-        if (item.id === currentImageId || item.imageId === currentImageId) {
-          return {
-            ...item,
-            imagePrompts: newPrompts
-          };
-        }
-        return item;
-      });
-      setHistory(updatedHistory);
-      localStorage.setItem('conjuring-history', JSON.stringify(updatedHistory));
+      const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+      if (historyItem) {
+        const updatedItem = {
+          ...historyItem,
+          imagePrompts: newPrompts
+        };
+        await saveHistoryItem(updatedItem);
+        
+        const updatedHistory = history.map(item => {
+          if (item.id === currentImageId || item.imageId === currentImageId) {
+            return updatedItem;
+          }
+          return item;
+        });
+        setHistory(updatedHistory);
+      }
 
       toast({
         title: "Видео готово",
@@ -573,13 +623,22 @@ const CharacterStudio: React.FC = () => {
                       prompt={promptItem.prompt}
                       index={index}
                       variations={promptItem.variations}
-                      generatedImageUrl={promptItem.generatedImageUrl}
+                       generatedImageUrl={promptItem.generatedImageUrl}
                       isGenerating={generatingPromptIndices.has(index)}
                       generationError={promptItem.generationError}
                       activityLists={getActivities()}
                       onPromptChange={handlePromptChange}
                       onReimagine={handleReimagine}
-                      onGoToCreate={() => navigate(`/creation/${currentImageId}/${index}`)}
+                      onGoToCreate={async () => {
+                        // Load actual image URL if it's a stored ID
+                        let imageUrl = promptItem.generatedImageUrl;
+                        if (imageUrl && imageUrl.startsWith('generated_')) {
+                          imageUrl = await getGeneratedImageUrl(imageUrl) || imageUrl;
+                        }
+                        navigate(`/creation/${currentImageId}/${index}`, { 
+                          state: { imageUrl } 
+                        });
+                      }}
                       onGenerateVideo={() => {
                         setVideoGenerationPromptIndex(index);
                         setIsVideoModalOpen(true);

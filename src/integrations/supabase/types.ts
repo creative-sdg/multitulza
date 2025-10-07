@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_history: {
+        Row: {
+          character_profile: Json
+          created_at: string | null
+          generation_mode: string
+          generation_style: string
+          id: string
+          image_id: string
+          image_prompts: Json
+          timestamp: number
+          user_id: string
+        }
+        Insert: {
+          character_profile: Json
+          created_at?: string | null
+          generation_mode: string
+          generation_style: string
+          id?: string
+          image_id: string
+          image_prompts: Json
+          timestamp: number
+          user_id: string
+        }
+        Update: {
+          character_profile?: Json
+          created_at?: string | null
+          generation_mode?: string
+          generation_style?: string
+          id?: string
+          image_id?: string
+          image_prompts?: Json
+          timestamp?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
