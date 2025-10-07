@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { X, WandSparkles, Copy, Check, FilePenLine, Loader2, RefreshCw, Video } from 'lucide-react';
 import type { ActivityLists } from '@/types/conjuring';
 import { ReimagineModal } from './ReimagineModal';
+import { getGeneratedImageUrl } from '@/services/conjuring/storageService';
 
 interface PromptCardProps {
   scene: string;
@@ -28,6 +29,44 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(prompt);
   const [isReimagineOpen, setIsReimagineOpen] = useState(false);
+  const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadImage = async () => {
+      if (!generatedImageUrl) {
+        setDisplayImageUrl(null);
+        return;
+      }
+      
+      // Check if it's already a valid URL (http/https or data:)
+      if (generatedImageUrl.startsWith('http') || generatedImageUrl.startsWith('data:')) {
+        if (isMounted) setDisplayImageUrl(generatedImageUrl);
+        return;
+      }
+      
+      // Otherwise, it's an ID from IndexedDB
+      try {
+        const url = await getGeneratedImageUrl(generatedImageUrl);
+        if (isMounted && url) {
+          setDisplayImageUrl(url);
+        }
+      } catch (error) {
+        console.error('Failed to load image from IndexedDB:', error);
+      }
+    };
+    
+    loadImage();
+    
+    return () => {
+      isMounted = false;
+      // Cleanup object URL if it was created
+      if (displayImageUrl && displayImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(displayImageUrl);
+      }
+    };
+  }, [generatedImageUrl]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(prompt);
@@ -95,11 +134,11 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
               </>
             ) : (
               <>
-                <Button onClick={onGoToCreate} variant={hasVariations || generatedImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
+                <Button onClick={onGoToCreate} variant={hasVariations || displayImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
                     <WandSparkles className="w-4 h-4 mr-2" />
-                    {hasVariations || generatedImageUrl ? 'Variations' : 'Create'}
+                    {hasVariations || displayImageUrl ? 'Variations' : 'Create'}
                 </Button>
-                {generatedImageUrl && onGenerateVideo && (
+                {displayImageUrl && onGenerateVideo && (
                   <Button 
                     onClick={onGenerateVideo} 
                     variant="secondary" 
@@ -131,9 +170,9 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
         </CardContent>
       </div>
 
-      {generatedImageUrl && (
+      {displayImageUrl && (
           <div className="w-32 flex-shrink-0 cursor-pointer" onClick={onGoToCreate}>
-              <img src={generatedImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
           </div>
       )}
     </Card>
