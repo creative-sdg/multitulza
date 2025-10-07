@@ -171,8 +171,11 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
       </div>
       
       {displayImageUrl && (
-          <div className="w-32 flex-shrink-0 cursor-pointer" onClick={onGoToCreate}>
-              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+          <div className="w-40 flex-shrink-0 relative group cursor-pointer" onClick={onGoToCreate}>
+              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover rounded-r-lg" />
+              <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-r-lg">
+                <WandSparkles className="w-8 h-8 text-white" />
+              </div>
           </div>
       )}
     </Card>
