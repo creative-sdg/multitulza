@@ -245,14 +245,16 @@ const CharacterStudio: React.FC = () => {
         setImageUrl(url);
       }
       
-      console.log('[CharacterStudio] Loading history item, imagePrompts:', 
-        item.imagePrompts.map(p => ({
-          scene: p.scene,
-          hasUrl: !!p.generatedImageUrl,
-          urlType: p.generatedImageUrl?.startsWith('generated_') ? 'ID' : 'URL',
-          urlPreview: p.generatedImageUrl?.substring(0, 30)
-        }))
-      );
+      console.log('[CharacterStudio] Loading history item, imagePrompts detail:');
+      item.imagePrompts.forEach((p, idx) => {
+        console.log(`  Prompt ${idx} (${p.scene}):`, {
+          hasGeneratedImageUrl: !!p.generatedImageUrl,
+          generatedImageUrl: p.generatedImageUrl,
+          hasVariations: !!p.variations,
+          variationsCount: p.variations?.length || 0,
+          allKeys: Object.keys(p)
+        });
+      });
       
       // Keep generatedImageUrl as-is (IDs starting with 'generated_') 
       // PromptCard will load them from IndexedDB in its useEffect
