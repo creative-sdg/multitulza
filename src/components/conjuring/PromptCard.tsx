@@ -58,10 +58,12 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           const url = await getGeneratedImageUrl(generatedImageUrl);
           console.log(`[PromptCard ${scene}] Loaded URL from IndexedDB:`, url?.substring(0, 50));
           setDisplayImageUrl(url);
+          console.log(`[PromptCard ${scene}] setDisplayImageUrl called with:`, url?.substring(0, 50));
         } else {
           // This is already a URL
           console.log(`[PromptCard ${scene}] Using direct URL:`, generatedImageUrl.substring(0, 50));
           setDisplayImageUrl(generatedImageUrl);
+          console.log(`[PromptCard ${scene}] setDisplayImageUrl called with direct URL`);
         }
       } 
       // If no generatedImageUrl, try to get first image from generatedMedia
@@ -74,8 +76,10 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           if (firstImage.url.startsWith('generated_')) {
             const url = await getGeneratedImageUrl(firstImage.url);
             setDisplayImageUrl(url);
+            console.log(`[PromptCard ${scene}] setDisplayImageUrl from generatedMedia IndexedDB:`, url?.substring(0, 50));
           } else {
             setDisplayImageUrl(firstImage.url);
+            console.log(`[PromptCard ${scene}] setDisplayImageUrl from generatedMedia direct:`, firstImage.url.substring(0, 50));
           }
         } else {
           console.log(`[PromptCard ${scene}] No images in generatedMedia`);
@@ -89,6 +93,11 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
     
     loadImage();
   }, [generatedImageUrl, generatedMedia, scene]);
+  
+  // Log when displayImageUrl changes
+  useEffect(() => {
+    console.log(`[PromptCard ${scene}] displayImageUrl STATE CHANGED TO:`, displayImageUrl);
+  }, [displayImageUrl, scene]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(prompt);
