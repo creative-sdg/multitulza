@@ -13,10 +13,41 @@ serve(async (req) => {
 
   try {
     const { text, voiceId } = await req.json();
-    
-    if (!text) {
+
+    // Validate text input
+    const MAX_TEXT_LENGTH = 5000;
+    if (!text || typeof text !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Text is required' }),
+        JSON.stringify({ error: 'Text is required and must be a string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (text.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Text cannot be empty' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (text.length > MAX_TEXT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Text too long. Maximum ${MAX_TEXT_LENGTH} characters allowed` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate voiceId
+    const ALLOWED_VOICE_IDS = [
+      'TX3LPaxmHKxFdv7VOQHJ', // Liam
+      'cgSgspJ2msm6clMCkdW9', // Jessica
+      'onwK4e9ZLuTAKqWW03F9', // Daniel
+      'pFZP5JQG7iQjIQuC4Bku', // Lily
+    ];
+    
+    if (voiceId && !ALLOWED_VOICE_IDS.includes(voiceId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid voice ID' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -107,10 +138,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    // Log detailed error for debugging but return generic message to client
     console.error('Error in elevenlabs-tts function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

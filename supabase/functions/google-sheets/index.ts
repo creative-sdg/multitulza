@@ -13,27 +13,35 @@ serve(async (req) => {
   try {
     const { spreadsheetId, rowNumber } = await req.json();
     
-    if (!spreadsheetId || !rowNumber) {
+    // Validate spreadsheetId format (Google Sheets IDs are typically 30-50 characters)
+    const SHEETS_ID_PATTERN = /^[a-zA-Z0-9-_]{30,50}$/;
+    if (!spreadsheetId || !SHEETS_ID_PATTERN.test(spreadsheetId)) {
       return new Response(
-        JSON.stringify({ error: 'Missing spreadsheetId or rowNumber' }),
+        JSON.stringify({ error: 'Invalid spreadsheet ID format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Google Service Account credentials
-    const credentials = {
-      "type": "service_account",
-      "project_id": "kombaen",
-      "private_key_id": "fdde87439560b37b839bca83a5cb843c02384a80",
-      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5HD5K06OuTBKU\nbAmrE41dkT3aYC0ysdxvjtHtV/cWkWzSpDxPArpxlfawivR3HNPBlz6FMzPIWn1I\nZmqsJBLwFvej247GJWqeKmpNFDgtUP6yNVHa8YELpQxnGwWvqtiTiHLq5U4P8jmG\nE974W87H94yfDyPp6gxGFG42VfcPsqkbvCIOcim4EJn6qQRkPM53Fxl353hATYHs\neQru7H1K/5Zwhiz95AZstS6VGzIdj7wgrfPW0Ne0F1fFNuoQ2MioP2UqgHSaqvd2\n65tf3EFc9N88TAhwobpWOMHUVt/jmil7U+OYkBvKXZFH0R2OQQqg6QIVPxEJQop3\njsg6n2SpAgMBAAECggEAEdD71uBdV+yG+kWWvaJFYCzXRvIsT32KcatNnboydDfd\ngT2g91rUHpQYOQA6zM8Xu4GG2TOnJ4C8H7CJ0lUrhHO1dI4whPY7d4suDYqlaIkr\n5nOW1AucB8akNbVGXBTFwRdoNh8JXyQJcNPvSTiu45S6MmH26y/lbAZR4EVwYNB/\nha6isJkXYxRY91zVxyrN6D5Ed+uVGTfIT2y0tf56BhW0azY6taqYDTMS8UeiLQHY\nD7ar95t1CDQkIWfDxYAkmhb2DSsV7N3YIkvw8HstuEcHR+b9wPjHEpcgK2gVMNAn\n9Sa2o/Fmtm86i6frbB58FNEgQqMoFK7eR98CQcklXQKBgQDsati4DBziyX+bTB8x\neOcU/Ld0SFVrFc9EIh0Ur/stRgNEK6jn73djHaQEUN7dST0RjmhWSbFzxZQxx+3A\n0GY3bOLQ6Ol+MMrY4ovekC/qwh9T+PvyPN3xpm2lZ2E5uUCIayBu4b6Id5X/2l9Y\nNT61G6pYG2271KlplBmlWQ9JfQKBgQDIcXKVNmcDaW2NWY0i0iYGJCIw5F1M4eQz\nK0kilkYf1Rs6CHKTMmQBOIRZhgfwHKzNg0GUfU7EhxBzqDQe7BhXu9nmXVLwNL0g\nASYbf8l4XPj46pANb/YRIuJoC1eobBA9kRy/NjFmhjFnhzehNIboLrLybf7hcXpL\npS2j/YUPnQKBgBkIGxgpmClfAlbUEX1weq8bLuVt/zVOYtqo7gFRvLuHbTMbmE+u\naCqjaclXMrGlXoTsWhnAxbwnUFCRBZhjuF7n9X//GTHWQrQCEKMpCxnFIgIHG84D\nKdC7OWLI9l9hQPbwuMdkuYLDfqtPWMcDJDeSzU904AKCOsnF940tR9QVAoGAPHpu\ndjMJ9e+TjHieqwj5TBUO8+2TcSUfM4k18eehlO0539K4r00e+3dQB6r3Li2YvhGC\ncgk1APs3rY3s2/+kgKQ/ZNB3u95NyiBOnTF7WoPC42fyuvszJYx+/6Gce0bPx6PH\nJrJ1SVfoBDK6SDuPEPM2LwudQex5V+Wo1bgis8kCgYEAti/QdoD0W2bkhYsCpukd\nDc8HiQ3e1iPHl01LCHHaAvHDM740YOJqLEpD5vCgHxE0nGfE3nmnkLuF+tSr/hWJ\nzvTZoWhF5thNyMQLxLtXhDCI6nyoydWZwGTmIY/T/ZrMo5wU9M0h+FoIGUuaZG7u\nHuy2AqbXd44WpNL7OPgqTV8=\n-----END PRIVATE KEY-----\n",
-      "client_email": "iurii-biriukov-serive-account@kombaen.iam.gserviceaccount.com",
-      "client_id": "102169283884339843089",
-      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-      "token_uri": "https://oauth2.googleapis.com/token",
-      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/iurii-biriukov-serive-account%40kombaen.iam.gserviceaccount.com",
-      "universe_domain": "googleapis.com"
-    };
+    // Validate rowNumber is a valid positive integer within reasonable range
+    const rowNum = parseInt(rowNumber);
+    if (isNaN(rowNum) || rowNum < 1 || rowNum > 10000) {
+      return new Response(
+        JSON.stringify({ error: 'Row number must be between 1 and 10000' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Load Google Service Account credentials from environment variable
+    const credentialsJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
+    if (!credentialsJson) {
+      console.error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const credentials = JSON.parse(credentialsJson);
     
     // Get OAuth token
     const jwtHeader = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -153,10 +161,10 @@ serve(async (req) => {
     );
     
   } catch (error) {
+    // Log detailed error for debugging but return generic message to client
     console.error('Error in google-sheets function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
