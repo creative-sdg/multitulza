@@ -688,29 +688,31 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 <div className="space-y-4 p-4 border rounded-lg bg-video-surface-elevated">
                   <h3 className="font-medium text-lg">Общие параметры</h3>
                   <div className="text-xs text-muted-foreground mb-2">
-                    ⚠️ Субтитры и кастомный текст взаимоисключающие: когда субтитры видны, текст скрыт и наоборот
+                    ⚠️ Логика: либо субтитры + озвучка, либо кастомный текст без озвучки
                   </div>
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      id="subtitle-visibility-global"
-                      checked={subtitleVisibility === 100}
-                      onChange={(e) => handleSubtitleVisibilityChange(e.target.checked ? 100 : 0)}
+                      id="subtitle-audio-mode"
+                      checked={subtitleVisibility === 100 && audioVolume === 100}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          // Enable subtitles + audio mode
+                          setSubtitleVisibility(100);
+                          setAudioVolume(100);
+                        } else {
+                          // Enable custom text mode (no audio, no subtitles)
+                          setSubtitleVisibility(0);
+                          setAudioVolume(0);
+                        }
+                      }}
                       className="rounded border-video-primary/30"
                     />
-                    <Label htmlFor="subtitle-visibility-global" className="text-sm">
-                      {subtitleVisibility === 100 ? 'Показать субтитры (текст скрыт)' : 'Показать кастомный текст (субтитры скрыты)'}
+                    <Label htmlFor="subtitle-audio-mode" className="text-sm">
+                      {(subtitleVisibility === 100 && audioVolume === 100) 
+                        ? 'Субтитры + озвучка' 
+                        : 'Кастомный текст без озвучки'}
                     </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="audio-volume-global"
-                      checked={audioVolume === 100}
-                      onChange={(e) => setAudioVolume(e.target.checked ? 100 : 0)}
-                      className="rounded border-video-primary/30"
-                    />
-                    <Label htmlFor="audio-volume-global" className="text-sm">Громкость озвучки</Label>
                   </div>
                 </div>
               )}
