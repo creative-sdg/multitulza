@@ -24,10 +24,10 @@ const Home = () => {
             variant="outline"
           >
             <Video className="h-12 w-12 text-video-primary" />
-            <div className="text-center space-y-2">
-              <div className="text-xl font-semibold">Генератор видео-вариантов</div>
+            <div className="text-center space-y-2 px-4">
+              <div className="text-xl font-semibold">Генератор видео вариантов</div>
               <div className="text-sm text-muted-foreground">
-                Создавайте множественные варианты видео с разными размерами и брендами
+                Создавайте видео с разными размерами и брендами
               </div>
             </div>
           </Button>
@@ -38,10 +38,10 @@ const Home = () => {
             variant="outline"
           >
             <Wrench className="h-12 w-12 text-video-primary" />
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 px-4">
               <div className="text-xl font-semibold">Character Studio</div>
               <div className="text-sm text-muted-foreground">
-                Генерируйте персонажей с AI: профиль, сцены, изображения и видео
+                Генерируйте персонажей с AI
               </div>
             </div>
           </Button>

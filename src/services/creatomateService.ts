@@ -598,7 +598,7 @@ export const AVAILABLE_MUSIC = [
   }
 ];
 
-// Template configurations with real Creatomate template IDs
+// Template configurations for chunked audio scenario
 export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
   {
     id: '4a4c47f1-555c-414f-b45a-1905be6b591d',
@@ -635,6 +635,37 @@ export const CREATOMATE_TEMPLATES: CreatomateTemplate[] = [
     mainVideoField: 'Main_Video_1,Main_Video_2,Main_Video_3,Main_Video_4,Main_Video_5,Main_Video_6,Main_Video_7,Main_Video_8,Main_Video_9,Main_Video_10',
     packshotField: '',
     supportsSubtitles: false
+  }
+];
+
+// Template configurations for resize-rebrand scenario (with-audio)
+export const RESIZE_TEMPLATES: CreatomateTemplate[] = [
+  {
+    id: '41a34610-feae-4e0d-9725-b8157f7de781',
+    name: '9x16',
+    size: '9x16',
+    dimensions: '1080x1920',
+    mainVideoField: 'Main_Video',
+    packshotField: 'Packshot',
+    supportsSubtitles: true
+  },
+  {
+    id: 'c9aa2c57-d883-4a1e-85dd-020f4e911a70',
+    name: '16x9',
+    size: '16x9',
+    dimensions: '1920x1080',
+    mainVideoField: 'Main_Video_front,Main_Video_back',
+    packshotField: 'Packshot',
+    supportsSubtitles: true
+  },
+  {
+    id: '41e18070-2198-43f2-9503-807fbbd5f749',
+    name: '1x1',
+    size: '1x1',
+    dimensions: '1080x1080',
+    mainVideoField: 'Main_Video_front,Main_Video_back',
+    packshotField: 'Packshot',
+    supportsSubtitles: true
   }
 ];
 

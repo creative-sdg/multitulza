@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Upload, Play, Download, Zap, Video, Settings, Key, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { CreatomateService, CREATOMATE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
+import { CreatomateService, CREATOMATE_TEMPLATES, RESIZE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import ChunkedAudioScenario from '@/components/ChunkedAudioScenario';
 
@@ -80,8 +80,11 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
     setSubtitleVisibility(value);
   };
   
+  // For with-audio scenario: simple checkbox for subtitles
+  const [enableSubtitlesCheckbox, setEnableSubtitlesCheckbox] = useState(true);
+  
   // Always enable subtitles for chunked audio scenario
-  const enableSubtitles = true;
+  const enableSubtitles = scenario === 'with-audio' ? enableSubtitlesCheckbox : true;
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [variants, setVariants] = useState<VideoVariant[]>([]);
@@ -174,6 +177,9 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
     setIsGenerating(true);
     setOverallProgress(0);
 
+    // Select templates based on scenario
+    const templates = scenario === 'with-audio' ? RESIZE_TEMPLATES : CREATOMATE_TEMPLATES;
+    
     // Создаем варианты в зависимости от выбранных брендов
     const newVariants: VideoVariant[] = [];
     
@@ -186,7 +192,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
         if (!brand) return;
         
-        CREATOMATE_TEMPLATES
+        templates
           .filter(template => selectedSizes.includes(template.size))
           .forEach(template => {
             const variantId = `branded-${brandId}-${template.id}`;
@@ -209,7 +215,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       // Режим без брендов (только ресайз)
       console.log('📋 Processing resize-only mode');
       
-      CREATOMATE_TEMPLATES
+      templates
         .filter(template => selectedSizes.includes(template.size))
         .forEach(template => {
           const variantId = `resize-${template.id}`;
@@ -242,6 +248,9 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       const variant = queue.shift()!;
       activeJobs++;
       
+      // Select templates based on scenario
+      const templates = scenario === 'with-audio' ? RESIZE_TEMPLATES : CREATOMATE_TEMPLATES;
+      
       // Определяем тип варианта и соответствующий шаблон
       let template: any;
       let packshot: string | undefined;
@@ -251,13 +260,13 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
         const parts = variant.id.split('-');
         const brandId = parts[1];
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
-        template = CREATOMATE_TEMPLATES.find(t => variant.size === t.size);
+        template = templates.find(t => variant.size === t.size);
         packshot = brand?.packshots[variant.size as keyof typeof brand.packshots];
         
         console.log(`🏷️ Branded variant - Brand: ${brand?.name}, Packshot: ${packshot}`);
       } else {
         // Режим без брендов
-        template = CREATOMATE_TEMPLATES.find(t => variant.size === t.size);
+        template = templates.find(t => variant.size === t.size);
         console.log(`📋 Resize-only variant using template: ${template?.name}`);
       }
 
@@ -674,41 +683,59 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
             </div>
 
             <div className="space-y-6">
-              {/* Common Parameters Section */}
-              <div className="space-y-4 p-4 border rounded-lg bg-video-surface-elevated">
-                <h3 className="font-medium text-lg">Общие параметры</h3>
-                <div className="text-xs text-muted-foreground mb-2">
-                  ⚠️ Субтитры и кастомный текст взаимоисключающие: когда субтитры видны, текст скрыт и наоборот
+              {/* Common Parameters Section - only for chunked-audio */}
+              {scenario === 'chunked-audio' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-video-surface-elevated">
+                  <h3 className="font-medium text-lg">Общие параметры</h3>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    ⚠️ Субтитры и кастомный текст взаимоисключающие: когда субтитры видны, текст скрыт и наоборот
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="subtitle-visibility-global"
+                      checked={subtitleVisibility === 100}
+                      onChange={(e) => handleSubtitleVisibilityChange(e.target.checked ? 100 : 0)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <Label htmlFor="subtitle-visibility-global" className="text-sm">
+                      {subtitleVisibility === 100 ? 'Показать субтитры (текст скрыт)' : 'Показать кастомный текст (субтитры скрыты)'}
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="audio-volume-global"
+                      checked={audioVolume === 100}
+                      onChange={(e) => setAudioVolume(e.target.checked ? 100 : 0)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <Label htmlFor="audio-volume-global" className="text-sm">Громкость озвучки</Label>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="subtitle-visibility-global"
-                    checked={subtitleVisibility === 100}
-                    onChange={(e) => handleSubtitleVisibilityChange(e.target.checked ? 100 : 0)}
-                    className="rounded border-video-primary/30"
-                  />
-                  <Label htmlFor="subtitle-visibility-global" className="text-sm">
-                    {subtitleVisibility === 100 ? 'Показать субтитры (текст скрыт)' : 'Показать кастомный текст (субтитры скрыты)'}
-                  </Label>
+              )}
+
+              {/* Simple subtitles checkbox for with-audio */}
+              {scenario === 'with-audio' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-video-surface-elevated">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="enable-subtitles"
+                      checked={enableSubtitlesCheckbox}
+                      onChange={(e) => setEnableSubtitlesCheckbox(e.target.checked)}
+                      className="rounded border-video-primary/30"
+                    />
+                    <Label htmlFor="enable-subtitles" className="text-sm">Показать субтитры</Label>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="audio-volume-global"
-                    checked={audioVolume === 100}
-                    onChange={(e) => setAudioVolume(e.target.checked ? 100 : 0)}
-                    className="rounded border-video-primary/30"
-                  />
-                  <Label htmlFor="audio-volume-global" className="text-sm">Громкость озвучки</Label>
-                </div>
-              </div>
+              )}
 
               {/* Size Selection */}
               <div className="space-y-4">
                 <h3 className="font-medium text-lg">Размеры видео</h3>
                  <div className="grid grid-cols-1 gap-3">
-                     {CREATOMATE_TEMPLATES.map(template => (
+                     {(scenario === 'with-audio' ? RESIZE_TEMPLATES : CREATOMATE_TEMPLATES).map(template => (
                       <div key={template.id}>
                         <label className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
                           <input

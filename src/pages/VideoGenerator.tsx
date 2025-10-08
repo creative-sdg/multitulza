@@ -10,7 +10,7 @@ const VideoGenerator = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center space-y-6 mb-12">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Генератор видео вариантов
+            Ресайзалка
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Создавайте множественные варианты видео с разными размерами и брендами используя Creatomate API
