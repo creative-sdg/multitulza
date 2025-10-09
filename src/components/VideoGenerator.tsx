@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { CreatomateService, CREATOMATE_TEMPLATES, RESIZE_TEMPLATES, AVAILABLE_BRANDS } from '@/services/creatomateService';
 import { useVideoUpload, UploadedVideo } from '@/hooks/useVideoUpload';
 import ChunkedAudioScenario from '@/components/ChunkedAudioScenario';
+import { supabase } from '@/integrations/supabase/client';
 
 // Helper function to apply brand replacement to text
 const applyBrandReplacement = (text: string, brandName: string): string => {
@@ -263,11 +264,19 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
         template = templates.find(t => variant.size === t.size);
         const packshotPath = brand?.packshots[variant.size as keyof typeof brand.packshots];
         
-        // Generate signed URL for packshot if path exists
+        // Generate signed URL for packshot if path exists - do this right before rendering
         if (packshotPath) {
-          const { getPackshotSignedUrl } = await import('@/utils/uploadPackshots');
-          packshot = await getPackshotSignedUrl('/' + packshotPath);
-          console.log(`🏷️ Branded variant - Brand: ${brand?.name}, Generated signed packshot URL`);
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('videos')
+            .createSignedUrl(packshotPath, 3600); // 1 hour
+          
+          if (signedError || !signedData) {
+            console.error('❌ Failed to generate signed URL for packshot:', signedError);
+            throw new Error(`Failed to generate signed URL for packshot`);
+          }
+          
+          packshot = signedData.signedUrl;
+          console.log(`🏷️ Branded variant - Brand: ${brand?.name}, Generated fresh signed packshot URL`);
         } else {
           console.log(`🏷️ Branded variant - Brand: ${brand?.name}, No packshot`);
         }
@@ -354,7 +363,20 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       
       let renderId: string;
       if (scenario === 'with-audio') {
-        renderId = await service.renderVideo(template, inputVideoUrl, packshot, uploadedVideo?.duration, options);
+        // Generate fresh signed URL for the video right before rendering
+        // This ensures the URL is valid even if user spent time configuring
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('videos')
+          .createSignedUrl(uploadedVideo!.path, 3600); // 1 hour
+        
+        if (signedError || !signedData) {
+          throw new Error('Failed to generate signed URL for video');
+        }
+        
+        console.log(`🔐 Generated fresh signed URL for video`);
+        const freshVideoUrl = signedData.signedUrl;
+        
+        renderId = await service.renderVideo(template, freshVideoUrl, packshot, uploadedVideo?.duration, options);
       } else if (scenario === 'chunked-audio') {
         // For chunked audio scenario, use the chunked audio data
         // Extract brand name from variant ID if it's a branded variant
