@@ -261,9 +261,16 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
         const brandId = parts[1];
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
         template = templates.find(t => variant.size === t.size);
-        packshot = brand?.packshots[variant.size as keyof typeof brand.packshots];
+        const packshotPath = brand?.packshots[variant.size as keyof typeof brand.packshots];
         
-        console.log(`🏷️ Branded variant - Brand: ${brand?.name}, Packshot: ${packshot}`);
+        // Generate signed URL for packshot if path exists
+        if (packshotPath) {
+          const { getPackshotSignedUrl } = await import('@/utils/uploadPackshots');
+          packshot = await getPackshotSignedUrl('/' + packshotPath);
+          console.log(`🏷️ Branded variant - Brand: ${brand?.name}, Generated signed packshot URL`);
+        } else {
+          console.log(`🏷️ Branded variant - Brand: ${brand?.name}, No packshot`);
+        }
       } else {
         // Режим без брендов
         template = templates.find(t => variant.size === t.size);

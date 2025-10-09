@@ -494,22 +494,17 @@ export class CreatomateService {
   }
 }
 
-import { getPackshotStorageUrl } from '@/utils/uploadPackshots';
+import { getPackshotStoragePath } from '@/utils/uploadPackshots';
 
-// Helper function to get packshot URL (either from storage or fallback to local)
-function getPackshotUrl(path: string): string {
-  return getPackshotStorageUrl(path);
-}
-
-//Available brands with their packshot URLs
+//Available brands with their packshot storage paths (not URLs - will be converted to signed URLs when needed)
 export const AVAILABLE_BRANDS = [
   { 
     id: 'datemyage', 
     name: 'DateMyAge',
     packshots: {
-      '9x16': getPackshotUrl('/packshots/DateMyAge_packshot_9x16.mp4'),
-      '16x9': getPackshotUrl('/packshots/DateMyAge_packshot_16x9.mp4'),
-      '1x1': getPackshotUrl('/packshots/DateMyAge_packshot_1x1.mp4'),
+      '9x16': getPackshotStoragePath('/packshots/DateMyAge_packshot_9x16.mp4'),
+      '16x9': getPackshotStoragePath('/packshots/DateMyAge_packshot_16x9.mp4'),
+      '1x1': getPackshotStoragePath('/packshots/DateMyAge_packshot_1x1.mp4'),
       '9x16-clean': '',
     }
   },
@@ -517,9 +512,9 @@ export const AVAILABLE_BRANDS = [
     id: 'dating', 
     name: 'Dating.Com',
     packshots: {
-      '9x16': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
-      '16x9': getPackshotUrl('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
-      '1x1': getPackshotUrl('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
+      '9x16': getPackshotStoragePath('/packshots/dc_packshot_simple_languages_1080x1920.mp4'),
+      '16x9': getPackshotStoragePath('/packshots/dc_packshot_simple_languages_1920x1080.mp4'),
+      '1x1': getPackshotStoragePath('/packshots/dc_packshot_simple_languages_1080x1080.mp4'),
       '9x16-clean': '',
     }
   },
@@ -527,9 +522,9 @@ export const AVAILABLE_BRANDS = [
     id: 'eurodate', 
     name: 'EuroDate',
     packshots: {
-      '9x16': getPackshotUrl('/packshots/EuroDate_packshot_9x16.mp4'),
-      '16x9': getPackshotUrl('/packshots/EuroDate_packshot_16x9.mp4'),
-      '1x1': getPackshotUrl('/packshots/EuroDate_packshot_1x1.mp4'),
+      '9x16': getPackshotStoragePath('/packshots/EuroDate_packshot_9x16.mp4'),
+      '16x9': getPackshotStoragePath('/packshots/EuroDate_packshot_16x9.mp4'),
+      '1x1': getPackshotStoragePath('/packshots/EuroDate_packshot_1x1.mp4'),
       '9x16-clean': '',
     }
   },
@@ -537,9 +532,9 @@ export const AVAILABLE_BRANDS = [
     id: 'ourlove', 
     name: 'OurLove',
     packshots: {
-      '9x16': getPackshotUrl('/packshots/OurLove_packshot_9x16.mp4'),
-      '16x9': getPackshotUrl('/packshots/OurLove_packshot_16x9.mp4'),
-      '1x1': getPackshotUrl('/packshots/OurLove_packshot_1x1.mp4'),
+      '9x16': getPackshotStoragePath('/packshots/OurLove_packshot_9x16.mp4'),
+      '16x9': getPackshotStoragePath('/packshots/OurLove_packshot_16x9.mp4'),
+      '1x1': getPackshotStoragePath('/packshots/OurLove_packshot_1x1.mp4'),
       '9x16-clean': '',
     }
   }

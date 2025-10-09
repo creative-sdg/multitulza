@@ -98,12 +98,22 @@ export async function uploadPackshotsToStorage(): Promise<void> {
   }
 }
 
-// Get storage URL for a packshot
-export function getPackshotStorageUrl(localPath: string): string {
-  const fileName = localPath.replace('/packshots/', 'packshots/');
-  const { data: { publicUrl } } = supabase.storage
+// Get storage path for a packshot (without URL generation)
+export function getPackshotStoragePath(localPath: string): string {
+  return localPath.replace('/packshots/', 'packshots/');
+}
+
+// Get signed URL for a packshot (valid for 1 hour)
+export async function getPackshotSignedUrl(localPath: string): Promise<string> {
+  const filePath = getPackshotStoragePath(localPath);
+  const { data, error } = await supabase.storage
     .from('videos')
-    .getPublicUrl(fileName);
-  
-  return publicUrl;
+    .createSignedUrl(filePath, 3600); // 1 hour
+
+  if (error || !data) {
+    console.error('❌ Failed to create signed URL for packshot:', error);
+    throw new Error(`Failed to create signed URL for ${filePath}`);
+  }
+
+  return data.signedUrl;
 }
