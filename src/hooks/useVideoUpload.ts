@@ -67,18 +67,23 @@ export const useVideoUpload = () => {
 
       setUploadProgress(70);
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get signed URL (valid for 1 hour) for external services like Creatomate
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('videos')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600); // 3600 seconds = 1 hour
 
-      console.log('✅ Video uploaded to storage:', publicUrl);
+      if (signedUrlError || !signedUrlData) {
+        console.error('❌ Failed to create signed URL:', signedUrlError);
+        throw new Error('Failed to create signed URL');
+      }
+
+      console.log('✅ Video uploaded to storage with signed URL');
       setUploadProgress(100);
       toast.success('Видео загружено в облако!');
 
       return {
         file,
-        url: publicUrl,
+        url: signedUrlData.signedUrl,
         path: filePath,
         duration
       };
