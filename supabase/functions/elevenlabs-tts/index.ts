@@ -108,7 +108,27 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const fileName = `audio/${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
+    // Get user from JWT
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Store in user-specific folder
+    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('videos')
@@ -122,16 +142,21 @@ serve(async (req) => {
       throw new Error(`Failed to upload audio: ${uploadError.message}`);
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    // Get signed URL with 1 hour expiration
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('videos')
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 3600);
 
-    console.log('Audio uploaded to storage:', publicUrl);
+    if (signedUrlError) {
+      console.error('Signed URL error:', signedUrlError);
+      throw new Error(`Failed to create signed URL: ${signedUrlError.message}`);
+    }
+
+    console.log('Audio uploaded to storage with signed URL');
 
     return new Response(
       JSON.stringify({ 
-        audioUrl: publicUrl,
+        audioUrl: signedUrlData.signedUrl,
         duration: durationSeconds
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface TextBlock {
   id: string;
   bodyLine1?: string;
@@ -23,23 +25,17 @@ export class GoogleSheetsServiceImpl implements GoogleSheetsService {
   
   async getTextBlock(rowNumber: number): Promise<TextBlock | null> {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('google-sheets', {
+        body: {
           spreadsheetId: this.spreadsheetId,
           rowNumber,
-        }),
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch text block: ${response.statusText}`);
+      if (error) {
+        throw new Error(`Failed to fetch text block: ${error.message}`);
       }
 
-      const data = await response.json();
       return data.textBlock || null;
     } catch (error) {
       console.error('Error fetching text block:', error);

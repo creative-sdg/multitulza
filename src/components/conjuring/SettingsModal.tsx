@@ -187,12 +187,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-zinc-100">API Keys</h3>
+                  <div className="bg-amber-900/20 border border-amber-700/50 rounded-lg p-4 mb-4">
+                    <h4 className="text-amber-200 font-semibold mb-2 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      Security Warning - Development Only
+                    </h4>
+                    <p className="text-sm text-amber-100 mb-2">
+                      <strong>This API key storage method is INSECURE and should ONLY be used for local development and testing.</strong>
+                    </p>
+                    <ul className="text-sm text-amber-100 space-y-1 list-disc list-inside">
+                      <li>Keys are stored in browser localStorage (vulnerable to XSS attacks)</li>
+                      <li>Keys can be stolen by malicious browser extensions</li>
+                      <li>Anyone with access to your computer can view these keys</li>
+                      <li>Keys are exposed in network traffic during API calls</li>
+                    </ul>
+                    <p className="text-sm text-amber-100 mt-2 font-semibold">
+                      DO NOT deploy this to production or use with production API keys!
+                    </p>
+                  </div>
                   <p className="text-sm text-zinc-400 mb-4">
-                    Your API keys are stored securely in your browser's local storage and are never sent to our servers.
+                    For testing purposes, your API keys are stored in browser local storage. Use your personal development keys only.
                   </p>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="gemini-key">Gemini API Key</Label>
+                      <Label htmlFor="gemini-key">Gemini API Key (Development Only)</Label>
                       <Input
                         id="gemini-key"
                         type="password"
@@ -202,7 +222,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ open, onOpenChange
                       />
                     </div>
                     <div>
-                      <Label htmlFor="fal-key">Fal.ai API Key</Label>
+                      <Label htmlFor="fal-key">Fal.ai API Key (Development Only)</Label>
                       <Input
                         id="fal-key"
                         type="password"

@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface VoiceOption {
   id: string;
   name: string;
@@ -17,26 +19,16 @@ export interface ElevenLabsService {
 }
 
 export class ElevenLabsServiceImpl implements ElevenLabsService {
-  private readonly supabaseUrl = 'https://kyasmnsbddufkyhcdroj.supabase.co';
-  
   async generateAudio(text: string, voiceId: string): Promise<string> {
     try {
-      const response = await fetch(`${this.supabaseUrl}/functions/v1/elevenlabs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text,
-          voiceId,
-        }),
+      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+        body: { text, voiceId }
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to generate audio: ${response.statusText}`);
+      if (error) {
+        throw new Error(`Failed to generate audio: ${error.message}`);
       }
 
-      const data = await response.json();
       return data.audioUrl;
     } catch (error) {
       console.error('Error generating audio:', error);

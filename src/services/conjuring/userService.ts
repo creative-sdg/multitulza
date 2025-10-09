@@ -1,27 +1,26 @@
 import { supabase } from '@/integrations/supabase/client';
 
-// Get or create a unique user ID for this browser
-export const getUserId = (): string => {
-  let userId = localStorage.getItem('conjuring-user-id');
+// Get authenticated user ID
+export const getUserId = async (): Promise<string> => {
+  const { data: { user }, error } = await supabase.auth.getUser();
   
-  if (!userId) {
-    // Generate a unique ID based on timestamp and random value
-    userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    localStorage.setItem('conjuring-user-id', userId);
+  if (error || !user) {
+    throw new Error('User not authenticated');
   }
   
-  return userId;
+  return user.id;
 };
 
 // Save history item to database
 export const saveHistoryItem = async (historyItem: any) => {
-  const userId = getUserId();
+  const userId = await getUserId();
   
   try {
     const { error } = await supabase
       .from('user_history')
       .upsert({
-        user_id: userId,
+        auth_user_id: userId,
+        user_id: userId, // Keep for backwards compatibility
         image_id: historyItem.imageId,
         character_profile: historyItem.characterProfile,
         image_prompts: historyItem.imagePrompts,
@@ -43,13 +42,13 @@ export const saveHistoryItem = async (historyItem: any) => {
 
 // Load history from database
 export const loadHistoryFromDatabase = async () => {
-  const userId = getUserId();
+  const userId = await getUserId();
   
   try {
     const { data, error } = await supabase
       .from('user_history')
       .select('*')
-      .eq('user_id', userId)
+      .eq('auth_user_id', userId)
       .order('timestamp', { ascending: false });
 
     if (error) throw error;
@@ -75,13 +74,13 @@ export const loadHistoryFromDatabase = async () => {
 
 // Delete history item from database
 export const deleteHistoryItem = async (imageId: string) => {
-  const userId = getUserId();
+  const userId = await getUserId();
   
   try {
     const { error } = await supabase
       .from('user_history')
       .delete()
-      .eq('user_id', userId)
+      .eq('auth_user_id', userId)
       .eq('image_id', imageId);
 
     if (error) throw error;
