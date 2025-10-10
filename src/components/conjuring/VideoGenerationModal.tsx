@@ -36,6 +36,9 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
   const [isSuggestingPrompt, setIsSuggestingPrompt] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<string | null>(null);
 
+  console.log('[VideoGenerationModal] Rendered with imageUrl:', imageUrl ? imageUrl.substring(0, 100) + '...' : 'NO URL');
+  console.log('[VideoGenerationModal] isOpen:', isOpen);
+
   const handleModelChange = (newModel: VideoGenerationModel) => {
       setModel(newModel);
       const newModelDetails = videoModelDetails[newModel];
@@ -45,6 +48,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
 
   useEffect(() => {
     if (isOpen) {
+      console.log('[VideoGenerationModal] Modal opened, setting prompt to:', basePrompt);
       setVideoPrompt(basePrompt); // Use base prompt directly without AI suggestion
     }
   }, [isOpen, basePrompt]);
@@ -55,6 +59,13 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
   }, [model, resolution, duration]);
 
   const handleGenerateClick = () => {
+    console.log('[VideoGenerationModal] Generate clicked');
+    console.log('[VideoGenerationModal] videoPrompt:', videoPrompt);
+    console.log('[VideoGenerationModal] imageUrl:', imageUrl ? imageUrl.substring(0, 100) + '...' : 'NO URL');
+    console.log('[VideoGenerationModal] model:', model);
+    console.log('[VideoGenerationModal] resolution:', resolution);
+    console.log('[VideoGenerationModal] duration:', duration);
+    
     onStartGeneration({
       prompt: videoPrompt,
       resolution,

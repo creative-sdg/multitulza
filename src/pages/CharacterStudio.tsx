@@ -413,7 +413,13 @@ const CharacterStudio: React.FC = () => {
   };
 
   const handleStartVideoGeneration = async (promptIndex: number, params: VideoGenerationParams) => {
+    console.log('[CharacterStudio] handleStartVideoGeneration called');
+    console.log('[CharacterStudio] promptIndex:', promptIndex);
+    console.log('[CharacterStudio] params:', params);
+    
     const promptItem = imagePrompts[promptIndex];
+    console.log('[CharacterStudio] promptItem.generatedImageUrl:', promptItem.generatedImageUrl);
+    
     if (!promptItem.generatedImageUrl) {
       toast({
         title: "Ошибка",
@@ -428,13 +434,19 @@ const CharacterStudio: React.FC = () => {
     try {
       // Load actual image URL if it's a stored ID
       let actualImageUrl = promptItem.generatedImageUrl;
+      console.log('[CharacterStudio] Initial actualImageUrl:', actualImageUrl);
+      
       if (actualImageUrl.startsWith('generated_')) {
+        console.log('[CharacterStudio] Loading from IndexedDB...');
         const loadedUrl = await getGeneratedImageUrl(actualImageUrl);
+        console.log('[CharacterStudio] Loaded URL:', loadedUrl ? loadedUrl.substring(0, 100) + '...' : 'NULL');
         if (!loadedUrl) {
           throw new Error('Не удалось загрузить изображение из хранилища');
         }
         actualImageUrl = loadedUrl;
       }
+      
+      console.log('[CharacterStudio] Calling generateVideoFal with actualImageUrl:', actualImageUrl.substring(0, 100) + '...');
 
       const videoUrl = await generateVideoFal({
         prompt: params.prompt,
@@ -446,6 +458,8 @@ const CharacterStudio: React.FC = () => {
           console.log('Video generation progress:', logs);
         }
       });
+
+      console.log('[CharacterStudio] Video generated successfully:', videoUrl);
 
       // Update prompt with generated video URL
       const newPrompts = [...imagePrompts];
@@ -486,7 +500,8 @@ const CharacterStudio: React.FC = () => {
         description: `Видео для сцены "${promptItem.scene}" сгенерировано`,
       });
     } catch (error: any) {
-      console.error(`Failed to generate video for prompt ${promptIndex}:`, error);
+      console.error(`[CharacterStudio] Failed to generate video for prompt ${promptIndex}:`, error);
+      console.error('[CharacterStudio] Error stack:', error.stack);
       toast({
         title: "Ошибка генерации видео",
         description: error.message || "Не удалось сгенерировать видео",
@@ -801,21 +816,38 @@ const CharacterStudio: React.FC = () => {
                         });
                       }}
                       onGenerateVideo={async () => {
+                        console.log('[CharacterStudio] onGenerateVideo clicked for prompt', index);
+                        console.log('[CharacterStudio] promptItem.generatedImageUrl:', promptItem.generatedImageUrl);
+                        
                         // Load actual image URL before opening modal
                         let actualImageUrl = promptItem.generatedImageUrl || '';
+                        
+                        if (!actualImageUrl) {
+                          toast({
+                            title: "Ошибка",
+                            description: "Сначала сгенерируйте изображение",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
                         if (actualImageUrl.startsWith('generated_')) {
+                          console.log('[CharacterStudio] Loading image from IndexedDB:', actualImageUrl);
                           const loadedUrl = await getGeneratedImageUrl(actualImageUrl);
+                          console.log('[CharacterStudio] Loaded URL from IndexedDB:', loadedUrl);
                           if (loadedUrl) {
                             actualImageUrl = loadedUrl;
                           } else {
                             toast({
                               title: "Ошибка",
-                              description: "Не удалось загрузить изображение",
+                              description: "Не удалось загрузить изображение из хранилища",
                               variant: "destructive"
                             });
                             return;
                           }
                         }
+                        
+                        console.log('[CharacterStudio] Setting videoModalImageUrl to:', actualImageUrl.substring(0, 100));
                         setVideoModalImageUrl(actualImageUrl);
                         setVideoGenerationPromptIndex(index);
                         setIsVideoModalOpen(true);
