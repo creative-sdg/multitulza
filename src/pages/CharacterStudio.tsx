@@ -78,6 +78,20 @@ const CharacterStudio: React.FC = () => {
       }
     };
     loadHistory();
+    
+    // Reload history when component becomes visible again (user returns from Creation page)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[CharacterStudio] Page became visible, reloading history');
+        loadHistory();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleImageChange = (file: File) => {

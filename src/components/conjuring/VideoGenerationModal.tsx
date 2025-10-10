@@ -44,33 +44,9 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
   };
 
   useEffect(() => {
-    let isCancelled = false;
-
     if (isOpen) {
-      setVideoPrompt(''); // Clear previous
-      setIsSuggestingPrompt(true);
-      const motionConfig = getPromptConfig('motion');
-      generateMotionPrompt(basePrompt, motionConfig)
-        .then(prompt => {
-            if (!isCancelled) {
-                setVideoPrompt(prompt);
-            }
-        })
-        .catch(() => {
-            if (!isCancelled) {
-                setVideoPrompt(basePrompt); // fallback to base prompt
-            }
-        })
-        .finally(() => {
-            if (!isCancelled) {
-                setIsSuggestingPrompt(false);
-            }
-        });
+      setVideoPrompt(basePrompt); // Use base prompt directly without AI suggestion
     }
-
-    return () => {
-        isCancelled = true;
-    };
   }, [isOpen, basePrompt]);
   
   useEffect(() => {
