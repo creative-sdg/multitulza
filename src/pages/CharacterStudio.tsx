@@ -425,9 +425,19 @@ const CharacterStudio: React.FC = () => {
     setGeneratingVideoIndices(prev => new Set(prev).add(promptIndex));
     
     try {
+      // Load actual image URL if it's a stored ID
+      let actualImageUrl = promptItem.generatedImageUrl;
+      if (actualImageUrl.startsWith('generated_')) {
+        const loadedUrl = await getGeneratedImageUrl(actualImageUrl);
+        if (!loadedUrl) {
+          throw new Error('Не удалось загрузить изображение из хранилища');
+        }
+        actualImageUrl = loadedUrl;
+      }
+
       const videoUrl = await generateVideoFal({
         prompt: params.prompt,
-        imageUrl: promptItem.generatedImageUrl,
+        imageUrl: actualImageUrl,
         resolution: params.resolution,
         duration: params.duration,
         model: params.model,
@@ -490,7 +500,7 @@ const CharacterStudio: React.FC = () => {
     }
   };
 
-  const handleGenerateAllVideos = () => {
+  const handleGenerateAllVideos = async () => {
     // Check if all images are generated
     const allImagesGenerated = imagePrompts.every(p => p.generatedImageUrl);
     if (!allImagesGenerated) {
@@ -502,9 +512,102 @@ const CharacterStudio: React.FC = () => {
       return;
     }
 
-    // Open video modal for the first prompt (can be expanded to batch process)
-    setVideoGenerationPromptIndex(0);
-    setIsVideoModalOpen(true);
+    toast({
+      title: "Генерация видео началась",
+      description: `Генерируем видео для ${imagePrompts.length} сцен`,
+    });
+
+    // Generate all videos in parallel
+    const generatePromises = imagePrompts.map(async (promptItem, i) => {
+      if (!promptItem.generatedImageUrl) return;
+      
+      setGeneratingVideoIndices(prev => new Set(prev).add(i));
+      
+      try {
+        // Load actual image URL if it's a stored ID
+        let actualImageUrl = promptItem.generatedImageUrl;
+        if (actualImageUrl.startsWith('generated_')) {
+          const loadedUrl = await getGeneratedImageUrl(actualImageUrl);
+          if (!loadedUrl) {
+            throw new Error('Не удалось загрузить изображение из хранилища');
+          }
+          actualImageUrl = loadedUrl;
+        }
+
+        const videoUrl = await generateVideoFal({
+          prompt: promptItem.prompt,
+          imageUrl: actualImageUrl,
+          resolution: '720p',
+          duration: '5',
+          model: 'seedance-lite',
+          onProgress: (logs) => {
+            console.log(`Video generation progress for scene ${i}:`, logs);
+          }
+        });
+
+        // Update prompt with generated video URL
+        setImagePrompts(prev => {
+          const newPrompts = [...prev];
+          if (!newPrompts[i].generatedMedia) {
+            newPrompts[i].generatedMedia = [];
+          }
+          newPrompts[i].generatedMedia?.push({
+            prompt: promptItem.prompt,
+            url: videoUrl,
+            type: 'video',
+            model: 'seedance-lite',
+            resolution: '720p',
+            duration: '5',
+            scene: promptItem.scene
+          });
+          return newPrompts;
+        });
+
+        toast({
+          title: "Видео готово",
+          description: `Видео для сцены "${promptItem.scene}" сгенерировано`,
+        });
+      } catch (error: any) {
+        console.error(`Failed to generate video for prompt ${i}:`, error);
+        toast({
+          title: "Ошибка генерации видео",
+          description: `Сцена "${promptItem.scene}": ${error.message}`,
+          variant: "destructive"
+        });
+      } finally {
+        setGeneratingVideoIndices(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(i);
+          return newSet;
+        });
+      }
+    });
+    
+    // Wait for all to complete
+    await Promise.all(generatePromises);
+    
+    // Save complete updated history once at the end
+    const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+    if (historyItem) {
+      const updatedItem = {
+        ...historyItem,
+        imagePrompts
+      };
+      await saveHistoryItem(updatedItem);
+      
+      const updatedHistory = history.map(item => {
+        if (item.id === currentImageId || item.imageId === currentImageId) {
+          return updatedItem;
+        }
+        return item;
+      });
+      setHistory(updatedHistory);
+    }
+
+    toast({
+      title: "Генерация завершена",
+      description: "Все видео успешно сгенерированы",
+    });
   };
 
   return (
