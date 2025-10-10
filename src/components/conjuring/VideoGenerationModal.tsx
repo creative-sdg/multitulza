@@ -135,7 +135,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
         </div>
         <DialogFooter>
             <Button onClick={() => onOpenChange(false)} variant="outline">Cancel</Button>
-            <Button onClick={handleGenerateClick} disabled={isSuggestingPrompt || !videoPrompt}>
+            <Button onClick={handleGenerateClick} disabled={isSuggestingPrompt || !videoPrompt || !imageUrl}>
                 <WandSparkles className="mr-2 h-4 w-4"/>
                 Generate Video
             </Button>

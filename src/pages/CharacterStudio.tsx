@@ -41,6 +41,7 @@ const CharacterStudio: React.FC = () => {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [videoGenerationPromptIndex, setVideoGenerationPromptIndex] = useState<number | null>(null);
+  const [videoModalImageUrl, setVideoModalImageUrl] = useState<string>('');
   const [generatingVideoIndices, setGeneratingVideoIndices] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
@@ -799,7 +800,23 @@ const CharacterStudio: React.FC = () => {
                           state: { imageUrl } 
                         });
                       }}
-                      onGenerateVideo={() => {
+                      onGenerateVideo={async () => {
+                        // Load actual image URL before opening modal
+                        let actualImageUrl = promptItem.generatedImageUrl || '';
+                        if (actualImageUrl.startsWith('generated_')) {
+                          const loadedUrl = await getGeneratedImageUrl(actualImageUrl);
+                          if (loadedUrl) {
+                            actualImageUrl = loadedUrl;
+                          } else {
+                            toast({
+                              title: "Ошибка",
+                              description: "Не удалось загрузить изображение",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                        }
+                        setVideoModalImageUrl(actualImageUrl);
                         setVideoGenerationPromptIndex(index);
                         setIsVideoModalOpen(true);
                       }}
@@ -889,7 +906,7 @@ const CharacterStudio: React.FC = () => {
             isOpen={isVideoModalOpen}
             onOpenChange={setIsVideoModalOpen}
             basePrompt={imagePrompts[videoGenerationPromptIndex].prompt}
-            imageUrl={imagePrompts[videoGenerationPromptIndex].generatedImageUrl || ''}
+            imageUrl={videoModalImageUrl}
             onStartGeneration={(params) => handleStartVideoGeneration(videoGenerationPromptIndex, params)}
           />
         )}
