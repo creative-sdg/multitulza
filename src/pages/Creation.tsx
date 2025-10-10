@@ -77,6 +77,18 @@ const Creation: React.FC = () => {
     };
 
     loadHistoryItem();
+    
+    // Reload history when window gains focus (to get latest generation results)
+    const handleFocus = () => {
+      console.log('[Creation] Window gained focus, reloading history');
+      loadHistoryItem();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [characterId, promptIndex, navigate, toast]);
 
   const handleVariationsGenerated = async (variations: string[]) => {
@@ -263,7 +275,7 @@ const Creation: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <Button
           variant="ghost"
-          onClick={() => navigate('/character-studio')}
+          onClick={() => navigate('/character-studio', { state: { selectedCharacterId: characterId } })}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

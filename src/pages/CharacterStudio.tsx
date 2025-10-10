@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ImageUploader } from '@/components/conjuring/ImageUploader';
 import { CharacterProfileCard } from '@/components/conjuring/CharacterProfileCard';
 import { GenerationModeSelector } from '@/components/conjuring/GenerationModeSelector';
@@ -24,6 +24,7 @@ import type { CharacterProfile, GenerationMode, GenerationStyle, HistoryItem, Im
 
 const CharacterStudio: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [characterProfile, setCharacterProfile] = useState<CharacterProfile | null>(null);
   const [imagePrompts, setImagePrompts] = useState<ImagePrompt[]>([]);
@@ -60,6 +61,18 @@ const CharacterStudio: React.FC = () => {
           );
         }
         setHistory(dbHistory);
+        
+        // Check if we need to restore a specific character (from navigation state)
+        const selectedCharacterId = (location.state as any)?.selectedCharacterId;
+        if (selectedCharacterId) {
+          console.log('[CharacterStudio] Restoring selected character:', selectedCharacterId);
+          const item = dbHistory.find(h => h.id === selectedCharacterId);
+          if (item) {
+            await handleSelectHistoryItem(item);
+          }
+          // Clear the state to prevent re-selecting on subsequent renders
+          navigate(location.pathname, { replace: true, state: {} });
+        }
       } else {
         // Fallback to localStorage for migration
         const savedHistory = localStorage.getItem('conjuring-history');
@@ -79,7 +92,7 @@ const CharacterStudio: React.FC = () => {
     };
     loadHistory();
     
-    // Reload history when component becomes visible again (user returns from Creation page)
+    // Reload history when component becomes visible again or when navigating back
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('[CharacterStudio] Page became visible, reloading history');
@@ -87,12 +100,20 @@ const CharacterStudio: React.FC = () => {
       }
     };
     
+    // Also reload when window gains focus (better for navigation back)
+    const handleFocus = () => {
+      console.log('[CharacterStudio] Window gained focus, reloading history');
+      loadHistory();
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
     
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [location]);
 
   const handleImageChange = (file: File) => {
     console.log('[CharacterStudio] Image selected:', file.name, file.type, file.size);
@@ -294,83 +315,71 @@ const CharacterStudio: React.FC = () => {
     
     setIsGenerateAllModalOpen(false);
     
-    // Generate all images
-    for (let i = 0; i < imagePrompts.length; i++) {
+    // Generate all images in parallel
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    
+    const generatePromises = imagePrompts.map(async (promptItem, i) => {
       setGeneratingPromptIndices(prev => new Set(prev).add(i));
       
       try {
-        const base64Image = imageUrl.split(',')[1];
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        
-        const imageUrl_ = await generateImageFal(imagePrompts[i].prompt, blob, model, null);
+        const imageUrl_ = await generateImageFal(promptItem.prompt, blob, model, null);
         console.log('[CharacterStudio] Image generated for prompt', i, 'URL:', imageUrl_);
         
-        // First show the temporary URL immediately for instant feedback
+        // Update with temporary URL immediately
         setImagePrompts(prev => {
           const newPrompts = [...prev];
           newPrompts[i].generatedImageUrl = imageUrl_;
+          // Also add to generatedMedia array
+          if (!newPrompts[i].generatedMedia) {
+            newPrompts[i].generatedMedia = [];
+          }
+          newPrompts[i].generatedMedia!.push({
+            prompt: promptItem.prompt,
+            url: imageUrl_,
+            type: 'image',
+            model,
+            scene: promptItem.scene
+          });
           console.log('[CharacterStudio] Updated imagePrompts with temporary URL for prompt', i);
           return newPrompts;
         });
         
-        // Then save to IndexedDB in background and update with ID
-        saveGeneratedImage(imageUrl_).then(savedImageId => {
-          console.log('[CharacterStudio] Saved image to IndexedDB with ID:', savedImageId);
-          setImagePrompts(prev => {
-            const updatedPrompts = [...prev];
-            updatedPrompts[i].generatedImageUrl = savedImageId;
-            console.log('[CharacterStudio] Updated imagePrompts with savedImageId for prompt', i, 
-              'Full prompt object:', updatedPrompts[i]);
-            
-            // Update history with the permanent ID
-            const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
-            if (historyItem) {
-              const updatedItem = {
-                ...historyItem,
-                imagePrompts: updatedPrompts
-              };
-              console.log('[CharacterStudio] Saving to history, imagePrompts sample:', 
-                updatedPrompts.slice(0, 2).map(p => ({
-                  scene: p.scene,
-                  hasGeneratedUrl: !!p.generatedImageUrl,
-                  generatedImageUrl: p.generatedImageUrl
-                }))
-              );
-              saveHistoryItem(updatedItem);
+        // Save to IndexedDB and update with permanent ID
+        const savedImageId = await saveGeneratedImage(imageUrl_);
+        console.log('[CharacterStudio] Saved image to IndexedDB with ID:', savedImageId);
+        
+        setImagePrompts(prev => {
+          const updatedPrompts = [...prev];
+          updatedPrompts[i].generatedImageUrl = savedImageId;
+          // Update the URL in generatedMedia too
+          if (updatedPrompts[i].generatedMedia) {
+            const mediaIndex = updatedPrompts[i].generatedMedia!.findIndex(m => m.url === imageUrl_);
+            if (mediaIndex !== -1) {
+              updatedPrompts[i].generatedMedia![mediaIndex].url = savedImageId;
             }
-            
-            return updatedPrompts;
-          });
+          }
+          console.log('[CharacterStudio] Updated imagePrompts with savedImageId for prompt', i);
+          return updatedPrompts;
         });
         
         toast({
           title: "Изображение готово",
-          description: `Сцена "${imagePrompts[i].scene}" сгенерирована`,
+          description: `Сцена "${promptItem.scene}" сгенерирована`,
         });
       } catch (error: any) {
         console.error(`Failed to generate image for prompt ${i}:`, error);
-        const newPrompts = [...imagePrompts];
-        newPrompts[i].generationError = error.message;
-        setImagePrompts(newPrompts);
+        setImagePrompts(prev => {
+          const newPrompts = [...prev];
+          newPrompts[i].generationError = error.message;
+          return newPrompts;
+        });
         
-        // Update history even with error
-        const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
-        if (historyItem) {
-          const updatedItem = {
-            ...historyItem,
-            imagePrompts: newPrompts
-          };
-          await saveHistoryItem(updatedItem);
-          
-          const updatedHistory = history.map(item => {
-            if (item.id === currentImageId || item.imageId === currentImageId) {
-              return updatedItem;
-            }
-            return item;
-          });
-          setHistory(updatedHistory);
-        }
+        toast({
+          title: "Ошибка генерации",
+          description: `Не удалось создать изображение для "${promptItem.scene}"`,
+          variant: "destructive"
+        });
       } finally {
         setGeneratingPromptIndices(prev => {
           const newSet = new Set(prev);
@@ -378,6 +387,27 @@ const CharacterStudio: React.FC = () => {
           return newSet;
         });
       }
+    });
+    
+    // Wait for all to complete
+    await Promise.all(generatePromises);
+    
+    // Save complete updated history once at the end
+    const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+    if (historyItem) {
+      const updatedItem = {
+        ...historyItem,
+        imagePrompts
+      };
+      await saveHistoryItem(updatedItem);
+      
+      const updatedHistory = history.map(item => {
+        if (item.id === currentImageId || item.imageId === currentImageId) {
+          return updatedItem;
+        }
+        return item;
+      });
+      setHistory(updatedHistory);
     }
   };
 
