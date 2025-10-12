@@ -132,9 +132,9 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
           )}
         </div>
 
-        <div className="flex items-center gap-2 mt-4">
+        <div className="flex flex-col gap-2 mt-4">
           {isEditing ? (
-            <>
+            <div className="flex items-center gap-2">
               <Button onClick={handleCancel} variant="ghost" size="sm" className="w-full">
                   <X className="w-4 h-4 mr-2" />
                   Cancel
@@ -143,39 +143,68 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
                   <Check className="w-4 h-4 mr-2" />
                   Save
               </Button>
-            </>
+            </div>
           ) : (
             <>
-              <Button onClick={onGoToCreate} variant={hasVariations || displayMediaUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
-                  <WandSparkles className="w-4 h-4 mr-2" />
-                  {hasVariations || displayMediaUrl ? 'Variations' : 'Create'}
-              </Button>
-              {displayMediaUrl && displayMediaType === 'image' && onGenerateVideo && (
-                <Button 
-                  onClick={onGenerateVideo} 
-                  variant="default" 
-                  size="sm" 
-                  aria-label="Generate video from image"
-                  disabled={isGeneratingVideo}
-                >
-                  <Video className="w-4 h-4 mr-2" />
-                  Video
-                </Button>
+              {(hasVariations || displayMediaUrl) && (
+                <>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt" className="flex-shrink-0">
+                        <RefreshCw className="w-4 h-4" />
+                    </Button>
+                    <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt" className="flex-shrink-0">
+                        <FilePenLine className="w-4 h-4" />
+                    </Button>
+                    <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt" className="flex-shrink-0">
+                      {copied ? (
+                          <Check className="w-4 h-4 text-green-400" />
+                      ) : (
+                          <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={onGoToCreate} variant="default" size="sm" className="flex-1" aria-label="View variations">
+                        <WandSparkles className="w-4 h-4 mr-2" />
+                        Variations
+                    </Button>
+                    {displayMediaType === 'image' && onGenerateVideo && (
+                      <Button 
+                        onClick={onGenerateVideo} 
+                        variant="default" 
+                        size="sm" 
+                        className="flex-1"
+                        aria-label="Generate video from image"
+                        disabled={isGeneratingVideo}
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        Video
+                      </Button>
+                    )}
+                  </div>
+                </>
               )}
-              <div className="flex-grow" />
-              <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt" className="flex-shrink-0">
-                  <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt" className="flex-shrink-0">
-                  <FilePenLine className="w-4 h-4" />
-              </Button>
-              <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt" className="flex-shrink-0">
-                {copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                    <Copy className="w-4 h-4" />
-                )}
-              </Button>
+              {!hasVariations && !displayMediaUrl && (
+                <div className="flex items-center gap-2">
+                  <Button onClick={onGoToCreate} variant="destructive" size="sm" className="flex-1" aria-label="Create with this prompt">
+                      <WandSparkles className="w-4 h-4 mr-2" />
+                      Create
+                  </Button>
+                  <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt" className="flex-shrink-0">
+                      <RefreshCw className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt" className="flex-shrink-0">
+                      <FilePenLine className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt" className="flex-shrink-0">
+                    {copied ? (
+                        <Check className="w-4 h-4 text-green-400" />
+                    ) : (
+                        <Copy className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>
