@@ -203,25 +203,35 @@ export const generateVideoFal = async ({
     });
 
     try {
+        // If imageUrl is a data URL or blob URL, upload it to Fal Storage first
+        let finalImageUrl = imageUrl;
+        if (imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) {
+            console.log('[falService] Uploading image to Fal Storage...');
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            finalImageUrl = await uploadImageToFalStorage(blob);
+            console.log('[falService] Image uploaded to Fal Storage:', finalImageUrl);
+        }
+
         let modelId: string;
         let modelInput: any;
 
         switch (model) {
             case 'seedance-pro':
                 modelId = 'fal-ai/bytedance/seedance/v1/pro/image-to-video';
-                modelInput = { prompt, image_url: imageUrl, resolution, duration };
+                modelInput = { prompt, image_url: finalImageUrl, resolution, duration };
                 break;
             case 'seedance-lite':
                 modelId = 'fal-ai/bytedance/seedance/v1/lite/image-to-video';
-                modelInput = { prompt, image_url: imageUrl, resolution, duration };
+                modelInput = { prompt, image_url: finalImageUrl, resolution, duration };
                 break;
             case 'hailuo-2-standard':
                 modelId = 'fal-ai/minimax/hailuo-02/standard/image-to-video';
-                modelInput = { prompt, image_url: imageUrl, duration_in_seconds: parseInt(duration, 10), height: parseInt(resolution.replace('p', '')) };
+                modelInput = { prompt, image_url: finalImageUrl, duration_in_seconds: parseInt(duration, 10), height: parseInt(resolution.replace('p', '')) };
                 break;
             case 'hailuo-2-pro':
                 modelId = 'fal-ai/minimax/hailuo-02/pro/image-to-video';
-                modelInput = { prompt, image_url: imageUrl, duration_in_seconds: parseInt(duration, 10), height: parseInt(resolution.replace('p', '')) };
+                modelInput = { prompt, image_url: finalImageUrl, duration_in_seconds: parseInt(duration, 10), height: parseInt(resolution.replace('p', '')) };
                 break;
             default:
                 throw new Error(`Unsupported video model: ${model}`);
