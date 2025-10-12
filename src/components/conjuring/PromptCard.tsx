@@ -30,42 +30,56 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(prompt);
   const [isReimagineOpen, setIsReimagineOpen] = useState(false);
-  const [displayImageUrl, setDisplayImageUrl] = useState<string | null>(null);
+  const [displayMediaUrl, setDisplayMediaUrl] = useState<string | null>(null);
+  const [displayMediaType, setDisplayMediaType] = useState<'image' | 'video'>('image');
 
-  // Load image URL if it's stored as an ID in IndexedDB
+  // Load media URL (prefer video over image)
   useEffect(() => {
-    const loadImage = async () => {
-      // First check if there's a generatedImageUrl
-      if (generatedImageUrl) {
-        if (generatedImageUrl.startsWith('generated_')) {
-          // This is a stored image ID, load from IndexedDB
-          const url = await getGeneratedImageUrl(generatedImageUrl);
-          setDisplayImageUrl(url);
-        } else {
-          // This is already a URL
-          setDisplayImageUrl(generatedImageUrl);
+    const loadMedia = async () => {
+      // First check for video in generatedMedia
+      if (generatedMedia && generatedMedia.length > 0) {
+        const firstVideo = generatedMedia.find(media => media.type === 'video');
+        if (firstVideo) {
+          // Check if it's a stored ID or direct URL
+          if (firstVideo.url.startsWith('generated_')) {
+            const url = await getGeneratedImageUrl(firstVideo.url);
+            setDisplayMediaUrl(url);
+          } else {
+            setDisplayMediaUrl(firstVideo.url);
+          }
+          setDisplayMediaType('video');
+          return;
         }
-      } 
-      // If no generatedImageUrl, try to get first image from generatedMedia
-      else if (generatedMedia && generatedMedia.length > 0) {
+        
+        // If no video, check for image in generatedMedia
         const firstImage = generatedMedia.find(media => media.type === 'image');
         if (firstImage) {
-          // Check if it's a stored ID or direct URL
           if (firstImage.url.startsWith('generated_')) {
             const url = await getGeneratedImageUrl(firstImage.url);
-            setDisplayImageUrl(url);
+            setDisplayMediaUrl(url);
           } else {
-            setDisplayImageUrl(firstImage.url);
+            setDisplayMediaUrl(firstImage.url);
           }
-        } else {
-          setDisplayImageUrl(null);
+          setDisplayMediaType('image');
+          return;
         }
+      }
+      
+      // Fallback to generatedImageUrl
+      if (generatedImageUrl) {
+        if (generatedImageUrl.startsWith('generated_')) {
+          const url = await getGeneratedImageUrl(generatedImageUrl);
+          setDisplayMediaUrl(url);
+        } else {
+          setDisplayMediaUrl(generatedImageUrl);
+        }
+        setDisplayMediaType('image');
       } else {
-        setDisplayImageUrl(null);
+        setDisplayMediaUrl(null);
       }
     };
     
-    loadImage();
+    loadMedia();
   }, [generatedImageUrl, generatedMedia]);
 
   const handleCopy = () => {
@@ -88,7 +102,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
 
   return (
     <>
-    <Card className="bg-zinc-900 border-zinc-800 flex flex-row min-h-[240px] hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
+    <Card className="bg-zinc-900 border-zinc-800 flex flex-row min-h-[280px] hover:border-zinc-700 transition-colors duration-300 relative overflow-hidden">
       {(isGenerating || isReimagining || isGeneratingVideo) && (
           <div className="absolute inset-0 bg-zinc-950/90 flex flex-col items-center justify-center z-10 rounded-lg">
               <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
@@ -132,14 +146,14 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
             </>
           ) : (
             <>
-              <Button onClick={onGoToCreate} variant={hasVariations || displayImageUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
+              <Button onClick={onGoToCreate} variant={hasVariations || displayMediaUrl ? 'default' : 'destructive'} size="sm" aria-label={hasVariations ? "View variations" : "Create with this prompt"}>
                   <WandSparkles className="w-4 h-4 mr-2" />
-                  {hasVariations || displayImageUrl ? 'Variations' : 'Create'}
+                  {hasVariations || displayMediaUrl ? 'Variations' : 'Create'}
               </Button>
-              {displayImageUrl && onGenerateVideo && (
+              {displayMediaUrl && displayMediaType === 'image' && onGenerateVideo && (
                 <Button 
                   onClick={onGenerateVideo} 
-                  variant="secondary" 
+                  variant="default" 
                   size="sm" 
                   aria-label="Generate video from image"
                   disabled={isGeneratingVideo}
@@ -149,13 +163,13 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
                 </Button>
               )}
               <div className="flex-grow" />
-              <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt">
+              <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt" className="flex-shrink-0">
                   <RefreshCw className="w-4 h-4" />
               </Button>
-              <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt">
+              <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt" className="flex-shrink-0">
                   <FilePenLine className="w-4 h-4" />
               </Button>
-              <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt">
+              <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt" className="flex-shrink-0">
                 {copied ? (
                     <Check className="w-4 h-4 text-green-400" />
                 ) : (
@@ -167,9 +181,13 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
         </div>
       </div>
       
-      {displayImageUrl && (
-          <div className="w-32 flex-shrink-0 cursor-pointer overflow-hidden rounded-r-lg ml-4" onClick={onGoToCreate}>
-              <img src={displayImageUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+      {displayMediaUrl && (
+          <div className="w-48 flex-shrink-0 cursor-pointer overflow-hidden rounded-r-lg ml-4" onClick={onGoToCreate}>
+              {displayMediaType === 'video' ? (
+                <video src={displayMediaUrl} className="h-full w-full object-cover" autoPlay loop muted playsInline />
+              ) : (
+                <img src={displayMediaUrl} alt={`Generated art for ${scene}`} className="h-full w-full object-cover" />
+              )}
           </div>
       )}
     </Card>
