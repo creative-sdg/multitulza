@@ -374,11 +374,11 @@ export const CreationPage: React.FC<CreationPageProps> = ({
         <Dialog open={viewingMediaIndex !== null} onOpenChange={(isOpen) => !isOpen && setViewingMediaIndex(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
               <div className="grid grid-cols-1 md:grid-cols-3 h-full overflow-hidden">
-                <div className="md:col-span-2 flex items-center justify-center bg-black p-4 min-h-[60vh]">
+                <div className="md:col-span-2 flex items-center justify-center bg-black p-4">
                   {generatedMedia[viewingMediaIndex].type === 'image' ? (
-                    <img src={generatedMedia[viewingMediaIndex].url} alt={generatedMedia[viewingMediaIndex].prompt} className="w-full h-full object-contain"/>
+                    <img src={generatedMedia[viewingMediaIndex].url} alt={generatedMedia[viewingMediaIndex].prompt} className="max-w-full max-h-[80vh] object-contain"/>
                   ) : (
-                    <video src={generatedMedia[viewingMediaIndex].url} className="w-full h-full object-contain" controls autoPlay loop />
+                    <video src={generatedMedia[viewingMediaIndex].url} className="max-w-full max-h-[80vh] object-contain" controls autoPlay loop />
                   )}
                 </div>
                 <div className="md:col-span-1 bg-zinc-950 p-6 flex flex-col justify-between overflow-y-auto">
