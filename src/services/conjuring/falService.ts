@@ -269,7 +269,11 @@ export const uploadImageToFalStorage = async (imageBlob: Blob): Promise<string> 
         credentials: apiKey,
     });
     try {
-        const url = await fal.storage.upload(imageBlob);
+        // Convert Blob to File with proper name and type
+        const file = new File([imageBlob], `image-${Date.now()}.jpg`, { 
+            type: imageBlob.type || 'image/jpeg' 
+        });
+        const url = await fal.storage.upload(file);
         return url;
     } catch (error: any) {
         console.error("Fal.ai storage upload error:", error);
@@ -295,7 +299,11 @@ export const editImageFal = async (
         console.log('Optimized for nano-banana:', optimizedPrompt);
         
         const modelId = 'fal-ai/nano-banana/edit';
-        const imageUrl = await fal.storage.upload(imageBlob);
+        // Convert Blob to File with proper name and type
+        const file = new File([imageBlob], `image-${Date.now()}.jpg`, { 
+            type: imageBlob.type || 'image/jpeg' 
+        });
+        const imageUrl = await fal.storage.upload(file);
 
         const result: any = await fal.subscribe(modelId, {
             input: {
