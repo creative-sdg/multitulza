@@ -39,45 +39,65 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
   // Load media URL (prefer video over image)
   useEffect(() => {
     const loadMedia = async () => {
-      // First check for video in generatedMedia
-      if (generatedMedia && generatedMedia.length > 0) {
-        const firstVideo = generatedMedia.find(media => media.type === 'video');
-        if (firstVideo) {
-          // Check if it's a stored ID or direct URL
-          if (firstVideo.url.startsWith('generated_')) {
-            const url = await getGeneratedImageUrl(firstVideo.url);
-            setDisplayMediaUrl(url);
-          } else {
-            setDisplayMediaUrl(firstVideo.url);
+      try {
+        // First check for video in generatedMedia (VIDEO PRIORITY)
+        if (generatedMedia && generatedMedia.length > 0) {
+          const firstVideo = generatedMedia.find(media => media.type === 'video');
+          if (firstVideo) {
+            // Check if it's a stored ID or direct URL
+            if (firstVideo.url.startsWith('generated_')) {
+              const url = await getGeneratedImageUrl(firstVideo.url);
+              if (url) {
+                setDisplayMediaUrl(url);
+                setDisplayMediaType('video');
+                return;
+              }
+              // If failed to load, continue to try images
+            } else {
+              setDisplayMediaUrl(firstVideo.url);
+              setDisplayMediaType('video');
+              return;
+            }
           }
-          setDisplayMediaType('video');
-          return;
+          
+          // If no video, check for image in generatedMedia
+          const firstImage = generatedMedia.find(media => media.type === 'image');
+          if (firstImage) {
+            if (firstImage.url.startsWith('generated_')) {
+              const url = await getGeneratedImageUrl(firstImage.url);
+              if (url) {
+                setDisplayMediaUrl(url);
+                setDisplayMediaType('image');
+                return;
+              }
+            } else {
+              setDisplayMediaUrl(firstImage.url);
+              setDisplayMediaType('image');
+              return;
+            }
+          }
         }
         
-        // If no video, check for image in generatedMedia
-        const firstImage = generatedMedia.find(media => media.type === 'image');
-        if (firstImage) {
-          if (firstImage.url.startsWith('generated_')) {
-            const url = await getGeneratedImageUrl(firstImage.url);
-            setDisplayMediaUrl(url);
+        // Fallback to generatedImageUrl
+        if (generatedImageUrl) {
+          if (generatedImageUrl.startsWith('generated_')) {
+            const url = await getGeneratedImageUrl(generatedImageUrl);
+            if (url) {
+              setDisplayMediaUrl(url);
+              setDisplayMediaType('image');
+            } else {
+              console.warn('[PromptCard] Failed to load image from IndexedDB:', generatedImageUrl);
+              setDisplayMediaUrl(null);
+            }
           } else {
-            setDisplayMediaUrl(firstImage.url);
+            setDisplayMediaUrl(generatedImageUrl);
+            setDisplayMediaType('image');
           }
-          setDisplayMediaType('image');
-          return;
-        }
-      }
-      
-      // Fallback to generatedImageUrl
-      if (generatedImageUrl) {
-        if (generatedImageUrl.startsWith('generated_')) {
-          const url = await getGeneratedImageUrl(generatedImageUrl);
-          setDisplayMediaUrl(url);
         } else {
-          setDisplayMediaUrl(generatedImageUrl);
+          setDisplayMediaUrl(null);
         }
-        setDisplayMediaType('image');
-      } else {
+      } catch (error) {
+        console.error('[PromptCard] Error loading media:', error);
         setDisplayMediaUrl(null);
       }
     };

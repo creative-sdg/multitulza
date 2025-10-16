@@ -471,6 +471,16 @@ const CharacterStudio: React.FC = () => {
 
       console.log('[CharacterStudio] Video generated successfully:', videoUrl);
 
+      // Save video to IndexedDB to prevent loss
+      let savedVideoId = videoUrl;
+      try {
+        savedVideoId = await saveGeneratedImage(videoUrl);
+        console.log('[CharacterStudio] Saved video to IndexedDB with ID:', savedVideoId);
+      } catch (error) {
+        console.error('[CharacterStudio] Failed to save video to IndexedDB:', error);
+        // Continue with direct URL if save fails
+      }
+
       // Update prompt with generated video URL
       const newPrompts = [...imagePrompts];
       if (!newPrompts[promptIndex].generatedMedia) {
@@ -478,7 +488,7 @@ const CharacterStudio: React.FC = () => {
       }
       newPrompts[promptIndex].generatedMedia?.push({
         prompt: params.prompt,
-        url: videoUrl,
+        url: savedVideoId,
         type: 'video',
         model: params.model,
         resolution: params.resolution,
@@ -645,6 +655,7 @@ const CharacterStudio: React.FC = () => {
       const savedImageId = await saveGeneratedImage(url);
       
       // Update the imagePrompts with the uploaded image
+      let updatedPrompts: ImagePrompt[] = [];
       setImagePrompts(prev => {
         const newPrompts = [...prev];
         newPrompts[index].generatedImageUrl = savedImageId;
@@ -660,28 +671,16 @@ const CharacterStudio: React.FC = () => {
           scene: newPrompts[index].scene
         });
         
+        updatedPrompts = newPrompts;
         return newPrompts;
       });
       
-      // Update history
+      // Update history with the correct updated prompts
       const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
       if (historyItem) {
-        const updatedImagePrompts = [...imagePrompts];
-        updatedImagePrompts[index].generatedImageUrl = savedImageId;
-        
-        if (!updatedImagePrompts[index].generatedMedia) {
-          updatedImagePrompts[index].generatedMedia = [];
-        }
-        updatedImagePrompts[index].generatedMedia!.push({
-          prompt: updatedImagePrompts[index].prompt,
-          url: savedImageId,
-          type: 'image',
-          scene: updatedImagePrompts[index].scene
-        });
-        
         const updatedItem = {
           ...historyItem,
-          imagePrompts: updatedImagePrompts
+          imagePrompts: updatedPrompts
         };
         
         await saveHistoryItem(updatedItem);
