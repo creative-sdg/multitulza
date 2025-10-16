@@ -626,6 +626,79 @@ const CharacterStudio: React.FC = () => {
     });
   };
 
+  const handleImageUploadToPrompt = async (index: number, file: File) => {
+    try {
+      // Convert file to URL
+      const url = URL.createObjectURL(file);
+      
+      // Save the uploaded image as if it was generated
+      const savedImageId = await saveGeneratedImage(url);
+      
+      // Update the imagePrompts with the uploaded image
+      setImagePrompts(prev => {
+        const newPrompts = [...prev];
+        newPrompts[index].generatedImageUrl = savedImageId;
+        
+        // Also add to generatedMedia array
+        if (!newPrompts[index].generatedMedia) {
+          newPrompts[index].generatedMedia = [];
+        }
+        newPrompts[index].generatedMedia!.push({
+          prompt: newPrompts[index].prompt,
+          url: savedImageId,
+          type: 'image',
+          scene: newPrompts[index].scene
+        });
+        
+        return newPrompts;
+      });
+      
+      // Update history
+      const historyItem = history.find(item => item.id === currentImageId || item.imageId === currentImageId);
+      if (historyItem) {
+        const updatedImagePrompts = [...imagePrompts];
+        updatedImagePrompts[index].generatedImageUrl = savedImageId;
+        
+        if (!updatedImagePrompts[index].generatedMedia) {
+          updatedImagePrompts[index].generatedMedia = [];
+        }
+        updatedImagePrompts[index].generatedMedia!.push({
+          prompt: updatedImagePrompts[index].prompt,
+          url: savedImageId,
+          type: 'image',
+          scene: updatedImagePrompts[index].scene
+        });
+        
+        const updatedItem = {
+          ...historyItem,
+          imagePrompts: updatedImagePrompts
+        };
+        
+        await saveHistoryItem(updatedItem);
+        
+        const updatedHistory = history.map(item => {
+          if (item.id === currentImageId || item.imageId === currentImageId) {
+            return updatedItem;
+          }
+          return item;
+        });
+        setHistory(updatedHistory);
+      }
+      
+      toast({
+        title: "Изображение загружено",
+        description: "Фотография успешно загружена",
+      });
+    } catch (error: any) {
+      console.error('Failed to upload image:', error);
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось загрузить изображение",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -854,6 +927,7 @@ const CharacterStudio: React.FC = () => {
                       }}
                       isGeneratingVideo={generatingVideoIndices.has(index)}
                       generatedMedia={promptItem.generatedMedia}
+                      onImageUpload={(file) => handleImageUploadToPrompt(index, file)}
                     />
                   ))}
                 </div>

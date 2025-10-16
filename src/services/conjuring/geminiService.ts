@@ -93,6 +93,12 @@ const promptVariationsSchema = {
     }
 };
 
+// Schema for generating motion prompt for video
+const motionPromptSchema = {
+  type: Type.STRING,
+  description: 'A concise motion prompt for video generation (2-3 sentences max).'
+};
+
 const reimagineSceneSchema = {
   type: Type.OBJECT,
   properties: {
@@ -317,6 +323,53 @@ export const generateMotionPrompt = async (imagePrompt: string, config: PromptCo
     });
     
     return response.text.trim();
+};
+
+export const generateVideoMotionPrompt = async (
+    basePrompt: string,
+    imageBase64?: string,
+    imageMimeType?: string
+): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    
+    const parts: any[] = [];
+    
+    // Add image if provided
+    if (imageBase64 && imageMimeType) {
+        parts.push({
+            inlineData: {
+                mimeType: imageMimeType,
+                data: imageBase64,
+            },
+        });
+    }
+    
+    // Add text prompt
+    parts.push({
+        text: `Based on ${imageBase64 ? 'this image and' : ''} the following static scene description, generate a SHORT motion prompt (2-3 sentences max) for video generation that describes natural, subtle movements and camera work. Keep it concise and focused on movement.
+
+Scene description: ${basePrompt}
+
+Generate ONLY the motion prompt without any additional explanation.`
+    });
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: { parts },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: motionPromptSchema,
+        }
+    });
+    
+    try {
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText);
+    } catch (e) {
+        console.error("Failed to parse video motion prompt from Gemini:", response.text, e);
+        // Fallback to text response
+        return response.text.trim();
+    }
 };
 
 export const reimagineScenePrompt = async (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { generateMotionPrompt } from '@/services/conjuring/geminiService';
+import { generateVideoMotionPrompt } from '@/services/conjuring/geminiService';
 import { getPromptConfig } from '@/services/conjuring/promptService';
 import type { VideoGenerationModel, VideoGenerationParams, VideoResolution, VideoDuration } from '@/types/conjuring';
 import { videoModelDetails } from '@/services/conjuring/costService';
+import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ interface VideoGenerationModalProps {
 }
 
 export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOpen, onOpenChange, basePrompt, imageUrl, onStartGeneration }) => {
+  const { toast } = useToast();
   const [videoPrompt, setVideoPrompt] = useState('');
   const [model, setModel] = useState<VideoGenerationModel>('seedance-pro');
   const [resolution, setResolution] = useState<VideoResolution>('720p');
@@ -48,10 +50,52 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
 
   useEffect(() => {
     if (isOpen) {
-      console.log('[VideoGenerationModal] Modal opened, setting prompt to:', basePrompt);
-      setVideoPrompt(basePrompt); // Use base prompt directly without AI suggestion
+      console.log('[VideoGenerationModal] Modal opened, generating video prompt...');
+      setIsSuggestingPrompt(true);
+      
+      // Auto-generate video motion prompt
+      const generatePrompt = async () => {
+        try {
+          // Convert imageUrl to base64 if needed
+          let imageBase64: string | undefined;
+          let imageMimeType: string | undefined;
+          
+          if (imageUrl && imageUrl.startsWith('http')) {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            imageMimeType = blob.type;
+            imageBase64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64String = reader.result as string;
+                resolve(base64String.split(',')[1]);
+              };
+              reader.readAsDataURL(blob);
+            });
+          } else if (imageUrl && imageUrl.startsWith('data:')) {
+            const parts = imageUrl.split(',');
+            imageMimeType = parts[0].match(/:(.*?);/)?.[1];
+            imageBase64 = parts[1];
+          }
+          
+          const motionPrompt = await generateVideoMotionPrompt(basePrompt, imageBase64, imageMimeType);
+          setVideoPrompt(motionPrompt);
+        } catch (error: any) {
+          console.error('Failed to generate video prompt:', error);
+          toast({
+            title: "Error",
+            description: "Failed to generate motion prompt. Using base prompt instead.",
+            variant: "destructive"
+          });
+          setVideoPrompt(basePrompt); // Fallback to base prompt
+        } finally {
+          setIsSuggestingPrompt(false);
+        }
+      };
+      
+      generatePrompt();
     }
-  }, [isOpen, basePrompt]);
+  }, [isOpen, basePrompt, imageUrl, toast]);
   
   useEffect(() => {
     const cost = videoModelDetails[model].calculateCost(resolution, duration);

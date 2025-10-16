@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, X, WandSparkles, Copy, Check, FilePenLine, Loader2, RefreshCw, Video } from 'lucide-react';
+import { Edit, X, WandSparkles, Copy, Check, FilePenLine, Loader2, RefreshCw, Video, Upload } from 'lucide-react';
 import type { ActivityLists, GeneratedMedia } from '@/types/conjuring';
 import { ReimagineModal } from './ReimagineModal';
 import { getGeneratedImageUrl } from '@/services/conjuring/storageService';
+import { ImageUploader } from './ImageUploader';
 
 interface PromptCardProps {
   scene: string;
@@ -23,15 +24,17 @@ interface PromptCardProps {
   onReimagine: (index: number, newActivity: string) => void;
   onGoToCreate: () => void;
   onGenerateVideo?: () => void;
+  onImageUpload?: (file: File) => void;
 }
 
-export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, variations, generatedImageUrl, onPromptChange, onGoToCreate, isGenerating, isReimagining, isGeneratingVideo, generationError, activityLists, onReimagine, onGenerateVideo, generatedMedia }) => {
+export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, variations, generatedImageUrl, onPromptChange, onGoToCreate, isGenerating, isReimagining, isGeneratingVideo, generationError, activityLists, onReimagine, onGenerateVideo, generatedMedia, onImageUpload }) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedPrompt, setEditedPrompt] = useState(prompt);
   const [isReimagineOpen, setIsReimagineOpen] = useState(false);
   const [displayMediaUrl, setDisplayMediaUrl] = useState<string | null>(null);
   const [displayMediaType, setDisplayMediaType] = useState<'image' | 'video'>('image');
+  const [showUploader, setShowUploader] = useState(false);
 
   // Load media URL (prefer video over image)
   useEffect(() => {
@@ -185,24 +188,48 @@ export const PromptCard: React.FC<PromptCardProps> = ({ scene, prompt, index, va
                 </>
               )}
               {!hasVariations && !displayMediaUrl && (
-                <div className="flex items-center gap-2">
-                  <Button onClick={onGoToCreate} variant="destructive" size="sm" className="flex-1" aria-label="Create with this prompt">
-                      <WandSparkles className="w-4 h-4 mr-2" />
-                      Create
-                  </Button>
-                  <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt" className="flex-shrink-0">
-                      <RefreshCw className="w-4 h-4" />
-                  </Button>
-                  <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt" className="flex-shrink-0">
-                      <FilePenLine className="w-4 h-4" />
-                  </Button>
-                  <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt" className="flex-shrink-0">
-                    {copied ? (
-                        <Check className="w-4 h-4 text-green-400" />
-                    ) : (
-                        <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
+                <div className="flex flex-col gap-2">
+                  {!showUploader ? (
+                    <div className="flex items-center gap-2">
+                      <Button onClick={onGoToCreate} variant="destructive" size="sm" className="flex-1" aria-label="Create with this prompt">
+                          <WandSparkles className="w-4 h-4 mr-2" />
+                          Create
+                      </Button>
+                      <Button onClick={() => setShowUploader(true)} variant="outline" size="icon" aria-label="Upload image" className="flex-shrink-0">
+                          <Upload className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={() => setIsReimagineOpen(true)} variant="outline" size="icon" aria-label="Reimagine prompt" className="flex-shrink-0">
+                          <RefreshCw className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" aria-label="Edit prompt" className="flex-shrink-0">
+                          <FilePenLine className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={handleCopy} variant="outline" size="icon" aria-label="Copy prompt" className="flex-shrink-0">
+                        {copied ? (
+                            <Check className="w-4 h-4 text-green-400" />
+                        ) : (
+                            <Copy className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="aspect-[9/16] w-full">
+                        <ImageUploader 
+                          imageUrl={null} 
+                          onImageChange={(file) => {
+                            if (onImageUpload) {
+                              onImageUpload(file);
+                              setShowUploader(false);
+                            }
+                          }} 
+                        />
+                      </div>
+                      <Button onClick={() => setShowUploader(false)} variant="ghost" size="sm" className="w-full">
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </>
