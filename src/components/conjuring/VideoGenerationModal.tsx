@@ -60,7 +60,8 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
           let imageBase64: string | undefined;
           let imageMimeType: string | undefined;
           
-          if (imageUrl && imageUrl.startsWith('http')) {
+          // Handle all image URL types (blob:, http://, https://, data:)
+          if (imageUrl && (imageUrl.startsWith('http') || imageUrl.startsWith('blob:'))) {
             const response = await fetch(imageUrl);
             const blob = await response.blob();
             imageMimeType = blob.type;
@@ -78,6 +79,8 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({ isOp
             imageBase64 = parts[1];
           }
           
+          // ALWAYS send image to LLM for video prompt generation
+          // This ensures uploaded images are analyzed correctly
           const motionPrompt = await generateVideoMotionPrompt(basePrompt, imageBase64, imageMimeType);
           setVideoPrompt(motionPrompt);
         } catch (error: any) {

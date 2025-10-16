@@ -73,6 +73,16 @@ const CharacterStudio: React.FC = () => {
           }
           // Clear the state to prevent re-selecting on subsequent renders
           navigate(location.pathname, { replace: true, state: {} });
+        } else if (currentImageId) {
+          // Auto-refresh current character if already selected
+          // This ensures updated generation results appear immediately
+          console.log('[CharacterStudio] Refreshing current character:', currentImageId);
+          const currentItem = dbHistory.find(h => h.id === currentImageId || h.imageId === currentImageId);
+          if (currentItem) {
+            setCharacterProfile(currentItem.characterProfile);
+            setImagePrompts(currentItem.imagePrompts);
+            console.log('[CharacterStudio] Current character refreshed with latest data');
+          }
         }
       } else {
         // Fallback to localStorage for migration
