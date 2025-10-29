@@ -143,26 +143,26 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
     if (scenario === 'with-audio') {
       if (!uploadedVideo) {
         console.error('❌ No source video uploaded');
-        toast.error('Сначала загрузите исходное видео');
+        toast.error('Please upload a source video first');
         return;
       }
     } else if (scenario === 'chunked-audio') {
       if (chunkedAudioData.length === 0) {
         console.error('❌ No chunked audio data');
-        toast.error('Подготовьте звуки по кусочкам');
+        toast.error('Prepare audio chunks first');
         return;
       }
     }
 
     if (selectedSizes.length === 0) {
       console.error('❌ No sizes selected');
-      toast.error('Выберите хотя бы один размер');
+      toast.error('Select at least one size');
       return;
     }
 
     if (!apiKey.trim()) {
       console.error('❌ No API key provided');
-      toast.error('Введите API ключ Creatomate');
+      toast.error('Enter Creatomate API key');
       return;
     }
 
@@ -181,11 +181,11 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
     // Select templates based on scenario
     const templates = scenario === 'with-audio' ? RESIZE_TEMPLATES : CREATOMATE_TEMPLATES;
     
-    // Создаем варианты в зависимости от выбранных брендов
+    // Create variants based on selected brands
     const newVariants: VideoVariant[] = [];
     
     if (selectedBrands.length > 0) {
-      // Режим с брендами (пакшоты включены)
+      // Branded mode (packshots included)
       console.log('📋 Processing branded mode');
       console.log(`📋 Selected brands: ${selectedBrands.join(', ')}`);
       
@@ -213,7 +213,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           });
       });
     } else {
-      // Режим без брендов (только ресайз)
+      // Resize-only mode
       console.log('📋 Processing resize-only mode');
       
       templates
@@ -252,12 +252,12 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       // Select templates based on scenario
       const templates = scenario === 'with-audio' ? RESIZE_TEMPLATES : CREATOMATE_TEMPLATES;
       
-      // Определяем тип варианта и соответствующий шаблон
+      // Determine variant type and corresponding template
       let template: any;
       let packshot: string | undefined;
       
       if (variant.id.startsWith('branded-')) {
-        // Режим с брендами
+        // Branded mode
         const parts = variant.id.split('-');
         const brandId = parts[1];
         const brand = AVAILABLE_BRANDS.find(b => b.id === brandId);
@@ -281,7 +281,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           console.log(`🏷️ Branded variant - Brand: ${brand?.name}, No packshot`);
         }
       } else {
-        // Режим без брендов
+        // Resize-only mode
         template = templates.find(t => variant.size === t.size);
         console.log(`📋 Resize-only variant using template: ${template?.name}`);
       }
@@ -328,15 +328,15 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       
       if (errorCount === 0) {
         console.log('🎉 All variants completed successfully!');
-        toast.success('Все варианты видео готовы!');
+        toast.success('All video variants are ready!');
       } else if (completedCount > 0) {
-        toast.success(`${completedCount} вариантов готовы, ${errorCount} с ошибками`);
+        toast.success(`${completedCount} variants ready, ${errorCount} with errors`);
       } else {
-        toast.error('Все варианты завершились с ошибками');
+        toast.error('All variants completed with errors');
       }
     } catch (error) {
       console.error('💥 Critical error during generation:', error);
-      toast.error('Ошибка при генерации видео');
+      toast.error('Error generating videos');
     } finally {
       console.log('🏁 Generation process finished');
       setIsGenerating(false);
@@ -492,7 +492,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       setVariants(prev => prev.map(v => 
         v.id === variant.id ? { ...v, status: 'error' } : v
       ));
-      toast.error(`Ошибка генерации ${variant.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Generation error for ${variant.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -500,14 +500,14 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
     if (variant.url) {
       // Open in new tab instead of downloading to avoid blocking current page
       window.open(variant.url, '_blank');
-      toast.success(`Открыто в новой вкладке: ${variant.name}`);
+      toast.success(`Opened in new tab: ${variant.name}`);
     }
   };
 
   const downloadAllVariants = () => {
     const completedVariants = variants.filter(v => v.status === 'completed' && v.url);
     if (completedVariants.length === 0) {
-      toast.error('Нет готовых видео для скачивания');
+      toast.error('No completed videos to download');
       return;
     }
 
@@ -517,7 +517,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
       }, index * 200); // Delay to avoid popup blocker
     });
 
-    toast.success(`Открыто ${completedVariants.length} вкладок с видео`);
+    toast.success(`Opened ${completedVariants.length} video tabs`);
   };
 
   const getStatusColor = (status: VideoVariant['status']) => {
@@ -548,7 +548,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5 text-video-primary" />
-                Настройка API
+                API Setup
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
@@ -557,20 +557,20 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 <Input
                   id="api-key"
                   type="password"
-                  placeholder="Введите ваш API ключ Creatomate"
+                  placeholder="Enter your Creatomate API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   className="bg-video-surface-elevated border-video-primary/30"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Получите API ключ на{' '}
+                  Get your API key from{' '}
                   <a 
                     href="https://creatomate.com/dashboard" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-video-primary hover:underline"
                   >
-                    панели управления Creatomate
+                    Creatomate dashboard
                   </a>
                 </p>
               </div>
@@ -585,11 +585,11 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           <div className="flex items-center justify-center gap-2 mb-4">
             <Video className="h-8 w-8 text-video-primary" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-video-primary to-video-secondary bg-clip-text text-transparent">
-              Генератор Видео Вариаций
+              Video Variations Generator
             </h1>
           </div>
            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Выберите сценарий для создания видео
+              Choose a scenario to create your video
             </p>
         </div>
 
@@ -599,9 +599,9 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           <Card className="p-8 bg-video-surface border-video-primary/20">
             <div className="space-y-6">
               <div className="text-center space-y-4">
-                <h2 className="text-2xl font-semibold">Выберите сценарий работы</h2>
+                <h2 className="text-2xl font-semibold">Choose your workflow</h2>
                 <p className="text-muted-foreground">
-                  Определите, какой тип видео вы хотите создать
+                  Select the type of video you want to create
                 </p>
               </div>
               
@@ -613,8 +613,8 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 >
                   <Video className="h-8 w-8 text-video-primary" />
                   <div className="text-center">
-                    <div className="font-semibold">Ресайзы + Ребренды. Без работы над текстом</div>
-                    <div className="text-sm text-muted-foreground">Загрузите видео с готовой озвучкой</div>
+                    <div className="font-semibold">Resizes + Rebrands. No text editing</div>
+                    <div className="text-sm text-muted-foreground">Upload video with voiceover</div>
                   </div>
                 </Button>
                 
@@ -625,8 +625,8 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 >
                   <Zap className="h-8 w-8 text-video-primary" />
                   <div className="text-center">
-                    <div className="font-semibold">Сбор аудио- и видеоэлементов. Работа над текстом</div>
-                    <div className="text-sm text-muted-foreground">Каждый текст озвучивается отдельно</div>
+                    <div className="font-semibold">Audio and Video Assembly. Text editing</div>
+                    <div className="text-sm text-muted-foreground">Each text is voiced separately</div>
                   </div>
                 </Button>
               </div>
@@ -649,7 +649,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
               <Upload className="h-6 w-6 text-video-primary" />
-              <h2 className="text-2xl font-semibold">Исходное видео</h2>
+              <h2 className="text-2xl font-semibold">Source Video</h2>
             </div>
             
             <div className="border-2 border-dashed border-video-primary/30 rounded-lg p-8 text-center hover:border-video-primary/50 transition-colors">
@@ -668,10 +668,10 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 </div>
                 <div>
                   <p className="text-lg font-medium">
-                    {uploadedVideo ? uploadedVideo.file.name : isUploading ? 'Загружаю видео...' : 'Загрузите видео файл'}
+                    {uploadedVideo ? uploadedVideo.file.name : isUploading ? 'Uploading video...' : 'Upload video file'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Поддерживаемые форматы: MP4, MOV, AVI
+                    Supported formats: MP4, MOV, AVI
                   </p>
                 </div>
               </label>
@@ -681,7 +681,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Upload className="h-4 w-4 text-video-primary" />
-                  <span className="text-sm">Загрузка видео...</span>
+                  <span className="text-sm">Uploading video...</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
               </div>
@@ -693,7 +693,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 <div>
                   <p className="font-medium">{uploadedVideo.file.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Размер: {(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)} MB
+                    Size: {(uploadedVideo.file.size / (1024 * 1024)).toFixed(1)} MB
                   </p>
                 </div>
               </div>
@@ -708,16 +708,16 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-4">
               <Settings className="h-6 w-6 text-video-primary" />
-              <h2 className="text-2xl font-semibold">Параметры генерации</h2>
+              <h2 className="text-2xl font-semibold">Generation Settings</h2>
             </div>
 
             <div className="space-y-6">
               {/* Common Parameters Section - only for chunked-audio */}
               {scenario === 'chunked-audio' && (
                 <div className="space-y-4 p-4 border rounded-lg bg-video-surface-elevated">
-                  <h3 className="font-medium text-lg">Общие параметры</h3>
+                  <h3 className="font-medium text-lg">General Settings</h3>
                   <div className="text-xs text-muted-foreground mb-2">
-                    ⚠️ Логика: либо субтитры + озвучка, либо кастомный текст без озвучки
+                    ⚠️ Logic: either subtitles + voiceover, or custom text without voiceover
                   </div>
                   <div className="flex items-center space-x-2">
                     <input
@@ -739,8 +739,8 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                     />
                     <Label htmlFor="subtitle-audio-mode" className="text-sm">
                       {(subtitleVisibility === 100 && audioVolume === 100) 
-                        ? 'Субтитры + озвучка' 
-                        : 'Кастомный текст без озвучки'}
+                        ? 'Subtitles + voiceover' 
+                        : 'Custom text without voiceover'}
                     </Label>
                   </div>
                 </div>
@@ -757,14 +757,14 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                       onChange={(e) => setEnableSubtitlesCheckbox(e.target.checked)}
                       className="rounded border-video-primary/30"
                     />
-                    <Label htmlFor="enable-subtitles" className="text-sm">Показать субтитры</Label>
+                    <Label htmlFor="enable-subtitles" className="text-sm">Show subtitles</Label>
                   </div>
                 </div>
               )}
 
               {/* Size Selection */}
               <div className="space-y-4">
-                <h3 className="font-medium text-lg">Размеры видео</h3>
+                <h3 className="font-medium text-lg">Video Sizes</h3>
                  <div className="grid grid-cols-1 gap-3">
                      {(scenario === 'with-audio' ? RESIZE_TEMPLATES : CREATOMATE_TEMPLATES).map(template => (
                       <div key={template.id}>
@@ -792,7 +792,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
 
               {/* Brand Selection */}
               <div className="space-y-4">
-                <h3 className="font-medium text-lg">Выбор бренда</h3>
+                <h3 className="font-medium text-lg">Brand Selection</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {AVAILABLE_BRANDS.map(brand => (
                     <label key={brand.id} className="flex items-center space-x-3 cursor-pointer p-4 bg-video-surface-elevated rounded-lg hover:bg-video-surface-elevated/80 transition-colors">
@@ -812,7 +812,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
 
             <div className="space-y-4">
               <div className="text-sm text-muted-foreground text-center">
-                <p>Режим ресайза: ${(selectedSizes.length * 0.3).toFixed(1)} | Время генерации: ~{selectedSizes.length * 1}-{selectedSizes.length * 1.5} минут</p>
+                <p>Resize mode: ${(selectedSizes.length * 0.3).toFixed(1)} | Generation time: ~{selectedSizes.length * 1}-{selectedSizes.length * 1.5} minutes</p>
               </div>
               
               <Button 
@@ -828,12 +828,12 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                 className="w-full py-6 text-lg bg-gradient-to-r from-video-primary to-video-secondary hover:opacity-90 transition-opacity"
               >
                 <Zap className="h-5 w-5 mr-2" />
-                {isGenerating ? 'Генерирую варианты...' : isUploading ? 'Загружаю видео...' : 
+                {isGenerating ? 'Generating variants...' : isUploading ? 'Uploading video...' : 
                   (() => {
                     const totalVariants = selectedBrands.length > 0 
                       ? selectedSizes.length * selectedBrands.length 
                       : selectedSizes.length;
-                    return `Создать ${totalVariants} ${selectedBrands.length > 0 ? 'вариантов с пекшотами' : 'ресайзов'}`;
+                    return `Create ${totalVariants} ${selectedBrands.length > 0 ? 'branded variants' : 'resizes'}`;
                   })()
                 }
               </Button>
@@ -848,11 +848,11 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Zap className="h-5 w-5 text-info animate-pulse" />
-                <h3 className="font-medium">Прогресс генерации</h3>
+                <h3 className="font-medium">Generation Progress</h3>
               </div>
               <Progress value={overallProgress} className="h-2" />
               <p className="text-sm text-muted-foreground">
-                {Math.round(overallProgress)}% завершено
+                {Math.round(overallProgress)}% completed
               </p>
             </div>
           </Card>
@@ -864,14 +864,14 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
                 <Video className="h-6 w-6 text-video-primary" />
-                <h2 className="text-2xl font-semibold">Результаты</h2>
+                <h2 className="text-2xl font-semibold">Results</h2>
                 {variants.filter(v => v.status === 'completed').length > 1 && (
                   <Button 
                     onClick={downloadAllVariants}
                     className="bg-success hover:bg-success/90"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Скачать все ({variants.filter(v => v.status === 'completed').length})
+                    Download all ({variants.filter(v => v.status === 'completed').length})
                   </Button>
                 )}
               </div>
@@ -883,15 +883,15 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                       <div className="flex items-center justify-between">
                         <h3 className="font-medium truncate">{variant.name}</h3>
                         <Badge className={`${getStatusColor(variant.status)} text-white border-0`}>
-                          {variant.status === 'pending' && 'Ожидание'}
-                          {variant.status === 'generating' && 'Создание'}
-                          {variant.status === 'completed' && 'Готово'}
-                          {variant.status === 'error' && 'Ошибка'}
+                          {variant.status === 'pending' && 'Pending'}
+                          {variant.status === 'generating' && 'Generating'}
+                          {variant.status === 'completed' && 'Ready'}
+                          {variant.status === 'error' && 'Error'}
                         </Badge>
                       </div>
                       
                       <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>Размер: {variant.dimensions}</p>
+                        <p>Size: {variant.dimensions}</p>
                       </div>
 
                       {variant.status === 'generating' && (
@@ -909,7 +909,7 @@ const VideoGenerator = ({ scenario: propScenario }: VideoGeneratorProps = {}) =>
                           className="w-full bg-success hover:bg-success/90"
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Скачать
+                          Download
                         </Button>
                       )}
                     </div>

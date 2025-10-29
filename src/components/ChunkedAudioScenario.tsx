@@ -19,8 +19,8 @@ interface AudioChunk {
   text: string;
   audioUrl?: string;
   audioDuration?: number;
-  effectiveDuration?: number; // Минимум 2 секунды или реальная длительность
-  startTime?: number; // Время начала на таймлайне
+  effectiveDuration?: number; // Minimum 2 seconds or actual duration
+  startTime?: number; // Start time on timeline
   isGenerating: boolean;
   videoFile?: UploadedVideo;
 }
