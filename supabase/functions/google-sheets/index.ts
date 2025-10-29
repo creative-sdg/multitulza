@@ -43,8 +43,15 @@ serve(async (req) => {
     
     const credentials = JSON.parse(credentialsJson);
     
-    // Get OAuth token
-    const jwtHeader = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+    // Get OAuth token - using URL-safe base64 encoding for JWT
+    const base64UrlEncode = (str: string) => {
+      return btoa(str)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    };
+    
+    const jwtHeader = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
     const now = Math.floor(Date.now() / 1000);
     const jwtClaimSet = {
       iss: credentials.client_email,
@@ -53,7 +60,7 @@ serve(async (req) => {
       exp: now + 3600,
       iat: now,
     };
-    const jwtClaimSetEncoded = btoa(JSON.stringify(jwtClaimSet));
+    const jwtClaimSetEncoded = base64UrlEncode(JSON.stringify(jwtClaimSet));
     
     const signatureInput = `${jwtHeader}.${jwtClaimSetEncoded}`;
     

@@ -93,18 +93,18 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   // Load texts from Google Sheets
   const loadTexts = async () => {
     if (selectedBrands.length === 0) {
-      toast.error('Сначала выберите хотя бы один бренд');
+      toast.error('Please select at least one brand first');
       return;
     }
 
     if (!rowNumber.trim()) {
-      toast.error('Введите номер строки');
+      toast.error('Please enter a row number');
       return;
     }
 
     const row = parseInt(rowNumber);
     if (isNaN(row) || row < 1 || row > 1000) {
-      toast.error('Номер строки должен быть от 1 до 1000');
+      toast.error('Row number must be between 1 and 1000');
       return;
     }
 
@@ -114,7 +114,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       const textBlock = await googleSheetsService.getTextBlock(row);
       
       if (!textBlock) {
-        toast.error('Строка не найдена в таблице');
+        toast.error('Row not found in the spreadsheet');
         setIsLoadingTexts(false);
         return;
       }
@@ -161,13 +161,13 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         // Load custom texts with brand replacements applied
         setCustomTexts(processedTexts);
         
-        toast.success(`Загружено ${limitedTexts.length} текстов`);
+        toast.success(`Loaded ${limitedTexts.length} texts`);
       } else {
-        toast.error('Тексты не найдены в таблице');
+        toast.error('No texts found in the spreadsheet');
       }
     } catch (error: any) {
       console.error('Error loading texts:', error);
-      toast.error(`Ошибка загрузки: ${error.message}`);
+      toast.error(`Loading error: ${error.message}`);
     } finally {
       setIsLoadingTexts(false);
     }
@@ -250,7 +250,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const generateAudio = async (chunkId: number) => {
     const chunk = chunks.find(c => c.id === chunkId);
     if (!chunk || !chunk.text.trim()) {
-      toast.error('Текст пуст');
+      toast.error('Text is empty');
       return;
     }
 
@@ -283,7 +283,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
       console.log('Audio generated successfully, duration:', data.duration);
 
-      // Рассчитываем эффективную длительность (минимум 2 секунды)
+      // Calculate effective duration (minimum 2 seconds)
       const effectiveDuration = Math.max(2, data.duration || 0);
       
       setChunks(prev => {
@@ -299,14 +299,14 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
             : c
         );
         
-        // Пересчитываем время начала для всех чанков
+        // Recalculate start times for all chunks
         return calculateStartTimes(updatedChunks);
       });
 
-      toast.success(`Звук ${chunkId} готов (${data.duration?.toFixed(1)}с, эффективная: ${effectiveDuration.toFixed(1)}с)`);
+      toast.success(`Audio ${chunkId} ready (${data.duration?.toFixed(1)}s, effective: ${effectiveDuration.toFixed(1)}s)`);
     } catch (error: any) {
       console.error('Error generating audio:', error);
-      toast.error(`Ошибка генерации звука: ${error.message}`);
+      toast.error(`Audio generation error: ${error.message}`);
       setChunks(prev => prev.map(c => 
         c.id === chunkId ? { ...c, isGenerating: false } : c
       ));
@@ -317,11 +317,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const generateAllAudio = async () => {
     const chunksToGenerate = chunks.filter(c => c.text.trim() && !c.audioUrl);
     if (chunksToGenerate.length === 0) {
-      toast.error('Нет текстов для генерации');
+      toast.error('No texts to generate');
       return;
     }
 
-    toast.success(`Начинаем генерацию ${chunksToGenerate.length} звуков...`);
+    toast.success(`Starting generation of ${chunksToGenerate.length} audio files...`);
     
     // Generate sequentially to avoid overloading
     for (const chunk of chunksToGenerate) {
@@ -354,7 +354,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       
       audio.play().catch(error => {
         console.error('Error playing audio:', error);
-        toast.error('Ошибка воспроизведения');
+        toast.error('Playback error');
         setCurrentlyPlaying(null);
       });
 
@@ -363,7 +363,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
       };
 
       audio.onerror = () => {
-        toast.error('Ошибка воспроизведения');
+        toast.error('Playback error');
         setCurrentlyPlaying(null);
       };
     }
@@ -378,7 +378,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         setChunks(prev => prev.map(c => 
           c.id === chunkId ? { ...c, videoFile: uploaded } : c
         ));
-        toast.success(`Видео для звука ${chunkId} загружено`);
+        toast.success(`Video for audio ${chunkId} uploaded`);
       }
     }
   };
@@ -398,7 +398,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   // Add new chunk
   const addChunk = () => {
     if (chunks.length >= 10) {
-      toast.error('Максимум 10 кусочков');
+      toast.error('Maximum 10 chunks');
       return;
     }
     
@@ -417,7 +417,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
     return chunks.map((chunk) => {
       const updatedChunk = { ...chunk, startTime: currentTime };
       
-      // Добавляем эффективную длительность к текущему времени для следующего чанка
+      // Add effective duration to current time for the next chunk
       if (chunk.effectiveDuration) {
         currentTime += chunk.effectiveDuration;
       }
@@ -430,7 +430,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
   const handleReady = () => {
     const readyChunks = chunks.filter(c => c.text.trim());
     if (readyChunks.length === 0) {
-      toast.error('Добавьте хотя бы один текст');
+      toast.error('Add at least one text');
       return;
     }
     
@@ -462,11 +462,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-video-primary" />
-            <h3 className="text-lg font-semibold">Выбор брендов</h3>
+            <h3 className="text-lg font-semibold">Brand Selection</h3>
           </div>
           
           <div className="space-y-3">
-            <Label>Выберите бренды для автоматической замены в текстах и пекшотов:</Label>
+            <Label>Select brands for automatic replacement in texts and packshots:</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {AVAILABLE_BRANDS.map(brand => {
                 const isSelected = selectedBrands.includes(brand.id);
@@ -492,13 +492,13 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
             
             {selectedBrands.length > 1 && (
               <div className="p-3 bg-info/10 border border-info/30 rounded-lg text-sm text-info">
-                ⚠️ Внимание: Выбрано {selectedBrands.length} бренда. Текст будет показан с заменой на {AVAILABLE_BRANDS.find(b => b.id === selectedBrands[0])?.name}, но при рендере будут автоматически созданы версии для всех выбранных брендов.
+                ⚠️ Warning: {selectedBrands.length} brands selected. Text will be shown with {AVAILABLE_BRANDS.find(b => b.id === selectedBrands[0])?.name} replacement, but during rendering versions will be automatically created for all selected brands.
               </div>
             )}
             
             {selectedBrands.length === 0 && (
               <div className="p-3 bg-muted/50 border border-muted rounded-lg text-sm text-muted-foreground">
-                Выберите хотя бы один бренд для продолжения
+                Select at least one brand to continue
               </div>
             )}
           </div>
@@ -511,7 +511,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-video-primary" />
             <h3 className="text-lg font-semibold">
-              Загрузка текстов из{' '}
+              Load texts from{' '}
               <a 
                 href="https://docs.google.com/spreadsheets/d/18fQlTTutBAtuS3NUCEGGmjou5wfw0nj_X3J8Kv88eMM/"
                 target="_blank"
@@ -525,17 +525,17 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <Label>ID таблицы Google Sheets</Label>
+              <Label>Google Sheets table ID</Label>
               <Input
-                placeholder="ID таблицы Google Sheets..."
+                placeholder="Google Sheets table ID..."
                 value={tableId}
                 onChange={(e) => setTableId(e.target.value)}
               />
             </div>
             <div>
-              <Label>Номер строки (1-1000)</Label>
+              <Label>Row number (1-1000)</Label>
               <Input
-                placeholder="Номер строки..."
+                placeholder="Row number..."
                 value={rowNumber}
                 onChange={(e) => setRowNumber(e.target.value)}
                 type="number"
@@ -549,7 +549,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
             disabled={isLoadingTexts || selectedBrands.length === 0}
             className="bg-video-primary hover:bg-video-primary-hover w-full"
           >
-            {isLoadingTexts ? 'Загрузка...' : 'Загрузить тексты из столбцов H-Q'}
+            {isLoadingTexts ? 'Loading...' : 'Load texts from columns H-Q'}
           </Button>
         </div>
       </Card>
@@ -560,19 +560,19 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Volume2 className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Выбор голоса</h3>
+              <h3 className="text-lg font-semibold">Voice Selection</h3>
             </div>
             
             <div>
-              <Label>Выберите голос для озвучки</Label>
+              <Label>Select voice for voiceover</Label>
               <Select value={selectedVoice} onValueChange={setSelectedVoice}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите голос" />
+                  <SelectValue placeholder="Select voice" />
                 </SelectTrigger>
                 <SelectContent>
                   {AVAILABLE_VOICES.filter(voice => voice.language === 'en').map(voice => (
                     <SelectItem key={voice.id} value={voice.id}>
-                      {voice.name} ({voice.gender === 'male' ? 'Мужской' : 'Женский'})
+                      {voice.name} ({voice.gender === 'male' ? 'Male' : 'Female'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -588,15 +588,15 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Music className="h-5 w-5 text-video-primary" />
-              <h3 className="text-lg font-semibold">Выбор музыки</h3>
+              <h3 className="text-lg font-semibold">Music Selection</h3>
             </div>
             
             <div>
-              <Label>Выберите музыкальный трек</Label>
+              <Label>Select music track</Label>
               <div className="flex gap-2">
                 <Select value={selectedMusicId} onValueChange={setSelectedMusicId}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Выберите трек..." />
+                    <SelectValue placeholder="Select track..." />
                   </SelectTrigger>
                   <SelectContent>
                     {AVAILABLE_MUSIC.map(track => (
@@ -629,7 +629,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                           audio.addEventListener('ended', () => setIsMusicPlaying(false));
                           audio.play().catch(error => {
                             console.error('Error playing music:', error);
-                            toast.error('Ошибка воспроизведения музыки');
+                            toast.error('Music playback error');
                             setIsMusicPlaying(false);
                           });
                           
@@ -646,11 +646,11 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
               </div>
               {selectedMusicId && (
                 <div className="mt-2 p-2 bg-video-surface-elevated rounded text-xs text-muted-foreground">
-                  Выбран трек: {AVAILABLE_MUSIC.find(m => m.id === selectedMusicId)?.name}
+                  Selected track: {AVAILABLE_MUSIC.find(m => m.id === selectedMusicId)?.name}
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-2">
-                Треки хранятся в public/music/. Добавьте свои файлы и обновите AVAILABLE_MUSIC в creatomateService.ts
+                Tracks are stored in public/music/. Add your files and update AVAILABLE_MUSIC in creatomateService.ts
               </p>
             </div>
           </div>
@@ -664,7 +664,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Volume2 className="h-5 w-5 text-video-primary" />
-                <h3 className="text-lg font-semibold">Звуки по кусочкам ({chunks.length}/10)</h3>
+                <h3 className="text-lg font-semibold">Audio Chunks ({chunks.length}/10)</h3>
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -672,7 +672,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                   className="bg-video-primary hover:bg-video-primary-hover"
                   disabled={chunks.some(c => c.isGenerating)}
                 >
-                  Сгенерировать все звуки
+                  Generate All Audio
                 </Button>
                 <Button 
                   onClick={addChunk}
@@ -680,7 +680,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                   disabled={chunks.length >= 10}
                   className="border-video-primary/30"
                 >
-                  Добавить кусочек
+                  Add Chunk
                 </Button>
               </div>
             </div>
@@ -691,7 +691,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="border-video-primary/30">
-                        Звук {chunk.id}
+                        Audio {chunk.id}
                       </Badge>
                       <Button
                         variant="ghost"
@@ -705,9 +705,9 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
 
                     {/* Text */}
                     <div>
-                      <Label>Текст</Label>
+                      <Label>Text</Label>
                       <Textarea
-                        placeholder="Введите текст для озвучки..."
+                        placeholder="Enter text for voiceover..."
                         value={chunk.text}
                         onChange={(e) => updateChunkText(chunk.id, e.target.value)}
                         rows={3}
@@ -722,7 +722,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                         className="bg-video-primary hover:bg-video-primary-hover w-full"
                         size="sm"
                       >
-                        {chunk.isGenerating ? 'Генерация...' : 'Генерировать'}
+                        {chunk.isGenerating ? 'Generating...' : 'Generate'}
                       </Button>
                       
                       {chunk.audioUrl && (
@@ -736,12 +736,12 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                             {currentlyPlaying === chunk.id ? (
                               <>
                                 <Pause className="h-4 w-4 mr-1" />
-                                Стоп
+                                Stop
                               </>
                             ) : (
                               <>
                                 <Play className="h-4 w-4 mr-1" />
-                                Играть
+                                Play
                               </>
                             )}
                           </Button>
@@ -751,7 +751,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                             onClick={() => generateAudio(chunk.id)}
                             disabled={chunk.isGenerating}
                             className="border-video-primary/30 px-3"
-                            title="Перегенерировать"
+                            title="Regenerate"
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
@@ -762,15 +762,15 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                     {/* Duration Info */}
                     {chunk.audioDuration && (
                       <div className="text-xs text-muted-foreground space-y-1">
-                        <div>Длительность: {chunk.audioDuration.toFixed(1)}с</div>
-                        <div>Эффективная: {chunk.effectiveDuration?.toFixed(1)}с</div>
-                        <div>Старт: {chunk.startTime?.toFixed(1)}с</div>
+                        <div>Duration: {chunk.audioDuration.toFixed(1)}s</div>
+                        <div>Effective: {chunk.effectiveDuration?.toFixed(1)}s</div>
+                        <div>Start: {chunk.startTime?.toFixed(1)}s</div>
                       </div>
                     )}
 
                     {/* Video Upload */}
                     <div>
-                      <Label>Видео для этого звука</Label>
+                      <Label>Video for this audio</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <input
                           type="file"
@@ -784,7 +784,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                           className="flex items-center justify-center gap-2 px-3 py-2 border border-video-primary/30 rounded-md cursor-pointer hover:bg-video-primary/10 w-full text-sm"
                         >
                           <Upload className="h-4 w-4" />
-                          {chunk.videoFile ? 'Изменить' : 'Загрузить'}
+                          {chunk.videoFile ? 'Change' : 'Upload'}
                         </label>
                         {chunk.videoFile && (
                           <div className="flex items-center justify-center mt-2">
@@ -823,7 +823,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                   className="bg-video-primary hover:bg-video-primary-hover"
                   size="lg"
                 >
-                  Готово к генерации
+                  Ready to Generate
                 </Button>
               </div>
             )}
@@ -831,7 +831,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
         </Card>
       )}
 
-      {/* Кастомный текст */}
+      {/* Custom Text */}
       {chunks.length > 0 && (
         <Card className="p-6 bg-video-surface border-video-primary/20">
           <div className="space-y-4">
@@ -841,17 +841,17 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                 checked={customTextEnabled} 
                 onCheckedChange={(checked) => setCustomTextEnabled(checked === true)}
               />
-              <Label htmlFor="custom-text" className="text-sm font-medium">Кастомный текст</Label>
+              <Label htmlFor="custom-text" className="text-sm font-medium">Custom Text</Label>
             </div>
             
             {customTextEnabled && (
               <div className="space-y-2 p-4 border rounded-lg">
                 <Label className="text-sm text-muted-foreground">
-                  Редактировать текстовые блоки (максимум 10)
+                  Edit text blocks (maximum 10)
                 </Label>
                 {customTexts.slice(0, 10).map((text, index) => (
                   <div key={index} className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Блок {index + 1}</Label>
+                    <Label className="text-xs text-muted-foreground">Block {index + 1}</Label>
                     <Textarea
                       value={text}
                       onChange={(e) => {
@@ -859,7 +859,7 @@ const ChunkedAudioScenario: React.FC<ChunkedAudioScenarioProps> = ({ onReady, on
                         newTexts[index] = e.target.value;
                         setCustomTexts(newTexts);
                       }}
-                      placeholder={`Текст для блока ${index + 1}`}
+                      placeholder={`Text for block ${index + 1}`}
                       className="min-h-[60px]"
                     />
                   </div>
