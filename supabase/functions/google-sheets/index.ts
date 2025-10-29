@@ -43,59 +43,60 @@ serve(async (req) => {
     
     const credentials = JSON.parse(credentialsJson);
     
-    // Get OAuth token - using URL-safe base64 encoding for JWT
-    const base64UrlEncode = (str: string) => {
-      return btoa(str)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
+    // Helper function for base64url encoding
+    const base64UrlEncode = (data: Uint8Array): string => {
+      const base64 = btoa(String.fromCharCode(...data));
+      return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    };
+
+    // Create JWT for Google OAuth
+    const now = Math.floor(Date.now() / 1000);
+    
+    const header = {
+      alg: "RS256",
+      typ: "JWT"
     };
     
-    const jwtHeader = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-    const now = Math.floor(Date.now() / 1000);
-    const jwtClaimSet = {
+    const claimSet = {
       iss: credentials.client_email,
       scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
       aud: "https://oauth2.googleapis.com/token",
       exp: now + 3600,
-      iat: now,
+      iat: now
     };
-    const jwtClaimSetEncoded = base64UrlEncode(JSON.stringify(jwtClaimSet));
     
-    const signatureInput = `${jwtHeader}.${jwtClaimSetEncoded}`;
+    const headerEncoded = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)));
+    const claimSetEncoded = base64UrlEncode(new TextEncoder().encode(JSON.stringify(claimSet)));
+    const signatureInput = `${headerEncoded}.${claimSetEncoded}`;
     
-    // Import private key
-    const privateKey = credentials.private_key;
-    const pemContents = privateKey
-      .replace("-----BEGIN PRIVATE KEY-----", "")
-      .replace("-----END PRIVATE KEY-----", "")
-      .replace(/\s/g, "");
+    // Import and use private key
+    const privateKeyPem = credentials.private_key;
+    const pemContents = privateKeyPem
+      .replace(/-----BEGIN PRIVATE KEY-----/, '')
+      .replace(/-----END PRIVATE KEY-----/, '')
+      .replace(/\s/g, '');
     
     const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
     
     const cryptoKey = await crypto.subtle.importKey(
-      "pkcs8",
+      'pkcs8',
       binaryKey,
       {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256",
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: 'SHA-256',
       },
       false,
-      ["sign"]
+      ['sign']
     );
     
-    const signature = await crypto.subtle.sign(
-      "RSASSA-PKCS1-v1_5",
+    const signatureArrayBuffer = await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
       cryptoKey,
       new TextEncoder().encode(signatureInput)
     );
     
-    const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-    
-    const jwt = `${jwtHeader}.${jwtClaimSetEncoded}.${signatureBase64}`;
+    const signatureEncoded = base64UrlEncode(new Uint8Array(signatureArrayBuffer));
+    const jwt = `${headerEncoded}.${claimSetEncoded}.${signatureEncoded}`;
     
     // Get access token
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
